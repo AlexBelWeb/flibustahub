@@ -245,6 +245,13 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	}
 	mark("records", tRec)
 
+	tAn := time.Now()
+	if err := db.Analyze(ctx, conn); err != nil {
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	mark("analyze", tAn)
+
 	emit(Progress{Phase: PhaseFTS, RecordsSeen: seen})
 	tFTS := time.Now()
 	if err := db.RebuildWorksFTS(ctx, conn); err != nil {
@@ -259,14 +266,12 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	mark("warmup", tWarm)
-	tAn := time.Now()
-	if err := db.Analyze(ctx, conn); err != nil {
+	if err := db.Optimize(ctx, conn); err != nil {
 		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	mark("analyze", tAn)
 	_ = db.WarmCache(ctx, conn)
+	mark("warmup", tWarm)
 	if err := db.SetFTSDirty(ctx, conn, false); err != nil {
 		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)

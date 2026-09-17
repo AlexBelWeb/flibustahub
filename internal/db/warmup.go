@@ -85,6 +85,12 @@ func Analyze(ctx context.Context, e Execer) error {
 	return err
 }
 
+// Optimize runs PRAGMA optimize after materialized tables have been rebuilt.
+func Optimize(ctx context.Context, e Execer) error {
+	_, err := e.ExecContext(ctx, "PRAGMA optimize")
+	return err
+}
+
 // WarmCache runs the post-import cache touch queries.
 func WarmCache(ctx context.Context, e Execer) error {
 	var n int

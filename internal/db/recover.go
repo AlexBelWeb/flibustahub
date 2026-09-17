@@ -46,6 +46,9 @@ func (d *DB) RecoverSearchIndex(ctx context.Context) error {
 	if !needFTS && !needWarm {
 		return nil
 	}
+	if err := Analyze(ctx, d.Write); err != nil {
+		return err
+	}
 	if needFTS {
 		if err := RebuildWorksFTS(ctx, d.Write); err != nil {
 			return err
@@ -55,7 +58,7 @@ func (d *DB) RecoverSearchIndex(ctx context.Context) error {
 		if err := WarmUpCatalog(ctx, d.Write); err != nil {
 			return err
 		}
-		if err := Analyze(ctx, d.Write); err != nil {
+		if err := Optimize(ctx, d.Write); err != nil {
 			return err
 		}
 		_ = WarmCache(ctx, d.Write)
