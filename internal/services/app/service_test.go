@@ -54,6 +54,9 @@ func TestBootstrapSurfacesStartupError(t *testing.T) {
 	if got.StartupError == nil || got.StartupError.Code != apperr.CodeDBOpenFailed {
 		t.Fatalf("startup = %+v", got.StartupError)
 	}
+	if got.SearchIndexReady {
+		t.Fatal("search index must not be ready without a catalog")
+	}
 }
 
 func TestRetryStartupOpensCatalog(t *testing.T) {

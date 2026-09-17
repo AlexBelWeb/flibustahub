@@ -5,11 +5,14 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
+	"github.com/alexbelweb/flibustahub/internal/data"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
+	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
 )
 
 // Service owns bootstrap state that is not tied to a UI toolkit.
@@ -20,7 +23,13 @@ type Service struct {
 	commit   string
 	built    string
 	catalog  *db.DB
+	importer *inpximport.Service
 	startErr error
+
+	importMu     sync.Mutex
+	importing    bool
+	importCancel context.CancelFunc
+	lastProgress inpximport.Progress
 }
 
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
@@ -31,6 +40,11 @@ func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Se
 func (s *Service) AttachCatalog(catalog *db.DB, startup error) {
 	s.catalog = catalog
 	s.startErr = startup
+	if catalog != nil {
+		s.importer = inpximport.New(catalog, s.log)
+	} else {
+		s.importer = nil
+	}
 }
 
 func (s *Service) Catalog() *db.DB {
@@ -55,6 +69,7 @@ type Bootstrap struct {
 	Capabilities      platform.Capabilities `json:"capabilities"`
 	LibraryRoot       string                `json:"libraryRoot"`
 	Paths             config.Paths          `json:"paths"`
+	SearchIndexReady  bool                  `json:"searchIndexReady"`
 	StartupError      *apperr.Public        `json:"startupError,omitempty"`
 }
 
@@ -77,6 +92,7 @@ func (s *Service) Bootstrap() Bootstrap {
 		Capabilities:      caps,
 		LibraryRoot:       live.LibraryRoot,
 		Paths:             s.cfg.Paths(),
+		SearchIndexReady:  s.catalog != nil && s.catalog.SearchIndexReady(),
 	}
 	if s.startErr != nil {
 		p := apperr.As(s.startErr).Public()
@@ -141,8 +157,19 @@ func (s *Service) RetryStartup() Bootstrap {
 		BackupsDir: paths.BackupsDir,
 		Log:        s.Logger(),
 	})
+	if catalog != nil {
+		data.Load(paths.DataDir, s.Logger())
+		if err := catalog.SyncGenreNames(context.Background()); err != nil {
+			s.Logger().Warn("genre names not synced", "err", err)
+		}
+	}
 	s.catalog = catalog
 	s.startErr = dbErr
+	if catalog != nil {
+		s.importer = inpximport.New(catalog, s.Logger())
+	} else {
+		s.importer = nil
+	}
 	return s.Bootstrap()
 }
 

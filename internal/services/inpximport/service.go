@@ -1,0 +1,454 @@
+// Package inpximport imports an INPX dump into the catalog database.
+package inpximport
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"os"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/alexbelweb/flibustahub/internal/apperr"
+	"github.com/alexbelweb/flibustahub/internal/db"
+	"github.com/alexbelweb/flibustahub/internal/inpx"
+	"github.com/alexbelweb/flibustahub/internal/repositories"
+)
+
+const (
+	PhaseReading = "reading"
+	PhaseRecords = "records"
+	PhaseFTS     = "fts"
+	PhaseWarmup  = "warmup"
+
+	StatusRunning   = "running"
+	StatusDone      = "done"
+	StatusFailed    = "failed"
+	StatusCancelled = "cancelled"
+)
+
+// Progress is the backend contract the UI will bind to Wails events.
+type Progress struct {
+	Phase        string `json:"phase"`
+	RecordsSeen  int    `json:"recordsSeen"`
+	RecordsTotal int    `json:"recordsTotal,omitempty"`
+	BytesDone    int64  `json:"bytesDone"`
+	BytesTotal   int64  `json:"bytesTotal"`
+	Committed    bool   `json:"committed"`
+}
+
+// Notes is stored in import_batches.notes as JSON.
+type Notes struct {
+	MissingArchives      []string           `json:"missing_archives"`
+	MissingArchivesTotal int                `json:"missing_archives_total"`
+	UnnamedGenres        []string           `json:"unnamed_genres"`
+	UnnamedGenresTotal   int                `json:"unnamed_genres_total"`
+	SkippedMalformed     int                `json:"skipped_malformed"`
+	SkippedNoLibID       int                `json:"skipped_no_libid"`
+	Encodings            inpx.EncodingStats `json:"encodings"`
+	GenreNamesMapped     int                `json:"genre_names_mapped"`
+	PhasesMS             map[string]int     `json:"phases_ms,omitempty"`
+}
+
+// Report is the finished import_batches row plus parsed notes.
+type Report struct {
+	ID                  int64
+	Status              string
+	INPXPath            string
+	INPXVersion         string
+	RecordsSeen         int
+	WorksAdded          int
+	EditionsAdded       int
+	EditionsUpdated     int
+	EditionsDeactivated int
+	LibIDCollisions     int
+	Notes               Notes
+}
+
+// Options configure one import run.
+type Options struct {
+	LibraryRoot   string
+	INPXPath      string
+	Now           func() time.Time
+	Progress      func(Progress)
+	RecordsProbe  func(tx *sql.Tx) error     // tests: inspect FTS during records
+	BeforeFTS     func(conn *sql.Conn) error // tests: inspect stats/plan before rebuild
+	OnRecordsTick func(RecordsTick)          // tests/bench: throughput every 10k rows
+}
+
+// RecordsTick is the records-phase throughput sample taken every 10 000 rows.
+type RecordsTick struct {
+	Seen      int
+	ElapsedMS int
+	DeltaMS   int
+}
+
+// Service imports dumps using the catalog write pool.
+type Service struct {
+	catalog *db.DB
+	log     *slog.Logger
+}
+
+func New(catalog *db.DB, log *slog.Logger) *Service {
+	if log == nil {
+		log = slog.Default()
+	}
+	return &Service{catalog: catalog, log: log}
+}
+
+func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
+	if opt.Now == nil {
+		opt.Now = time.Now
+	}
+	path, err := inpx.FindINPX(opt.LibraryRoot, opt.INPXPath)
+	if err != nil {
+		return Report{}, apperr.Wrap(apperr.CodeINPXNotFound, err, nil)
+	}
+
+	phases := map[string]int{}
+	mark := func(name string, start time.Time) {
+		phases[name] = int(time.Since(start).Milliseconds())
+	}
+
+	tBackup := time.Now()
+	if _, err := s.catalog.Backup(ctx); err != nil {
+		return Report{}, err
+	}
+	mark("backup", tBackup)
+
+	conn, err := s.catalog.Write.Conn(ctx)
+	if err != nil {
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	defer func() { _ = conn.Close() }()
+
+	if err := db.ApplyImportPragmas(ctx, conn); err != nil {
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	defer func() { _ = db.RestoreWorkPragmas(context.Background(), conn) }()
+
+	started := opt.Now().UTC().Format(time.RFC3339)
+	batchID, err := repositories.InsertRunningBatch(ctx, conn, started, StatusRunning, path)
+	if err != nil {
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+
+	var committed atomic.Bool
+	rawEmit := throttleProgress(opt.Progress)
+	emit := func(p Progress) {
+		if committed.Load() {
+			p.Committed = true
+		}
+		rawEmit(p)
+	}
+	emit(Progress{Phase: PhaseReading})
+
+	tRead := time.Now()
+	st, err := os.Stat(path)
+	if err != nil {
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, Report{INPXPath: path}, Notes{}, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeINPXNotFound, err, nil)
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, Report{INPXPath: path}, Notes{}, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	metaPeek, err := inpx.PeekMeta(f, st.Size())
+	_ = f.Close()
+	if err != nil {
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, Report{INPXPath: path}, Notes{}, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	missing := inpx.MissingArchives(opt.LibraryRoot, metaPeek.Archives)
+	notes := Notes{
+		MissingArchives:      clip(missing, 80),
+		MissingArchivesTotal: len(missing),
+	}
+	s.log.Info("inpx selected", "path", path, "version", metaPeek.Version,
+		"version_encoding", metaPeek.Encodings.VersionInfo, "collection_encoding", metaPeek.Encodings.CollectionInfo)
+	mark("reading", tRead)
+	if err := repositories.SetBatchVersion(ctx, conn, batchID, metaPeek.Version); err != nil {
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+
+	bytesTotal := metaPeek.InpBytesTotal
+	emit(Progress{Phase: PhaseRecords, BytesDone: 0, BytesTotal: bytesTotal})
+
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	rollback := func() { _ = tx.Rollback() }
+
+	if err := db.DropWorksFTSTriggers(ctx, tx); err != nil {
+		rollback()
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, Report{INPXPath: path}, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	if err := db.SetFTSDirty(ctx, tx, true); err != nil {
+		rollback()
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+
+	prep, err := repositories.PrepareImport(ctx, tx, opt.Now())
+	if err != nil {
+		rollback()
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	defer prep.Close()
+
+	rep := Report{ID: batchID, INPXPath: path, INPXVersion: metaPeek.Version, Status: StatusDone}
+	tRec := time.Now()
+	lastTick := tRec
+	seen := 0
+	probed := false
+	f2, err := os.Open(path)
+	if err != nil {
+		rollback()
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	meta, err := inpx.WalkRecordsProgress(f2, st.Size(), func(rec inpx.Record, bytesDone, total int64) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		res, err := prep.Apply(ctx, rec)
+		if err != nil {
+			return err
+		}
+		seen++
+		if seen%10000 == 0 {
+			now := time.Now()
+			tick := RecordsTick{
+				Seen:      seen,
+				ElapsedMS: int(now.Sub(tRec).Milliseconds()),
+				DeltaMS:   int(now.Sub(lastTick).Milliseconds()),
+			}
+			s.log.Info("import records", "seen", tick.Seen, "elapsed_ms", tick.ElapsedMS, "bucket_ms", tick.DeltaMS)
+			if opt.OnRecordsTick != nil {
+				opt.OnRecordsTick(tick)
+			}
+			lastTick = now
+		}
+		if res.WorkAdded {
+			rep.WorksAdded++
+		}
+		if res.EditionAdded {
+			rep.EditionsAdded++
+		}
+		if res.EditionUpdated {
+			rep.EditionsUpdated++
+		}
+		if res.Collision {
+			rep.LibIDCollisions++
+		}
+		if !probed && opt.RecordsProbe != nil {
+			probed = true
+			if err := opt.RecordsProbe(tx); err != nil {
+				return err
+			}
+		}
+		emit(Progress{Phase: PhaseRecords, RecordsSeen: seen, BytesDone: bytesDone, BytesTotal: total})
+		return nil
+	})
+	_ = f2.Close()
+	if err != nil {
+		rollback()
+		status := StatusFailed
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			status = StatusCancelled
+			err = apperr.Wrap(apperr.CodeImportCancelled, err, nil)
+		} else {
+			err = apperr.Wrap(apperr.CodeImportFailed, err, nil)
+		}
+		_ = finishBatch(ctx, conn, batchID, status, rep, notes, opt.Now)
+		return Report{}, err
+	}
+	deact, err := repositories.DeactivateMissing(ctx, tx)
+	if err != nil {
+		rollback()
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	rep.EditionsDeactivated = int(deact)
+	rep.RecordsSeen = seen
+	notes.SkippedMalformed = meta.SkippedMalformed
+	notes.SkippedNoLibID = meta.SkippedNoLibID
+	notes.Encodings = meta.Encodings
+	s.log.Info("inpx encodings", "utf8", meta.Encodings.UTF8, "cp1251", meta.Encodings.CP1251,
+		"version_info", meta.Encodings.VersionInfo, "collection_info", meta.Encodings.CollectionInfo)
+	notes.UnnamedGenres = prep.UnnamedGenres()
+	notes.UnnamedGenresTotal = prep.UnnamedTotal
+	notes.GenreNamesMapped = prep.GenreNamesMapped
+	for _, value := range prep.AmbiguousGenres() {
+		s.log.Info("genre name matches several codes, left unchanged", "value", value)
+	}
+	if err := tx.Commit(); err != nil {
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	committed.Store(true)
+	if seen > 0 && seen%10000 != 0 {
+		now := time.Now()
+		tick := RecordsTick{
+			Seen:      seen,
+			ElapsedMS: int(now.Sub(tRec).Milliseconds()),
+			DeltaMS:   int(now.Sub(lastTick).Milliseconds()),
+		}
+		s.log.Info("import records", "seen", tick.Seen, "elapsed_ms", tick.ElapsedMS, "bucket_ms", tick.DeltaMS)
+		if opt.OnRecordsTick != nil {
+			opt.OnRecordsTick(tick)
+		}
+	}
+	mark("records", tRec)
+	if bytesTotal == 0 {
+		bytesTotal = meta.InpBytesTotal
+	}
+	emit(Progress{Phase: PhaseRecords, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
+
+	postCtx := context.Background()
+	tAn := time.Now()
+	if err := db.Analyze(postCtx, conn); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	mark("analyze", tAn)
+	if opt.BeforeFTS != nil {
+		if err := opt.BeforeFTS(conn); err != nil {
+			_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+			return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+		}
+	}
+
+	emit(Progress{Phase: PhaseFTS, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
+	tFTS := time.Now()
+	if err := runWithPulse(emit, PhaseFTS, seen, bytesTotal, func() error {
+		return db.RebuildWorksFTS(postCtx, conn)
+	}); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	mark("fts", tFTS)
+
+	emit(Progress{Phase: PhaseWarmup, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
+	tWarm := time.Now()
+	if err := runWithPulse(emit, PhaseWarmup, seen, bytesTotal, func() error {
+		if err := db.WarmUpCatalog(postCtx, conn); err != nil {
+			return err
+		}
+		if err := db.Optimize(postCtx, conn); err != nil {
+			return err
+		}
+		_ = db.WarmCache(postCtx, conn)
+		return nil
+	}); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	mark("warmup", tWarm)
+	if err := db.SetFTSDirty(postCtx, conn, false); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	if err := db.SetINPXVersion(postCtx, conn, rep.INPXVersion); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+
+	notes.PhasesMS = phases
+	rep.Notes = notes
+	rep.Status = StatusDone
+	if err := finishBatch(postCtx, conn, batchID, StatusDone, rep, notes, opt.Now); err != nil {
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	return rep, nil
+}
+
+func finishBatch(_ context.Context, conn *sql.Conn, id int64, status string, rep Report, notes Notes, now func() time.Time) error {
+	raw, err := json.Marshal(notes)
+	if err != nil {
+		return err
+	}
+	return repositories.FinishBatch(context.Background(), conn, repositories.BatchFinish{
+		ID:                  id,
+		Status:              status,
+		FinishedAt:          now().UTC().Format(time.RFC3339),
+		INPXVersion:         rep.INPXVersion,
+		RecordsSeen:         rep.RecordsSeen,
+		WorksAdded:          rep.WorksAdded,
+		EditionsAdded:       rep.EditionsAdded,
+		EditionsUpdated:     rep.EditionsUpdated,
+		EditionsDeactivated: rep.EditionsDeactivated,
+		LibIDCollisions:     rep.LibIDCollisions,
+		NotesJSON:           string(raw),
+	})
+}
+
+func clip(v []string, n int) []string {
+	if len(v) <= n {
+		return v
+	}
+	return append([]string(nil), v[:n]...)
+}
+
+const (
+	progressMinRecords  = 2000
+	progressMinInterval = 100 * time.Millisecond
+	progressPulseEvery  = time.Second
+)
+
+func shouldEmitRecords(deltaSeen int, elapsed time.Duration, seen int) bool {
+	if seen == 0 {
+		return true
+	}
+	return deltaSeen >= progressMinRecords && elapsed >= progressMinInterval
+}
+
+func throttleProgress(fn func(Progress)) func(Progress) {
+	if fn == nil {
+		return func(Progress) {}
+	}
+	var last time.Time
+	var lastSeen int
+	return func(p Progress) {
+		now := time.Now()
+		if p.Phase == PhaseRecords && !p.Committed {
+			elapsed := now.Sub(last)
+			if last.IsZero() {
+				elapsed = progressMinInterval
+			}
+			if !shouldEmitRecords(p.RecordsSeen-lastSeen, elapsed, p.RecordsSeen) {
+				return
+			}
+		}
+		last = now
+		lastSeen = p.RecordsSeen
+		fn(p)
+	}
+}
+
+func runWithPulse(emit func(Progress), phase string, seen int, bytesTotal int64, fn func() error) error {
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		t := time.NewTicker(progressPulseEvery)
+		defer t.Stop()
+		for {
+			select {
+			case <-stop:
+				return
+			case <-t.C:
+				emit(Progress{Phase: phase, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
+			}
+		}
+	}()
+	err := fn()
+	close(stop)
+	wg.Wait()
+	return err
+}

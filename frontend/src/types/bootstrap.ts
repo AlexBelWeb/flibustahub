@@ -30,5 +30,6 @@ export interface Bootstrap {
   capabilities: Capabilities
   libraryRoot: string
   paths: Paths
+  searchIndexReady: boolean
   startupError?: StartupError | null
 }

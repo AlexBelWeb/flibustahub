@@ -24,6 +24,12 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.db_backup_failed', params))
     case 'open_dir_failed':
       return String(t('errors.open_dir_failed', params))
+    case 'import_cancelled':
+      return String(t('errors.import_cancelled', params))
+    case 'import_failed':
+      return String(t('errors.import_failed', params))
+    case 'inpx_not_found':
+      return String(t('errors.inpx_not_found', params))
     default:
       return String(t('errors.internal', params))
   }

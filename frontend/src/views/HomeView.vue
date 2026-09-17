@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import ImportHomeCard from '@/components/import/ImportHomeCard.vue'
 import InterfaceControls from '@/components/InterfaceControls.vue'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/stores/app'
@@ -27,7 +28,7 @@ const effectsLabel = computed(() =>
 
     <div v-if="app.loading" class="grid gap-3" aria-busy="true">
       <div class="h-24 animate-pulse rounded-2xl bg-muted" />
-      <div class="h-40 animate-pulse rounded-2xl bg-muted" />
+      <div class="h-56 animate-pulse rounded-2xl bg-muted" />
     </div>
 
     <div v-else-if="app.loadError" class="rounded-2xl border border-border bg-card p-6">
@@ -36,17 +37,17 @@ const effectsLabel = computed(() =>
     </div>
 
     <template v-else>
+      <ImportHomeCard />
+
       <section class="rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
         <InterfaceControls />
       </section>
 
-      <section class="rounded-2xl border border-dashed border-border p-6">
-        <h2 class="font-display text-xl font-medium">{{ t('home.emptyTitle') }}</h2>
-        <p class="mt-2 text-muted-foreground">{{ t('home.emptyBody') }}</p>
-        <Button as-child class="mt-4" variant="outline">
+      <p>
+        <Button as-child variant="outline">
           <RouterLink to="/settings/interface">{{ t('nav.settings') }}</RouterLink>
         </Button>
-      </section>
+      </p>
 
       <dl class="grid gap-2 font-mono text-xs text-muted-foreground tabular-nums">
         <div class="flex gap-2">

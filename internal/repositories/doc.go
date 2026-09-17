@@ -1,3 +1,2 @@
-// Package repositories is the persistence layer.
-// Schema and queries arrive in later slices; this file keeps the package in the module graph.
+// Package repositories is the persistence layer for catalog writes.
 package repositories

@@ -5,9 +5,7 @@
   },
   "home": {
     "title": "Welcome",
-    "lead": "Catalog, search and import will arrive in later updates. For now you can pick a language, a theme, and confirm that only one instance of the app is running.",
-    "emptyTitle": "Library folder is not set yet",
-    "emptyBody": "You will choose the folder with books during the first import. Interface settings are available now."
+    "lead": "Choose the folder with your books and import the catalog. Language and theme can be changed at any time."
   },
   "nav": {
     "home": "Home",
@@ -31,7 +29,11 @@
   },
   "common": {
     "retry": "Retry",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "confirm": "Continue",
+    "copy": "Copy",
+    "copied": "Copied",
+    "stay": "Stay"
   },
   "toast": {
     "duplicateCount": "×{n}"
@@ -47,7 +49,10 @@
     "db_open_failed": "Could not open the book catalog. Details were written to the log.",
     "db_migrate_failed": "Could not update the catalog schema. A migration file may have been edited after it was applied.",
     "db_backup_failed": "Could not create a catalog backup.",
-    "open_dir_failed": "Could not open the folder."
+    "open_dir_failed": "Could not open the folder.",
+    "import_cancelled": "Import was cancelled. The catalog is unchanged.",
+    "import_failed": "Could not import the catalog. Details were written to the log.",
+    "inpx_not_found": "No .inpx catalog file was found in this folder. Choose the library root that contains the dump."
   },
   "startup": {
     "title": "The app could not open its data",
@@ -61,5 +66,81 @@
     "effects": "Effects",
     "effectsFull": "full",
     "effectsReduced": "reduced"
+  },
+  "import": {
+    "title": "Library catalog",
+    "chooseFolder": "Choose books folder",
+    "changeFolder": "Choose a different folder",
+    "chooseFolderTitle": "Books folder",
+    "emptyTitle": "Books folder is not set yet",
+    "emptyBody": "Choose the library root — the folder that contains the archives and the catalog file.",
+    "folder": "Folder",
+    "dumpFile": "Catalog file",
+    "dumpVersion": "Dump version",
+    "start": "Start import",
+    "cancel": "Cancel",
+    "cancelTitle": "Cancel the import?",
+    "cancelBody": "The import has not been saved yet. The catalog will stay as it was.",
+    "cancelDisabled": "The data is already saved. The search index is being built, so cancel will not roll the catalog back.",
+    "runningTitle": "Importing catalog",
+    "reportTitle": "Import report",
+    "phase": {
+      "records": "Writing the catalog",
+      "fts": "Search index",
+      "warmup": "Warming up the catalog"
+    },
+    "recordsProcessed": "{n} record processed | {n} records processed",
+    "etaSeconds": "about {n} s left",
+    "confirmTitle": "Update the catalog",
+    "confirmBody": "The catalog will be updated from this dump. Personal ratings and notes will not change. The interface will be unavailable for about a minute.",
+    "confirmCurrentVersion": "The catalog currently has version {version}.",
+    "confirmFileVersion": "The file has version {version}.",
+    "confirmSameVersion": "This dump is already imported. Running it again will not change anything.",
+    "closeBeforeTitle": "Stop the import?",
+    "closeBeforeBody": "The import has not been saved yet. Closing the window will leave the catalog as it was.",
+    "closeAfterTitle": "Close while the index is building?",
+    "closeAfterBody": "The data is already in the catalog. Index building will stop and resume the next time the app starts.",
+    "closeAnyway": "Close the app",
+    "statusDone": "Done",
+    "statusCancelled": "Cancelled",
+    "statusFailed": "Failed",
+    "worksAdded": "Works added",
+    "editionsAdded": "Editions added",
+    "editionsUpdated": "Editions changed",
+    "editionsDeactivated": "Editions deactivated",
+    "libidCollisions": "libid collisions",
+    "recordsSeen": "Records read",
+    "missingTitle": "Missing archives",
+    "missingOk": "Every archive listed in the dump is present in the library folder.",
+    "missingCount": "{n} archive listed in the dump is missing from the folder | {n} archives listed in the dump are missing from the folder",
+    "missingHint": "Records from those archives are still in the catalog. Files cannot be downloaded until the archives appear on disk.",
+    "unnamedTitle": "Genre codes without a dictionary name",
+    "unnamedCount": "{n} code is shown as-is | {n} codes are shown as-is",
+    "unnamedOk": "Every genre that was seen has a name.",
+    "mappedTitle": "Genre titles mapped to codes",
+    "mappedCount": "{n} value was replaced | {n} values were replaced",
+    "skippedTitle": "Skipped records",
+    "skippedMalformed": "Malformed",
+    "skippedNoLibid": "No LIBID",
+    "encodingsTitle": "File encodings",
+    "encodingsMixed": "Mixed dump: some files were read as UTF-8 and some as CP1251.",
+    "encodingsUtf8": "UTF-8",
+    "encodingsCp1251": "CP1251",
+    "encodingsVersion": "version.info",
+    "encodingsCollection": "collection.info",
+    "phasesTitle": "Phase durations",
+    "phases": {
+      "backup": "Backup",
+      "reading": "Reading the dump",
+      "records": "Writing",
+      "fts": "Index",
+      "warmup": "Warm-up",
+      "analyze": "ANALYZE"
+    },
+    "phaseMs": "{n} ms",
+    "phaseSec": "{n} s",
+    "lastTitle": "Last import",
+    "lastVersion": "Version {version}",
+    "lastNone": "No import has been run yet."
   }
 }

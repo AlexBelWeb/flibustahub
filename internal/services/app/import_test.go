@@ -1,0 +1,114 @@
+package app
+
+import (
+	"context"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/alexbelweb/flibustahub/internal/db"
+	"github.com/alexbelweb/flibustahub/internal/inpx/testdata"
+	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
+)
+
+func TestSetLibraryRootPersists(t *testing.T) {
+	svc := newTestService(t)
+	dir := t.TempDir()
+	if err := svc.SetLibraryRoot(dir); err != nil {
+		t.Fatal(err)
+	}
+	if svc.cfg.Live().LibraryRoot != dir {
+		t.Fatalf("libraryRoot=%q", svc.cfg.Live().LibraryRoot)
+	}
+}
+
+func TestPreviewImportAndLastReport(t *testing.T) {
+	svc := newTestService(t)
+	lib := t.TempDir()
+	if err := testdata.WriteLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := db.Open(context.Background(), db.Options{
+		Path:       filepath.Join(t.TempDir(), "catalog.sqlite"),
+		BackupsDir: filepath.Join(t.TempDir(), "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = catalog.Close() })
+	svc.AttachCatalog(catalog, nil)
+	if err := svc.SetLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+
+	prev, err := svc.PreviewImport(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prev.INPXFileName != testdata.DumpName || prev.FileVersion != "20260901" {
+		t.Fatalf("%+v", prev)
+	}
+	if prev.HasCatalog || prev.SameVersion {
+		t.Fatalf("empty catalog flagged as imported: %+v", prev)
+	}
+
+	empty, err := svc.LastImportReport(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if empty.Status != "" {
+		t.Fatalf("expected empty report, got %+v", empty)
+	}
+
+	rep, err := svc.StartImport(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Status != inpximport.StatusDone {
+		t.Fatalf("status %s", rep.Status)
+	}
+	if len(rep.Notes.MissingArchives) != 1 {
+		t.Fatalf("notes %+v", rep.Notes)
+	}
+
+	prev2, err := svc.PreviewImport(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !prev2.HasCatalog || !prev2.SameVersion {
+		t.Fatalf("after import: %+v", prev2)
+	}
+
+	last, err := svc.LastImportReport(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if last.ID != rep.ID || last.Status != inpximport.StatusDone {
+		t.Fatalf("last %+v", last)
+	}
+}
+
+func TestPreviewImportMissingDump(t *testing.T) {
+	svc := newTestService(t)
+	dir := t.TempDir()
+	if err := svc.SetLibraryRoot(dir); err != nil {
+		t.Fatal(err)
+	}
+	_, err := svc.PreviewImport(context.Background())
+	if err == nil {
+		t.Fatal("expected inpx_not_found")
+	}
+}
+
+func TestSetLibraryRootRejectsFile(t *testing.T) {
+	svc := newTestService(t)
+	f := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(f, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SetLibraryRoot(f); err == nil {
+		t.Fatal("expected error")
+	}
+}
