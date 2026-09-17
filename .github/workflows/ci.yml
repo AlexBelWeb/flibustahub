@@ -48,7 +48,7 @@ jobs:
           packages=$(go list ./... | grep -v node_modules || true)
           go vet $packages
 
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
