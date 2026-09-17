@@ -339,3 +339,107 @@ func TestDeactivateMissingLibid(t *testing.T) {
 		t.Fatal("expected deactivation")
 	}
 }
+
+func TestLibIDCollisionsCountsArchiveChange(t *testing.T) {
+	d := openCatalog(t)
+	rep := importFixture(t, d, nil)
+	if rep.LibIDCollisions != 2 {
+		t.Fatalf("libid_collisions = %d, want 2 (shared libids across two archives)", rep.LibIDCollisions)
+	}
+	var arch900, arch910 string
+	if err := d.Read.QueryRow(`SELECT archive_name FROM editions WHERE libid='900001'`).Scan(&arch900); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Read.QueryRow(`SELECT archive_name FROM editions WHERE libid='910001'`).Scan(&arch910); err != nil {
+		t.Fatal(err)
+	}
+	if arch900 != testdata.ArchiveHigh || arch910 != testdata.ArchiveHigh {
+		t.Fatalf("kept archives 900001=%s 910001=%s, want %s", arch900, arch910, testdata.ArchiveHigh)
+	}
+}
+
+func TestRecordsPhaseLeavesWorksFTSEmpty(t *testing.T) {
+	d := openCatalog(t)
+	var fts int
+	importFixture(t, d, func(tx *sql.Tx) error {
+		if err := tx.QueryRow(`SELECT count(*) FROM works_fts`).Scan(&fts); err != nil {
+			return err
+		}
+		var works int
+		if err := tx.QueryRow(`SELECT count(*) FROM works`).Scan(&works); err != nil {
+			return err
+		}
+		if works == 0 {
+			return errors.New("probe ran before any works were inserted")
+		}
+		return nil
+	})
+	if fts != 0 {
+		t.Fatalf("works_fts rows during records = %d", fts)
+	}
+}
+
+func TestReimportDoesNotRewriteUnchangedWorks(t *testing.T) {
+	d := openCatalog(t)
+	importFixture(t, d, nil)
+	type row struct {
+		id        int64
+		updatedAt string
+		title     string
+	}
+	rs, err := d.Read.Query(`SELECT id, updated_at, title FROM works ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var before []row
+	for rs.Next() {
+		var r row
+		if err := rs.Scan(&r.id, &r.updatedAt, &r.title); err != nil {
+			t.Fatal(err)
+		}
+		before = append(before, r)
+	}
+	_ = rs.Close()
+	if len(before) == 0 {
+		t.Fatal("no works")
+	}
+	importFixture(t, d, nil)
+	rs, err = d.Read.Query(`SELECT id, updated_at, title FROM works ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rs.Close()
+	var i int
+	for rs.Next() {
+		var r row
+		if err := rs.Scan(&r.id, &r.updatedAt, &r.title); err != nil {
+			t.Fatal(err)
+		}
+		if i >= len(before) {
+			t.Fatal("work count grew")
+		}
+		if r != before[i] {
+			t.Fatalf("work rewritten: before %+v after %+v", before[i], r)
+		}
+		i++
+	}
+	if i != len(before) {
+		t.Fatalf("work count %d -> %d", len(before), i)
+	}
+}
+
+func TestImportUpsertsGenreName(t *testing.T) {
+	d := openCatalog(t)
+	importFixture(t, d, nil)
+	if _, err := d.Write.Exec(`UPDATE genres SET name_ru = 'устарело' WHERE code = 'sf_social'`); err != nil {
+		t.Fatal(err)
+	}
+	importFixture(t, d, nil)
+	var name string
+	if err := d.Read.QueryRow(`SELECT name_ru FROM genres WHERE code='sf_social'`).Scan(&name); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Социально-психологическая фантастика" {
+		t.Fatalf("name_ru not upserted: %q", name)
+	}
+}

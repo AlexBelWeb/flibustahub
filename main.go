@@ -9,6 +9,7 @@ import (
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
+	"github.com/alexbelweb/flibustahub/internal/data"
 	catalogdb "github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/handlers"
 	"github.com/alexbelweb/flibustahub/internal/httpapi"
@@ -61,6 +62,12 @@ func main() {
 	})
 	if dbErr != nil {
 		logger.Error("catalog open failed", "err", dbErr)
+	}
+	data.Load(paths.DataDir, logger)
+	if catalog != nil {
+		if err := catalog.SyncGenreNames(context.Background()); err != nil {
+			logger.Warn("genre names not synced", "err", err)
+		}
 	}
 
 	svc := appsvc.New(store, logger, version, commit, buildDate)

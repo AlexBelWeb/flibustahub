@@ -97,7 +97,9 @@ VALUES (?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return nil, err
 	}
-	p.insGenre, err = tx.PrepareContext(ctx, `INSERT INTO genres (code, name_ru) VALUES (?, ?)`)
+	p.insGenre, err = tx.PrepareContext(ctx, `INSERT INTO genres (code, name_ru) VALUES (?, ?)
+ON CONFLICT(code) DO UPDATE SET name_ru = excluded.name_ru
+WHERE genres.name_ru <> excluded.name_ru`)
 	if err != nil {
 		return nil, err
 	}
@@ -355,18 +357,12 @@ func (p *ImportTx) ensureGenre(ctx context.Context, code string) (int64, error) 
 			}
 		}
 	}
+	name := data.GenreNameRU(code)
+	if _, err := p.insGenre.ExecContext(ctx, code, name); err != nil {
+		return 0, err
+	}
 	var id int64
-	err := p.selGenre.QueryRowContext(ctx, code).Scan(&id)
-	if err == sql.ErrNoRows {
-		res, err := p.insGenre.ExecContext(ctx, code, data.GenreNameRU(code))
-		if err != nil {
-			return 0, err
-		}
-		id, err = res.LastInsertId()
-		if err != nil {
-			return 0, err
-		}
-	} else if err != nil {
+	if err := p.selGenre.QueryRowContext(ctx, code).Scan(&id); err != nil {
 		return 0, err
 	}
 	p.genres[code] = id
@@ -406,4 +402,3 @@ func boolInt(v bool) int {
 	}
 	return 0
 }
-

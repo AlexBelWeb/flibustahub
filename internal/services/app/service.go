@@ -8,6 +8,7 @@ import (
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
+	"github.com/alexbelweb/flibustahub/internal/data"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 )
@@ -141,6 +142,12 @@ func (s *Service) RetryStartup() Bootstrap {
 		BackupsDir: paths.BackupsDir,
 		Log:        s.Logger(),
 	})
+	if catalog != nil {
+		data.Load(paths.DataDir, s.Logger())
+		if err := catalog.SyncGenreNames(context.Background()); err != nil {
+			s.Logger().Warn("genre names not synced", "err", err)
+		}
+	}
 	s.catalog = catalog
 	s.startErr = dbErr
 	return s.Bootstrap()

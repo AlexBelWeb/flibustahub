@@ -48,17 +48,17 @@ type Notes struct {
 
 // Report is the finished import_batches row plus parsed notes.
 type Report struct {
-	ID                   int64
-	Status               string
-	INPXPath             string
-	INPXVersion          string
-	RecordsSeen          int
-	WorksAdded           int
-	EditionsAdded        int
-	EditionsUpdated      int
-	EditionsDeactivated  int
-	LibIDCollisions      int
-	Notes                Notes
+	ID                  int64
+	Status              string
+	INPXPath            string
+	INPXVersion         string
+	RecordsSeen         int
+	WorksAdded          int
+	EditionsAdded       int
+	EditionsUpdated     int
+	EditionsDeactivated int
+	LibIDCollisions     int
+	Notes               Notes
 }
 
 // Options configure one import run.
@@ -146,6 +146,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		MissingArchives:      clip(missing, 80),
 		MissingArchivesTotal: len(missing),
 	}
+	s.log.Info("inpx selected", "path", path, "version", metaPeek.Version)
 	mark("reading", tRead)
 	if _, err := conn.ExecContext(ctx, `UPDATE import_batches SET inpx_version = ? WHERE id = ?`, metaPeek.Version, batchID); err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
@@ -267,6 +268,10 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	mark("analyze", tAn)
 	_ = db.WarmCache(ctx, conn)
 	if err := db.SetFTSDirty(ctx, conn, false); err != nil {
+		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	if err := db.SetINPXVersion(ctx, conn, rep.INPXVersion); err != nil {
 		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
