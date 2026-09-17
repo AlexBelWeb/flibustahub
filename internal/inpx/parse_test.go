@@ -2,13 +2,20 @@ package inpx
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	"github.com/alexbelweb/flibustahub/internal/inpx/testdata"
 )
 
 func mustParse(t *testing.T, fields [14]string) Record {
 	t.Helper()
-	rec, skip := ParseLine(testdata.Record(fields, true), "d.fb2-000001-000100.zip")
+	return parseRaw(t, testdata.Record(fields, true), "d.fb2-000001-000100.zip")
+}
+
+func parseRaw(t *testing.T, raw []byte, archive string) Record {
+	t.Helper()
+	decoded, _ := DecodeFile(raw)
+	rec, skip := ParseLine(decoded, archive)
 	if skip != SkipNone {
 		t.Fatalf("skip %v", skip)
 	}
@@ -48,7 +55,11 @@ func TestParseHangingColonAndCRLF(t *testing.T) {
 	if raw[len(raw)-1] != '\n' || raw[len(raw)-2] != '\r' {
 		t.Fatal("fixture CRLF")
 	}
-	rec, skip := ParseLine(raw, "a.zip")
+	decoded, enc := DecodeFile(raw)
+	if enc != EncodingCP1251 {
+		t.Fatalf("CP1251 fixture detected as %s", enc)
+	}
+	rec, skip := ParseLine(decoded, "a.zip")
 	if skip != SkipNone {
 		t.Fatal(skip)
 	}
@@ -77,19 +88,18 @@ func TestParseDeletedAndDirtySerno(t *testing.T) {
 }
 
 func TestParseRejectsNoLibIDAndMalformed(t *testing.T) {
-	if _, skip := ParseLine(testdata.Record(testdata.NoLibID(), true), "a.zip"); skip != SkipNoLibID {
+	noID, _ := DecodeFile(testdata.Record(testdata.NoLibID(), true))
+	if _, skip := ParseLine(noID, "a.zip"); skip != SkipNoLibID {
 		t.Fatalf("skip = %v", skip)
 	}
-	if _, skip := ParseLine(testdata.BrokenRecord("a", "b", "c"), "a.zip"); skip != SkipMalformed {
+	broken, _ := DecodeFile(testdata.BrokenRecord("a", "b", "c"))
+	if _, skip := ParseLine(broken, "a.zip"); skip != SkipMalformed {
 		t.Fatalf("skip = %v", skip)
 	}
 }
 
 func TestParseLastRecordWithoutLF(t *testing.T) {
-	rec, skip := ParseLine(testdata.Record(testdata.NoLFTail(), false), "a.zip")
-	if skip != SkipNone {
-		t.Fatal(skip)
-	}
+	rec := parseRaw(t, testdata.Record(testdata.NoLFTail(), false), "a.zip")
 	if rec.Title != "Последняя без LF" {
 		t.Fatalf("%q", rec.Title)
 	}
@@ -99,5 +109,52 @@ func TestParseManyAuthors(t *testing.T) {
 	rec := mustParse(t, testdata.ManyAuthors())
 	if len(rec.Authors) != 30 {
 		t.Fatalf("got %d authors", len(rec.Authors))
+	}
+}
+
+func TestParseUTF8GromovNotMojibake(t *testing.T) {
+	raw := testdata.RecordUTF8(testdata.Gromov(), true)
+	if !utf8.Valid(raw) {
+		t.Fatal("UTF-8 fixture must be valid UTF-8")
+	}
+	decoded, enc := DecodeFile(raw)
+	if enc != EncodingUTF8 {
+		t.Fatalf("detected %s", enc)
+	}
+	rec, skip := ParseLine(decoded, "a.zip")
+	if skip != SkipNone {
+		t.Fatal(skip)
+	}
+	if rec.Authors[0].Last != "Громов" {
+		t.Fatalf("AUTHOR last = %q, want Громов", rec.Authors[0].Last)
+	}
+	if rec.Title != "Первый из могикан" {
+		t.Fatalf("TITLE = %q", rec.Title)
+	}
+	// Known garbage from treating UTF-8 as Latin-1 or as CP1251.
+	switch rec.Authors[0].Last {
+	case "Ð“Ñ€Ð¾Ð¼Ð¾ÐІ", "Р“СЂРѕРјРѕРІ":
+		t.Fatalf("AUTHOR decoded as mojibake: %q", rec.Authors[0].Last)
+	}
+	if runes := []rune(rec.Title); len(runes) > 0 && runes[0] == '\u0420' {
+		t.Fatalf("TITLE looks like CP1251-on-UTF-8: %q", rec.Title)
+	}
+}
+
+func TestDecodeFileCP1251Fallback(t *testing.T) {
+	raw := testdata.Record(testdata.Gromov(), true)
+	if utf8.Valid(raw) {
+		t.Fatal("CP1251 fixture must fail strict UTF-8")
+	}
+	decoded, enc := DecodeFile(raw)
+	if enc != EncodingCP1251 {
+		t.Fatalf("detected %s", enc)
+	}
+	rec, skip := ParseLine(decoded, "a.zip")
+	if skip != SkipNone {
+		t.Fatal(skip)
+	}
+	if rec.Authors[0].Last != "Громов" || rec.Title != "Первый из могикан" {
+		t.Fatalf("CP1251 fallback last=%q title=%q", rec.Authors[0].Last, rec.Title)
 	}
 }

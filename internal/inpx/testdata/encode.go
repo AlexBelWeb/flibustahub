@@ -11,6 +11,10 @@ import (
 
 const eot = 0x04
 
+func encodeText(s string) []byte {
+	return []byte(s)
+}
+
 func cp1251(s string) []byte {
 	out, err := charmap.Windows1251.NewEncoder().Bytes([]byte(s))
 	if err != nil {
@@ -19,14 +23,23 @@ func cp1251(s string) []byte {
 	return out
 }
 
-// Record builds one INP line: 14 fields, trailing 0x04, optional CRLF.
+// Record builds one INP line in CP1251: 14 fields, trailing 0x04, optional CRLF.
 func Record(fields [14]string, crlf bool) []byte {
+	return recordBytes(fields, crlf, cp1251)
+}
+
+// RecordUTF8 builds the same line in UTF-8.
+func RecordUTF8(fields [14]string, crlf bool) []byte {
+	return recordBytes(fields, crlf, encodeText)
+}
+
+func recordBytes(fields [14]string, crlf bool, enc func(string) []byte) []byte {
 	var b bytes.Buffer
 	for i, f := range fields {
 		if i > 0 {
 			b.WriteByte(eot)
 		}
-		b.Write(cp1251(f))
+		b.Write(enc(f))
 	}
 	b.WriteByte(eot)
 	if crlf {

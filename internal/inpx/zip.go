@@ -14,13 +14,22 @@ import (
 
 const utf8BOM = "\uFEFF"
 
-// DumpMeta is version and archive names discovered while reading an INPX.
+// DumpMeta is version, encodings and archive names discovered while reading an INPX.
 type DumpMeta struct {
 	Version          string
 	Archives         []string
 	SkippedMalformed int
 	SkippedNoLibID   int
 	RecordsSeen      int
+	Encodings        EncodingStats
+}
+
+// EncodingStats counts detected encodings of dump members.
+type EncodingStats struct {
+	UTF8           int    `json:"utf-8"`
+	CP1251         int    `json:"cp1251"`
+	VersionInfo    string `json:"version_info,omitempty"`
+	CollectionInfo string `json:"collection_info,omitempty"`
 }
 
 // WalkRecords opens an .inpx zip, reads version.info / collection.info, and
@@ -50,7 +59,8 @@ func PeekMeta(r io.ReaderAt, size int64) (DumpMeta, error) {
 }
 
 func zipIndex(zr *zip.Reader) (DumpMeta, []*zip.File) {
-	meta := DumpMeta{Version: versionFromZip(zr)}
+	ver, enc := versionFromZip(zr)
+	meta := DumpMeta{Version: ver, Encodings: enc}
 	var inps []*zip.File
 	seen := map[string]struct{}{}
 	for _, f := range zr.File {
@@ -77,10 +87,21 @@ func walkInp(f *zip.File, fn func(Record) error, meta *DumpMeta) error {
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	body, err := io.ReadAll(rc)
+	_ = rc.Close()
+	if err != nil {
+		return err
+	}
+	decoded, enc := DecodeFile(body)
+	switch enc {
+	case EncodingCP1251:
+		meta.Encodings.CP1251++
+	default:
+		meta.Encodings.UTF8++
+	}
 	base := filepath.Base(f.Name)
 	archive := ArchiveNameFromInp(base)
-	sc := bufio.NewScanner(rc)
+	sc := bufio.NewScanner(bytes.NewReader(decoded))
 	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
 	for sc.Scan() {
 		rec, skip := ParseLine(sc.Bytes(), archive)
@@ -102,16 +123,22 @@ func walkInp(f *zip.File, fn func(Record) error, meta *DumpMeta) error {
 	return sc.Err()
 }
 
-func versionFromZip(zr *zip.Reader) string {
-	if v := readZipFile(zr, "version.info"); len(v) > 0 {
-		if line := firstLine(v); line != "" {
-			return line
+func versionFromZip(zr *zip.Reader) (version string, enc EncodingStats) {
+	if raw := readZipFile(zr, "version.info"); len(raw) > 0 {
+		decoded, e := DecodeFile(raw)
+		enc.VersionInfo = string(e)
+		if line := firstLine(decoded); line != "" {
+			version = line
 		}
 	}
-	if v := readZipFile(zr, "collection.info"); len(v) > 0 {
-		return secondLine(v)
+	if raw := readZipFile(zr, "collection.info"); len(raw) > 0 {
+		decoded, e := DecodeFile(raw)
+		enc.CollectionInfo = string(e)
+		if version == "" {
+			version = secondLine(decoded)
+		}
 	}
-	return ""
+	return version, enc
 }
 
 func readZipFile(zr *zip.Reader, want string) []byte {

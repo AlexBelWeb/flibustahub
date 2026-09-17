@@ -38,13 +38,14 @@ type Progress struct {
 
 // Notes is stored in import_batches.notes as JSON.
 type Notes struct {
-	MissingArchives      []string       `json:"missing_archives"`
-	MissingArchivesTotal int            `json:"missing_archives_total"`
-	UnnamedGenres        []string       `json:"unnamed_genres"`
-	UnnamedGenresTotal   int            `json:"unnamed_genres_total"`
-	SkippedMalformed     int            `json:"skipped_malformed"`
-	SkippedNoLibID       int            `json:"skipped_no_libid"`
-	PhasesMS             map[string]int `json:"phases_ms,omitempty"`
+	MissingArchives      []string           `json:"missing_archives"`
+	MissingArchivesTotal int                `json:"missing_archives_total"`
+	UnnamedGenres        []string           `json:"unnamed_genres"`
+	UnnamedGenresTotal   int                `json:"unnamed_genres_total"`
+	SkippedMalformed     int                `json:"skipped_malformed"`
+	SkippedNoLibID       int                `json:"skipped_no_libid"`
+	Encodings            inpx.EncodingStats `json:"encodings"`
+	PhasesMS             map[string]int     `json:"phases_ms,omitempty"`
 }
 
 // Report is the finished import_batches row plus parsed notes.
@@ -155,7 +156,8 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		MissingArchives:      clip(missing, 80),
 		MissingArchivesTotal: len(missing),
 	}
-	s.log.Info("inpx selected", "path", path, "version", metaPeek.Version)
+	s.log.Info("inpx selected", "path", path, "version", metaPeek.Version,
+		"version_encoding", metaPeek.Encodings.VersionInfo, "collection_encoding", metaPeek.Encodings.CollectionInfo)
 	mark("reading", tRead)
 	if err := repositories.SetBatchVersion(ctx, conn, batchID, metaPeek.Version); err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
@@ -260,6 +262,9 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	rep.RecordsSeen = seen
 	notes.SkippedMalformed = meta.SkippedMalformed
 	notes.SkippedNoLibID = meta.SkippedNoLibID
+	notes.Encodings = meta.Encodings
+	s.log.Info("inpx encodings", "utf8", meta.Encodings.UTF8, "cp1251", meta.Encodings.CP1251,
+		"version_info", meta.Encodings.VersionInfo, "collection_info", meta.Encodings.CollectionInfo)
 	notes.UnnamedGenres = prep.UnnamedGenres()
 	notes.UnnamedGenresTotal = prep.UnnamedTotal
 	if err := tx.Commit(); err != nil {

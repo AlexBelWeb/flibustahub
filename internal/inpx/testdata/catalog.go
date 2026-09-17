@@ -13,8 +13,8 @@ const (
 	ArchiveMissing = "z.fb2-000400-000500.zip"
 	InpLow         = "d.fb2-000001-000100.inp"
 	InpHigh        = "f.fb2-000200-000300.inp"
-	InpMissing = "z.fb2-000400-000500.inp"
-	DumpName   = "flibusta_fb2_local.inpx"
+	InpMissing     = "z.fb2-000400-000500.inp"
+	DumpName       = "flibusta_fb2_local.inpx"
 )
 
 // Gromov is the corrected example record.
@@ -320,8 +320,20 @@ func versionInfo(bom bool, value string) []byte {
 	return b.Bytes()
 }
 
+func versionInfoCP1251() []byte {
+	return cp1251("20260901\nКириллический хвост")
+}
+
 func collectionInfo() []byte {
 	return []byte("Flibusta local\nflibusta_20260901\n")
+}
+
+func collectionInfoUTF8() []byte {
+	return []byte("Флибуста\nfrom_collection_utf8_20250101\n")
+}
+
+func collectionInfoCP1251() []byte {
+	return cp1251("Флибуста\nfrom_collection_cp1251_20250101\n")
 }
 
 // CatalogINPX is the main synthetic dump. .inp members are added in reverse
@@ -367,6 +379,40 @@ func CollectionOnlyINPX() []byte {
 	return writeZip([]zipEntry{
 		{name: InpLow, body: Record(Gromov(), true)},
 		{name: "collection.info", body: []byte("Title line\nfrom_collection_20250101\n")},
+	}, stamp)
+}
+
+// UTF8CollectionINPX has UTF-8 collection.info with a Cyrillic first line.
+func UTF8CollectionINPX() []byte {
+	return writeZip([]zipEntry{
+		{name: InpLow, body: RecordUTF8(Gromov(), true)},
+		{name: "collection.info", body: collectionInfoUTF8()},
+	}, stamp)
+}
+
+// CP1251CollectionINPX has CP1251 collection.info with a Cyrillic first line.
+func CP1251CollectionINPX() []byte {
+	return writeZip([]zipEntry{
+		{name: InpLow, body: Record(Gromov(), true)},
+		{name: "collection.info", body: collectionInfoCP1251()},
+	}, stamp)
+}
+
+// CP1251VersionINPX has version.info that is not valid UTF-8.
+func CP1251VersionINPX() []byte {
+	return writeZip([]zipEntry{
+		{name: InpLow, body: Record(Gromov(), true)},
+		{name: "version.info", body: versionInfoCP1251()},
+	}, stamp)
+}
+
+// MixedEncodingINPX has one UTF-8 .inp and one CP1251 .inp.
+func MixedEncodingINPX() []byte {
+	return writeZip([]zipEntry{
+		{name: InpLow, body: RecordUTF8(Gromov(), true)},
+		{name: InpHigh, body: Record(YoTitle(), true)},
+		{name: "version.info", body: versionInfo(false, "20260901")},
+		{name: "collection.info", body: collectionInfoCP1251()},
 	}, stamp)
 }
 

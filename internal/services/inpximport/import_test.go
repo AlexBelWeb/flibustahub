@@ -137,6 +137,9 @@ func TestImportCatalogFixture(t *testing.T) {
 	if rep.Notes.UnnamedGenresTotal < 1 {
 		t.Fatalf("unnamed genres %+v", rep.Notes)
 	}
+	if rep.Notes.Encodings.CP1251 != 3 || rep.Notes.Encodings.UTF8 != 0 {
+		t.Fatalf("fixture encodings %+v", rep.Notes.Encodings)
+	}
 	if rep.LibIDCollisions < 1 {
 		t.Fatalf("collisions %d", rep.LibIDCollisions)
 	}
