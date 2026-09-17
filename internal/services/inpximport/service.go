@@ -64,12 +64,20 @@ type Report struct {
 
 // Options configure one import run.
 type Options struct {
-	LibraryRoot  string
-	INPXPath     string
-	Now          func() time.Time
-	Progress     func(Progress)
-	RecordsProbe func(tx *sql.Tx) error   // tests: inspect FTS during records
-	BeforeFTS    func(conn *sql.Conn) error // tests: inspect stats/plan before rebuild
+	LibraryRoot   string
+	INPXPath      string
+	Now           func() time.Time
+	Progress      func(Progress)
+	RecordsProbe  func(tx *sql.Tx) error     // tests: inspect FTS during records
+	BeforeFTS     func(conn *sql.Conn) error // tests: inspect stats/plan before rebuild
+	OnRecordsTick func(RecordsTick)          // tests/bench: throughput every 10k rows
+}
+
+// RecordsTick is the records-phase throughput sample taken every 10 000 rows.
+type RecordsTick struct {
+	Seen      int
+	ElapsedMS int
+	DeltaMS   int
 }
 
 // Service imports dumps using the catalog write pool.
@@ -178,6 +186,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 
 	rep := Report{ID: batchID, INPXPath: path, INPXVersion: metaPeek.Version, Status: StatusDone}
 	tRec := time.Now()
+	lastTick := tRec
 	seen := 0
 	probed := false
 	f2, err := os.Open(path)
@@ -194,6 +203,19 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 			return err
 		}
 		seen++
+		if seen%10000 == 0 {
+			now := time.Now()
+			tick := RecordsTick{
+				Seen:      seen,
+				ElapsedMS: int(now.Sub(tRec).Milliseconds()),
+				DeltaMS:   int(now.Sub(lastTick).Milliseconds()),
+			}
+			s.log.Info("import records", "seen", tick.Seen, "elapsed_ms", tick.ElapsedMS, "bucket_ms", tick.DeltaMS)
+			if opt.OnRecordsTick != nil {
+				opt.OnRecordsTick(tick)
+			}
+			lastTick = now
+		}
 		if res.WorkAdded {
 			rep.WorksAdded++
 		}
@@ -243,6 +265,18 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	if err := tx.Commit(); err != nil {
 		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
+	if seen > 0 && seen%10000 != 0 {
+		now := time.Now()
+		tick := RecordsTick{
+			Seen:      seen,
+			ElapsedMS: int(now.Sub(tRec).Milliseconds()),
+			DeltaMS:   int(now.Sub(lastTick).Milliseconds()),
+		}
+		s.log.Info("import records", "seen", tick.Seen, "elapsed_ms", tick.ElapsedMS, "bucket_ms", tick.DeltaMS)
+		if opt.OnRecordsTick != nil {
+			opt.OnRecordsTick(tick)
+		}
 	}
 	mark("records", tRec)
 

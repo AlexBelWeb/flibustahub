@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -37,9 +38,14 @@ func TestImportFullDump(t *testing.T) {
 
 	t0 := time.Now()
 	svc := New(d, slog.Default())
+	var ticks []RecordsTick
 	rep, err := svc.Import(context.Background(), Options{
 		LibraryRoot: root,
 		INPXPath:    inpxPath,
+		OnRecordsTick: func(tick RecordsTick) {
+			ticks = append(ticks, tick)
+			t.Logf("records seen=%d elapsed_ms=%d bucket_ms=%d", tick.Seen, tick.ElapsedMS, tick.DeltaMS)
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -76,6 +82,15 @@ func TestImportFullDump(t *testing.T) {
 	if editions > 0 {
 		t.Logf("deleted_share=%.1f%%", 100*float64(deleted)/float64(editions))
 	}
+	if len(ticks) > 0 {
+		t.Logf("records_profile ticks=%d first_bucket_ms=%d last_bucket_ms=%d", len(ticks), ticks[0].DeltaMS, ticks[len(ticks)-1].DeltaMS)
+	}
+
+	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_RECORDS_SEEN", rep.RecordsSeen)
+	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_EDITIONS", editions)
+	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_LIBID_COLLISIONS", rep.LibIDCollisions)
+	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_SKIPPED_MALFORMED", rep.Notes.SkippedMalformed)
+	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_SKIPPED_NO_LIBID", rep.Notes.SkippedNoLibID)
 
 	filled := filepath.Join(filepath.Dir(d.Path()), "filled-catalog.sqlite")
 	slash := filepath.ToSlash(filled)
@@ -89,5 +104,20 @@ func TestImportFullDump(t *testing.T) {
 
 	if elapsed > 10*time.Minute {
 		t.Errorf("import exceeded 10m budget: %s (driver decision is the owner's)", elapsed)
+	}
+}
+
+func assertEnvCount(t *testing.T, key string, got int) {
+	t.Helper()
+	raw := os.Getenv(key)
+	if raw == "" {
+		return
+	}
+	want, err := strconv.Atoi(raw)
+	if err != nil {
+		t.Fatalf("%s=%q: %v", key, raw, err)
+	}
+	if got != want {
+		t.Errorf("%s: got %d, want %d", key, got, want)
 	}
 }
