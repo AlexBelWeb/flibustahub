@@ -20,6 +20,8 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.db_open_failed', params))
     case 'db_migrate_failed':
       return String(t('errors.db_migrate_failed', params))
+    case 'db_incompatible':
+      return String(t('errors.db_incompatible', params))
     case 'db_backup_failed':
       return String(t('errors.db_backup_failed', params))
     case 'open_dir_failed':

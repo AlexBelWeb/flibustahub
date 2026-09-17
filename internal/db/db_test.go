@@ -127,6 +127,31 @@ func TestChecksumMismatch(t *testing.T) {
 	}
 }
 
+func TestOccupiedCatalogIsRejected(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "catalog.sqlite")
+	raw, err := sql.Open("sqlite", fileDSN(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`CREATE TABLE works (id INTEGER PRIMARY KEY, key TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	_ = raw.Close()
+
+	_, err = Open(context.Background(), Options{
+		Path:       path,
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err == nil {
+		t.Fatal("expected incompatible catalog")
+	}
+	if apperr.As(err).Code != apperr.CodeDBIncompatible {
+		t.Fatalf("code = %s", apperr.As(err).Code)
+	}
+}
+
 func TestForeignKeysAndCascade(t *testing.T) {
 	d := openTest(t)
 	_, err := d.Write.Exec(`INSERT INTO editions(libid, work_id, archive_name, file_name) VALUES ('x', 999, 'a.zip', 'f')`)
