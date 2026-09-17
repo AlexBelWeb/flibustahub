@@ -84,6 +84,9 @@ func applyMigrations(ctx context.Context, d *DB, source fs.FS) error {
 	if err != nil {
 		return apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
 	}
+	if err := rejectOccupiedCatalog(ctx, d.Write, files); err != nil {
+		return err
+	}
 	if _, err := d.Write.ExecContext(ctx, schemaTable); err != nil {
 		return apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
 	}
@@ -151,6 +154,43 @@ func readApplied(ctx context.Context, w *sql.DB) (map[int]appliedRow, error) {
 		out[v] = appliedRow{Checksum: sum}
 	}
 	return out, rows.Err()
+}
+
+// rejectOccupiedCatalog refuses to initialize a file that already has a works
+// table but no recorded 001_initial: that is some other catalog, not an empty v2 database.
+func rejectOccupiedCatalog(ctx context.Context, w *sql.DB, files []Migration) error {
+	hasInitial := false
+	for _, f := range files {
+		if f.Version == 1 {
+			hasInitial = true
+			break
+		}
+	}
+	if !hasInitial {
+		return nil
+	}
+	var table string
+	err := w.QueryRowContext(ctx, `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'works'`).Scan(&table)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
+	}
+	var hasMigrations int
+	if err := w.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'`).Scan(&hasMigrations); err != nil {
+		return apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
+	}
+	if hasMigrations == 1 {
+		var stamped int
+		if err := w.QueryRowContext(ctx, `SELECT count(*) FROM schema_migrations WHERE version = 1`).Scan(&stamped); err != nil {
+			return apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
+		}
+		if stamped > 0 {
+			return nil
+		}
+	}
+	return apperr.New(apperr.CodeDBIncompatible, nil)
 }
 
 func runMigration(ctx context.Context, w *sql.DB, m Migration, at time.Time) error {

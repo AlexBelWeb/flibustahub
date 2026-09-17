@@ -18,6 +18,7 @@ const (
 	CodeHTTPPortInUse     = "http_port_in_use"
 	CodeDBOpenFailed      = "db_open_failed"
 	CodeDBMigrateFailed   = "db_migrate_failed"
+	CodeDBIncompatible    = "db_incompatible"
 	CodeDBBackupFailed    = "db_backup_failed"
 	CodeOpenDirFailed     = "open_dir_failed"
 	CodeImportCancelled   = "import_cancelled"

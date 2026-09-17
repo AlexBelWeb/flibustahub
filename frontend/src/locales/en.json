@@ -48,6 +48,7 @@
     "http_port_in_use": "Port {port} is already in use. The local server did not start; the rest of the app still works.",
     "db_open_failed": "Could not open the book catalog. Details were written to the log.",
     "db_migrate_failed": "Could not update the catalog schema. A migration file may have been edited after it was applied.",
+    "db_incompatible": "This data folder already contains a catalog from another application. It will not be opened or converted. Rename catalog.sqlite in the data folder and retry to create a new empty catalog.",
     "db_backup_failed": "Could not create a catalog backup.",
     "open_dir_failed": "Could not open the folder.",
     "import_cancelled": "Import was cancelled. The catalog is unchanged.",
