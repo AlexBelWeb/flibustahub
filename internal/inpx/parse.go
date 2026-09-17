@@ -102,13 +102,13 @@ func parseAuthor(seg string) Author {
 	parts := strings.SplitN(seg, ",", 3)
 	a := Author{}
 	if len(parts) > 0 {
-		a.Last = parts[0]
+		a.Last = strings.TrimSpace(parts[0])
 	}
 	if len(parts) > 1 {
-		a.First = parts[1]
+		a.First = strings.TrimSpace(parts[1])
 	}
 	if len(parts) > 2 {
-		a.Middle = parts[2]
+		a.Middle = strings.TrimSpace(parts[2])
 	}
 	return a
 }

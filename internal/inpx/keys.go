@@ -29,8 +29,18 @@ func (a Author) Key() string {
 }
 
 // SortName is the denormalized author ordering key.
+// An empty last name uses the first non-empty remaining part so the
+// author does not sort as nameless.
 func (a Author) SortName() string {
-	return strings.TrimSpace(textnorm.Normalize(a.Last) + " " + textnorm.Normalize(a.First) + " " + textnorm.Normalize(a.Middle))
+	if strings.TrimSpace(a.Last) != "" {
+		return strings.TrimSpace(textnorm.Normalize(a.Last) + " " + textnorm.Normalize(a.First) + " " + textnorm.Normalize(a.Middle))
+	}
+	for _, p := range []string{a.First, a.Middle} {
+		if strings.TrimSpace(p) != "" {
+			return textnorm.Normalize(p)
+		}
+	}
+	return ""
 }
 
 // AuthorsText joins display names in AUTHOR-field order.

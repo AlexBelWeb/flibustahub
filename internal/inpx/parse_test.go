@@ -75,6 +75,21 @@ func TestParseNoAuthorsFallback(t *testing.T) {
 	}
 }
 
+func TestParseDirtyAuthorParts(t *testing.T) {
+	mononym := testdata.Gromov()
+	mononym[0] = ", Геродот, :"
+	rec := mustParse(t, mononym)
+	if rec.Authors[0].Last != "" || rec.Authors[0].First != "Геродот" || rec.Authors[0].Middle != "" {
+		t.Fatalf("mononym parts %+v", rec.Authors[0])
+	}
+	swapped := testdata.Gromov()
+	swapped[0] = ", Колташов, Василий:"
+	rec = mustParse(t, swapped)
+	if rec.Authors[0].Last != "" || rec.Authors[0].First != "Колташов" || rec.Authors[0].Middle != "Василий" {
+		t.Fatalf("swapped parts %+v", rec.Authors[0])
+	}
+}
+
 func TestParseDeletedAndDirtySerno(t *testing.T) {
 	if !mustParse(t, testdata.Deleted()).IsDeleted {
 		t.Fatal("DEL=1")

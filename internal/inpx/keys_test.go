@@ -89,6 +89,51 @@ func TestAuthorSortName(t *testing.T) {
 	}
 }
 
+func TestAuthorMononymInFirstName(t *testing.T) {
+	a := Author{Last: "", First: "Геродот", Middle: ""}
+	if a.DisplayName() != "Геродот" {
+		t.Fatalf("display %q", a.DisplayName())
+	}
+	if a.SortName() != "геродот" {
+		t.Fatalf("sort %q", a.SortName())
+	}
+}
+
+func TestAuthorSwappedFieldsSortName(t *testing.T) {
+	a := Author{Last: "", First: "Колташов", Middle: "Василий"}
+	if a.DisplayName() != "Колташов Василий" {
+		t.Fatalf("display %q", a.DisplayName())
+	}
+	if a.SortName() != "колташов" {
+		t.Fatalf("empty last name must sort by first non-empty part, got %q", a.SortName())
+	}
+}
+
+func TestDirtyAuthorsHaveSortableNames(t *testing.T) {
+	authors := []Author{
+		{First: "Мононим"},
+		{First: "  Имя  "},
+		{Middle: "Толькоотчество"},
+		{First: "Имя", Middle: "Отчество"},
+		{Last: "   ", First: "Латиница"},
+		{Last: "", First: "Служба безопасности", Middle: ""},
+		{Last: "", First: "Альманах том", Middle: "второй"},
+		{Last: "", First: "Иванов Иван", Middle: "Петров Пётр"},
+		{Last: " ", First: " ", Middle: "Хвост"},
+	}
+	for i, a := range authors {
+		if a.DisplayName() == "" {
+			t.Errorf("%d: empty display_name for %+v", i, a)
+		}
+		if strings.HasPrefix(a.DisplayName(), " ") || strings.HasSuffix(a.DisplayName(), " ") {
+			t.Errorf("%d: display_name %q has edge spaces", i, a.DisplayName())
+		}
+		if a.SortName() == "" {
+			t.Errorf("%d: empty sort_name for %+v — author would sort as nameless", i, a)
+		}
+	}
+}
+
 func TestArchiveRecency(t *testing.T) {
 	if ArchiveRecency("f.fb2-200864-203580.zip") != 203580 {
 		t.Fatal(ArchiveRecency("f.fb2-200864-203580.zip"))
@@ -105,10 +150,10 @@ func TestShouldReplaceBranches(t *testing.T) {
 	low := testdata.ArchiveLow
 	high := testdata.ArchiveHigh
 	cases := []struct {
-		name      string
-		existing  EditionState
-		incoming  Record
-		replace   bool
+		name     string
+		existing EditionState
+		incoming Record
+		replace  bool
 	}{
 		{
 			name:     "deleted to live",
