@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
@@ -261,7 +262,9 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 
 	emit(Progress{Phase: PhaseFTS, RecordsSeen: seen})
 	tFTS := time.Now()
-	if err := db.RebuildWorksFTS(postCtx, conn); err != nil {
+	if err := runWithPulse(emit, PhaseFTS, seen, func() error {
+		return db.RebuildWorksFTS(postCtx, conn)
+	}); err != nil {
 		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
@@ -269,15 +272,19 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 
 	emit(Progress{Phase: PhaseWarmup, RecordsSeen: seen})
 	tWarm := time.Now()
-	if err := db.WarmUpCatalog(postCtx, conn); err != nil {
+	if err := runWithPulse(emit, PhaseWarmup, seen, func() error {
+		if err := db.WarmUpCatalog(postCtx, conn); err != nil {
+			return err
+		}
+		if err := db.Optimize(postCtx, conn); err != nil {
+			return err
+		}
+		_ = db.WarmCache(postCtx, conn)
+		return nil
+	}); err != nil {
 		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	if err := db.Optimize(postCtx, conn); err != nil {
-		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
-		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
-	}
-	_ = db.WarmCache(postCtx, conn)
 	mark("warmup", tWarm)
 	if err := db.SetFTSDirty(postCtx, conn, false); err != nil {
 		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
@@ -324,6 +331,19 @@ func clip(v []string, n int) []string {
 	return append([]string(nil), v[:n]...)
 }
 
+const (
+	progressMinRecords  = 2000
+	progressMinInterval = 100 * time.Millisecond
+	progressPulseEvery  = time.Second
+)
+
+func shouldEmitRecords(deltaSeen int, elapsed time.Duration, seen int) bool {
+	if seen == 0 {
+		return true
+	}
+	return deltaSeen >= progressMinRecords && elapsed >= progressMinInterval
+}
+
 func throttleProgress(fn func(Progress)) func(Progress) {
 	if fn == nil {
 		return func(Progress) {}
@@ -332,11 +352,40 @@ func throttleProgress(fn func(Progress)) func(Progress) {
 	var lastSeen int
 	return func(p Progress) {
 		now := time.Now()
-		if p.Phase == PhaseRecords && p.RecordsSeen-lastSeen < 2000 && now.Sub(last) < 100*time.Millisecond && p.RecordsSeen != 0 {
-			return
+		if p.Phase == PhaseRecords {
+			elapsed := now.Sub(last)
+			if last.IsZero() {
+				elapsed = progressMinInterval
+			}
+			if !shouldEmitRecords(p.RecordsSeen-lastSeen, elapsed, p.RecordsSeen) {
+				return
+			}
 		}
 		last = now
 		lastSeen = p.RecordsSeen
 		fn(p)
 	}
+}
+
+func runWithPulse(emit func(Progress), phase string, seen int, fn func() error) error {
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		t := time.NewTicker(progressPulseEvery)
+		defer t.Stop()
+		for {
+			select {
+			case <-stop:
+				return
+			case <-t.C:
+				emit(Progress{Phase: phase, RecordsSeen: seen})
+			}
+		}
+	}()
+	err := fn()
+	close(stop)
+	wg.Wait()
+	return err
 }

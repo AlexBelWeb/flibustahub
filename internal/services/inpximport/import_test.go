@@ -565,3 +565,33 @@ func TestImportUpsertsGenreName(t *testing.T) {
 		t.Fatalf("name_ru not upserted: %q", name)
 	}
 }
+
+func TestShouldEmitRecordsRequiresBothGates(t *testing.T) {
+	if shouldEmitRecords(2000, 50*time.Millisecond, 2000) {
+		t.Fatal("must not emit before 100ms")
+	}
+	if shouldEmitRecords(100, 200*time.Millisecond, 100) {
+		t.Fatal("must not emit before 2000 records")
+	}
+	if !shouldEmitRecords(2000, 100*time.Millisecond, 2000) {
+		t.Fatal("must emit when both gates pass")
+	}
+	if !shouldEmitRecords(0, 0, 0) {
+		t.Fatal("recordsSeen 0 is the phase entry")
+	}
+}
+
+func TestRunWithPulseEmitsEachSecond(t *testing.T) {
+	var n atomic.Int32
+	emit := func(Progress) { n.Add(1) }
+	err := runWithPulse(emit, PhaseFTS, 10, func() error {
+		time.Sleep(1100 * time.Millisecond)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n.Load() < 1 {
+		t.Fatalf("pulse events = %d, want at least 1 during a 1.1s phase", n.Load())
+	}
+}
