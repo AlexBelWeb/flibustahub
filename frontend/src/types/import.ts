@@ -1,7 +1,6 @@
 export interface ImportProgress {
   phase: 'reading' | 'records' | 'fts' | 'warmup' | string
   recordsSeen: number
-  recordsTotal?: number
   bytesDone: number
   bytesTotal: number
   committed: boolean

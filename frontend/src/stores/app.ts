@@ -48,6 +48,11 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  async function refresh() {
+    const data = await window.go.handlers.App.Bootstrap()
+    applyBootstrap(data)
+  }
+
   async function load() {
     loading.value = true
     loadError.value = false
@@ -104,6 +109,7 @@ export const useAppStore = defineStore('app', () => {
     theme,
     reducedEffects,
     startupError,
+    refresh,
     load,
     retryStartup,
     openLogsDir,
