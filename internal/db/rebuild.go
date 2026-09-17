@@ -49,28 +49,30 @@ func worksFTSTriggerCount(ctx context.Context, e Execer) (int, error) {
 	return n, err
 }
 
+const worksFTSBatch = 20000
+
 // RebuildWorksFTS drops and recreates works_fts, filling it with normalize(...) values.
-func RebuildWorksFTS(ctx context.Context, e Execer) error {
+func RebuildWorksFTS(ctx context.Context, conn *sql.Conn) error {
 	create, err := FTSCreate("works_fts")
 	if err != nil {
 		return err
 	}
-	if _, err := e.ExecContext(ctx, "DROP TABLE IF EXISTS works_fts"); err != nil {
+	if _, err := conn.ExecContext(ctx, "DROP TABLE IF EXISTS works_fts"); err != nil {
 		return err
 	}
-	if _, err := e.ExecContext(ctx, create); err != nil {
+	if _, err := conn.ExecContext(ctx, create); err != nil {
 		return err
 	}
-	if _, err := e.ExecContext(ctx, `DROP TABLE IF EXISTS temp.work_series`); err != nil {
+	if _, err := conn.ExecContext(ctx, `DROP TABLE IF EXISTS temp.work_series`); err != nil {
 		return err
 	}
-	if _, err := e.ExecContext(ctx, `CREATE TEMP TABLE work_series (
+	if _, err := conn.ExecContext(ctx, `CREATE TEMP TABLE work_series (
 		work_id INTEGER PRIMARY KEY,
 		series  TEXT
 	)`); err != nil {
 		return err
 	}
-	if _, err := e.ExecContext(ctx, `
+	if _, err := conn.ExecContext(ctx, `
 INSERT INTO work_series(work_id, series)
 SELECT e.work_id, group_concat(DISTINCT e.series)
   FROM editions e
@@ -79,19 +81,40 @@ SELECT e.work_id, group_concat(DISTINCT e.series)
  GROUP BY e.work_id`); err != nil {
 		return fmt.Errorf("work_series: %w", err)
 	}
-	_, err = e.ExecContext(ctx, `
+	var lastID int64
+	for {
+		tx, err := conn.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		res, err := tx.ExecContext(ctx, `
 INSERT INTO works_fts(rowid, title, authors, series)
 SELECT w.id,
        w.sort_title,
        normalize(w.authors_text),
        normalize(s.series)
   FROM works w
-  LEFT JOIN work_series s ON s.work_id = w.id`)
-	if err != nil {
-		return fmt.Errorf("works_fts fill: %w", err)
+  LEFT JOIN work_series s ON s.work_id = w.id
+ WHERE w.id > ?
+ ORDER BY w.id
+ LIMIT ?`, lastID, worksFTSBatch)
+		if err != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("works_fts fill: %w", err)
+		}
+		n, _ := res.RowsAffected()
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+		if err := conn.QueryRowContext(ctx, `SELECT max(rowid) FROM works_fts`).Scan(&lastID); err != nil {
+			return err
+		}
 	}
-	_, _ = e.ExecContext(ctx, `DROP TABLE IF EXISTS temp.work_series`)
-	return EnsureWorksFTSTriggers(ctx, e)
+	_, _ = conn.ExecContext(ctx, `DROP TABLE IF EXISTS temp.work_series`)
+	return EnsureWorksFTSTriggers(ctx, conn)
 }
 
 // SetFTSDirty writes app_meta.fts_dirty.

@@ -53,7 +53,13 @@ func (d *DB) RecoverSearchIndex(ctx context.Context) error {
 		return err
 	}
 	if needFTS {
-		if err := RebuildWorksFTS(ctx, d.Write); err != nil {
+		conn, err := d.Write.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		err = RebuildWorksFTS(ctx, conn)
+		_ = conn.Close()
+		if err != nil {
 			return err
 		}
 	}

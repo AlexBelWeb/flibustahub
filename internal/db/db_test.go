@@ -402,3 +402,40 @@ func TestOpenRecoversSearchIndexInBackground(t *testing.T) {
 		t.Fatalf("works_fts rows = %d", n)
 	}
 }
+
+func TestRebuildWorksFTSFillsInBatches(t *testing.T) {
+	d := openTest(t)
+	tx, err := d.Write.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ins, err := tx.Prepare(`INSERT INTO works(work_key, title, sort_title, authors_text, created_at, updated_at) VALUES (?, 'T', 't', 'A', 'now', 'now')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const n = worksFTSBatch + 3
+	for i := 1; i <= n; i++ {
+		if _, err := ins.Exec(fmt.Sprintf("k%05d", i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_ = ins.Close()
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	conn, err := d.Write.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	if err := RebuildWorksFTS(context.Background(), conn); err != nil {
+		t.Fatal(err)
+	}
+	var got int
+	if err := d.Read.QueryRow(`SELECT count(*) FROM works_fts`).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got != n {
+		t.Fatalf("works_fts rows = %d, want %d", got, n)
+	}
+}
