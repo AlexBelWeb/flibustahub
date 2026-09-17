@@ -2,11 +2,56 @@ package data
 
 import (
 	"bytes"
+	"encoding/json"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestEmbeddedDictionaryIntegrity(t *testing.T) {
+	dec := json.NewDecoder(bytes.NewReader(genresJSON))
+	tok, err := dec.Token()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if delim, ok := tok.(json.Delim); !ok || delim != '{' {
+		t.Fatalf("expected object, got %v", tok)
+	}
+	seen := map[string]struct{}{}
+	prev := ""
+	for dec.More() {
+		keyTok, err := dec.Token()
+		if err != nil {
+			t.Fatal(err)
+		}
+		code, ok := keyTok.(string)
+		if !ok {
+			t.Fatalf("key type %T", keyTok)
+		}
+		var name string
+		if err := dec.Decode(&name); err != nil {
+			t.Fatal(err)
+		}
+		if code == "" || name == "" {
+			t.Errorf("empty code or name: %q=%q", code, name)
+		}
+		if _, dup := seen[code]; dup {
+			t.Errorf("duplicate key %q", code)
+		}
+		seen[code] = struct{}{}
+		if prev != "" && code <= prev {
+			t.Errorf("keys not sorted: %q after %q", code, prev)
+		}
+		prev = code
+	}
+	if _, err := dec.Token(); err != nil {
+		t.Fatal(err)
+	}
+	if len(seen) == 0 {
+		t.Fatal("empty dictionary")
+	}
+}
 
 func TestOfficialFB2Names(t *testing.T) {
 	Load("", slog.New(slog.DiscardHandler))
