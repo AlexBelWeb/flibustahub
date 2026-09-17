@@ -2,11 +2,13 @@
 package app
 
 import (
+	"context"
 	"log/slog"
 	"os"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
+	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 )
 
@@ -17,6 +19,7 @@ type Service struct {
 	version  string
 	commit   string
 	built    string
+	catalog  *db.DB
 	startErr error
 }
 
@@ -24,8 +27,21 @@ func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Se
 	return &Service{cfg: cfg, log: log, version: version, commit: commit, built: built}
 }
 
-func (s *Service) SetStartupError(err error) {
-	s.startErr = err
+// AttachCatalog stores the catalog handle and a startup error from config or DB.
+func (s *Service) AttachCatalog(catalog *db.DB, startup error) {
+	s.catalog = catalog
+	s.startErr = startup
+}
+
+func (s *Service) Catalog() *db.DB {
+	return s.catalog
+}
+
+func (s *Service) CloseCatalog() {
+	if s.catalog != nil {
+		_ = s.catalog.Close()
+		s.catalog = nil
+	}
 }
 
 // Bootstrap is the payload the UI needs on first paint.
@@ -109,12 +125,24 @@ func (s *Service) Logger() *slog.Logger {
 	return slog.Default()
 }
 
-// RetryStartup reloads config so a failed start can recover without quitting.
+// RetryStartup reloads config and reopens the catalog.
 func (s *Service) RetryStartup() Bootstrap {
 	dataDir := s.cfg.Live().DataDir
 	store, cfgErr := config.Load(dataDir, s.Logger())
 	s.cfg = store
-	s.startErr = cfgErr
+	s.CloseCatalog()
+	if cfgErr != nil {
+		s.startErr = cfgErr
+		return s.Bootstrap()
+	}
+	paths := store.Paths()
+	catalog, dbErr := db.Open(context.Background(), db.Options{
+		Path:       paths.DBPath,
+		BackupsDir: paths.BackupsDir,
+		Log:        s.Logger(),
+	})
+	s.catalog = catalog
+	s.startErr = dbErr
 	return s.Bootstrap()
 }
 

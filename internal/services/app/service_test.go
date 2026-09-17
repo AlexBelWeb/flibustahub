@@ -49,9 +49,22 @@ func TestBootstrapUsesSystemLocaleWhenEmpty(t *testing.T) {
 
 func TestBootstrapSurfacesStartupError(t *testing.T) {
 	svc := newTestService(t)
-	svc.SetStartupError(apperr.New(apperr.CodeConfigUnreadable, nil))
+	svc.AttachCatalog(nil, apperr.New(apperr.CodeDBOpenFailed, nil))
 	got := svc.Bootstrap()
-	if got.StartupError == nil || got.StartupError.Code != apperr.CodeConfigUnreadable {
+	if got.StartupError == nil || got.StartupError.Code != apperr.CodeDBOpenFailed {
 		t.Fatalf("startup = %+v", got.StartupError)
+	}
+}
+
+func TestRetryStartupOpensCatalog(t *testing.T) {
+	svc := newTestService(t)
+	svc.AttachCatalog(nil, apperr.New(apperr.CodeDBOpenFailed, nil))
+	got := svc.RetryStartup()
+	t.Cleanup(svc.CloseCatalog)
+	if got.StartupError != nil {
+		t.Fatalf("retry failed: %+v", got.StartupError)
+	}
+	if svc.Catalog() == nil {
+		t.Fatal("catalog not opened")
 	}
 }

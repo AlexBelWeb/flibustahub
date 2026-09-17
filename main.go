@@ -9,6 +9,7 @@ import (
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
+	catalogdb "github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/handlers"
 	"github.com/alexbelweb/flibustahub/internal/httpapi"
 	"github.com/alexbelweb/flibustahub/internal/logging"
@@ -53,8 +54,21 @@ func main() {
 
 	logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
 
+	catalog, dbErr := catalogdb.Open(context.Background(), catalogdb.Options{
+		Path:       paths.DBPath,
+		BackupsDir: paths.BackupsDir,
+		Log:        logger,
+	})
+	if dbErr != nil {
+		logger.Error("catalog open failed", "err", dbErr)
+	}
+
 	svc := appsvc.New(store, logger, version, commit, buildDate)
-	svc.SetStartupError(cfgErr)
+	startup := cfgErr
+	if startup == nil {
+		startup = dbErr
+	}
+	svc.AttachCatalog(catalog, startup)
 	ui := handlers.NewApp(svc)
 	win := handlers.NewRuntime(svc)
 	httpServer := httpapi.New(logger)
@@ -90,6 +104,7 @@ func main() {
 			shutCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			_ = httpServer.Shutdown(shutCtx)
+			svc.CloseCatalog()
 			return false
 		},
 		Bind: []interface{}{
