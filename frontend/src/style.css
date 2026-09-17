@@ -1,0 +1,114 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/unbounded/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #f6f3ee;
+  --foreground: #1c1916;
+  --card: #fffdf8;
+  --card-foreground: #1c1916;
+  --primary: #8f2d1f;
+  --primary-foreground: #fff7f2;
+  --secondary: #ebe4d8;
+  --secondary-foreground: #1c1916;
+  --muted: #e7e0d4;
+  --muted-foreground: #6b645b;
+  --accent: #efe6d6;
+  --accent-foreground: #1c1916;
+  --border: #d9d0c3;
+  --ring: #8f2d1f;
+  --overlay: rgb(246 243 238 / 0.88);
+}
+
+.dark {
+  --background: #121214;
+  --foreground: #f4efe8;
+  --card: #1b1b1f;
+  --card-foreground: #f4efe8;
+  --primary: #e07a5f;
+  --primary-foreground: #1a0f0c;
+  --secondary: #26262b;
+  --secondary-foreground: #f4efe8;
+  --muted: #2a2a30;
+  --muted-foreground: #b3aaa0;
+  --accent: #2f2a28;
+  --accent-foreground: #f4efe8;
+  --border: #34343a;
+  --ring: #e07a5f;
+  --overlay: rgb(18 18 20 / 0.88);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: 'Inter Variable', 'Segoe UI', sans-serif;
+  --font-display: 'Unbounded Variable', 'Inter Variable', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'Cascadia Mono', monospace;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.backdrop-panel {
+  background: var(--overlay);
+}
+
+.dark:not(.effects-reduced) .backdrop-panel,
+.light:not(.effects-reduced) .backdrop-panel {
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.effects-reduced .backdrop-panel {
+  backdrop-filter: none;
+  background: var(--overlay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

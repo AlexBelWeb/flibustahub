@@ -1,0 +1,55 @@
+{
+  "app": {
+    "name": "FlibustaHub",
+    "tagline": "A local catalog of your book library"
+  },
+  "home": {
+    "title": "Welcome",
+    "lead": "Catalog, search and import will arrive in later updates. For now you can pick a language, a theme, and confirm that only one instance of the app is running.",
+    "emptyTitle": "Library folder is not set yet",
+    "emptyBody": "You will choose the folder with books during the first import. Interface settings are available now."
+  },
+  "nav": {
+    "home": "Home",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "interface": {
+      "title": "Interface",
+      "language": "Language",
+      "theme": "Theme",
+      "themeSystem": "System",
+      "themeDark": "Dark",
+      "themeLight": "Light",
+      "effects": "Visual effects",
+      "effectsAuto": "Automatic",
+      "effectsFull": "Full",
+      "effectsReduced": "Reduced",
+      "effectsHint": "On Linux the reduced mode replaces blur with a solid overlay."
+    }
+  },
+  "common": {
+    "retry": "Retry",
+    "dismiss": "Dismiss"
+  },
+  "toast": {
+    "duplicateCount": "×{n}"
+  },
+  "errors": {
+    "internal": "An internal error occurred. Details were written to the log.",
+    "config_unreadable": "Could not read the settings file. Default values are in use.",
+    "config_write_failed": "Could not save settings.",
+    "invalid_locale": "This interface language is not supported.",
+    "invalid_theme": "Unknown color theme.",
+    "invalid_visual_effects": "Unknown visual effects mode.",
+    "http_port_in_use": "Port {port} is already in use. The local server did not start; the rest of the app still works."
+  },
+  "status": {
+    "version": "Version",
+    "platform": "Platform",
+    "effects": "Effects",
+    "effectsFull": "full",
+    "effectsReduced": "reduced"
+  }
+}

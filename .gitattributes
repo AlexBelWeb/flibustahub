@@ -1,0 +1,23 @@
+# Normalize line endings: the project is built on both Windows and Linux
+* text=auto eol=lf
+
+*.go     text eol=lf
+*.ts     text eol=lf
+*.vue    text eol=lf
+*.js     text eol=lf
+*.json   text eol=lf
+*.md     text eol=lf
+*.sql    text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+
+*.ps1    text eol=crlf
+*.bat    text eol=crlf
+
+*.png    binary
+*.jpg    binary
+*.webp   binary
+*.ico    binary
+*.woff2  binary
+*.zip    binary
+*.exe    binary

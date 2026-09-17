@@ -1,0 +1,43 @@
+# Build output
+build/bin/
+*.exe
+*.syso
+
+# Frontend build
+frontend/dist/*
+!frontend/dist/.gitkeep
+frontend/node_modules/
+
+# Dependencies
+node_modules/
+
+# Local configuration and user data — never commit
+config.json
+config.local.json
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite*
+covers/
+logs/
+backups/
+
+# Library dump data — never commit under any circumstances
+*.inpx
+*.inp
+*.zip
+*.fb2
+
+# Personal data exports
+*.csv
+export-*.json
+
+# Diagnostics bundles
+diagnostics-*.zip
+
+# Editors and OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
