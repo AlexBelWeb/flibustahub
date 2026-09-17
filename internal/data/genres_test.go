@@ -94,6 +94,33 @@ func TestUnknownGenreFallsBackToCode(t *testing.T) {
 	}
 }
 
+func TestResolveGenreMapsNormalizedNames(t *testing.T) {
+	Load("", slog.New(slog.DiscardHandler))
+	code, mapped, amb := ResolveGenre("Биографии и мемуары")
+	if code != "nonf_biography" || !mapped || amb {
+		t.Fatalf("biography: code=%q mapped=%v ambiguous=%v", code, mapped, amb)
+	}
+	code, mapped, amb = ResolveGenre("Шпионский Детектив")
+	if code != "det_espionage" || !mapped || amb {
+		t.Fatalf("espionage: code=%q mapped=%v ambiguous=%v", code, mapped, amb)
+	}
+	code, mapped, amb = ResolveGenre("det_espionage")
+	if code != "det_espionage" || mapped || amb {
+		t.Fatalf("known code must stay: code=%q mapped=%v ambiguous=%v", code, mapped, amb)
+	}
+}
+
+func TestResolveGenreLeavesAmbiguousNameUnchanged(t *testing.T) {
+	Load("", slog.New(slog.DiscardHandler))
+	code, mapped, amb := ResolveGenre("Дамский детективный роман")
+	if code != "Дамский детективный роман" || mapped || !amb {
+		t.Fatalf("ambiguous: code=%q mapped=%v ambiguous=%v", code, mapped, amb)
+	}
+	if KnownGenre(code) {
+		t.Fatal("ambiguous dump value is not a dictionary code")
+	}
+}
+
 func TestLocalOverrideMergesAndBrokenFileKeepsBuiltin(t *testing.T) {
 	t.Cleanup(func() { Load("", slog.New(slog.DiscardHandler)) })
 

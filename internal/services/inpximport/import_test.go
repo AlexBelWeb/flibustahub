@@ -1,6 +1,7 @@
 package inpximport
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -192,6 +193,56 @@ func TestImportCatalogFixture(t *testing.T) {
 	}
 	if isDel != 0 {
 		t.Fatalf("DEL 1→0 should replace, is_deleted=%d title=%s", isDel, title)
+	}
+}
+
+func TestImportMapsGenreLabelsToCodes(t *testing.T) {
+	d := openCatalog(t)
+	lib := t.TempDir()
+	if err := testdata.WriteGenreLabelsDump(lib); err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	svc := New(d, slog.New(slog.NewTextHandler(&buf, nil)))
+	rep, err := svc.Import(context.Background(), Options{LibraryRoot: lib})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Notes.GenreNamesMapped != 2 {
+		t.Fatalf("genre_names_mapped=%d, want 2", rep.Notes.GenreNamesMapped)
+	}
+
+	codeOf := func(libid string) string {
+		t.Helper()
+		var code string
+		err := d.Read.QueryRow(`SELECT g.code FROM editions e
+JOIN edition_genres eg ON eg.edition_id = e.id
+JOIN genres g ON g.id = eg.genre_id
+WHERE e.libid = ?`, libid).Scan(&code)
+		if err != nil {
+			t.Fatalf("libid %s: %v", libid, err)
+		}
+		return code
+	}
+	if got := codeOf("950001"); got != "nonf_biography" {
+		t.Fatalf("biography label stored as %q", got)
+	}
+	if got := codeOf("950002"); got != "det_espionage" {
+		t.Fatalf("espionage label stored as %q", got)
+	}
+	if got := codeOf("950003"); got != "Дамский детективный роман" {
+		t.Fatalf("ambiguous label stored as %q", got)
+	}
+
+	var rawLabels int
+	if err := d.Read.QueryRow(`SELECT count(*) FROM genres WHERE code IN ('Биографии и мемуары','Шпионский Детектив')`).Scan(&rawLabels); err != nil {
+		t.Fatal(err)
+	}
+	if rawLabels != 0 {
+		t.Fatalf("dictionary names must not be stored as codes, got %d", rawLabels)
+	}
+	if !strings.Contains(buf.String(), "genre name matches several codes") {
+		t.Fatalf("expected ambiguous-name log, got %s", buf.String())
 	}
 }
 

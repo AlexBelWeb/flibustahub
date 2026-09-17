@@ -273,6 +273,33 @@ func unnamedGenre() [14]string {
 	)
 }
 
+func biographyLabel() [14]string {
+	f := Gromov()
+	f[1] = "Биографии и мемуары:"
+	f[2] = "Книга с названием жанра"
+	f[5] = "950001"
+	f[7] = "950001"
+	return f
+}
+
+func espionageLabel() [14]string {
+	f := Gromov()
+	f[1] = "Шпионский Детектив:"
+	f[2] = "Книга со шпионским жанром"
+	f[5] = "950002"
+	f[7] = "950002"
+	return f
+}
+
+func ambiguousGenreLabel() [14]string {
+	f := Gromov()
+	f[1] = "Дамский детективный роман:"
+	f[2] = "Книга с неоднозначным жанром"
+	f[5] = "950003"
+	f[7] = "950003"
+	return f
+}
+
 func yoTitle() [14]string {
 	return field(
 		"Ёлкин,Ёж,:",
@@ -413,6 +440,19 @@ func MixedEncodingINPX() []byte {
 		{name: InpHigh, body: Record(YoTitle(), true)},
 		{name: "version.info", body: versionInfo(false, "20260901")},
 		{name: "collection.info", body: collectionInfoCP1251()},
+	}, stamp)
+}
+
+// GenreLabelsINPX has GENRE values that are dictionary names, not codes.
+func GenreLabelsINPX() []byte {
+	body := bytes.Join([][]byte{
+		Record(biographyLabel(), true),
+		Record(espionageLabel(), true),
+		Record(ambiguousGenreLabel(), true),
+	}, nil)
+	return writeZip([]zipEntry{
+		{name: InpLow, body: body},
+		{name: "version.info", body: versionInfo(false, "20260901")},
 	}, stamp)
 }
 

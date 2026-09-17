@@ -32,6 +32,23 @@ func WriteLibraryRoot(dir string) error {
 	return os.Chtimes(filepath.Join(dir, "update", DumpName), stale, stale)
 }
 
+// WriteGenreLabelsDump writes a dump whose GENRE values are dictionary names.
+func WriteGenreLabelsDump(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	files := map[string][]byte{
+		DumpName:   GenreLabelsINPX(),
+		ArchiveLow: EmptyArchiveZip(),
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), body, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // WriteCollectionOnlyDump writes an .inpx that has no version.info.
 func WriteCollectionOnlyDump(dir, name string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {

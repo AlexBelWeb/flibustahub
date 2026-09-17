@@ -98,8 +98,8 @@ func TestImportFullDump(t *testing.T) {
 	if err := d.Read.QueryRow(`SELECT count(*) FROM editions WHERE is_deleted=1`).Scan(&deleted); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("import status=%s records=%d works_added=%d editions=%d editions_added=%d editions_updated=%d deactivated=%d collisions=%d unnamed=%d missing_archives=%d deleted=%d",
-		rep.Status, rep.RecordsSeen, rep.WorksAdded, editions, rep.EditionsAdded, rep.EditionsUpdated, rep.EditionsDeactivated, rep.LibIDCollisions, rep.Notes.UnnamedGenresTotal, rep.Notes.MissingArchivesTotal, deleted)
+	t.Logf("import status=%s records=%d works_added=%d editions=%d editions_added=%d editions_updated=%d deactivated=%d collisions=%d unnamed=%d genre_names_mapped=%d missing_archives=%d deleted=%d",
+		rep.Status, rep.RecordsSeen, rep.WorksAdded, editions, rep.EditionsAdded, rep.EditionsUpdated, rep.EditionsDeactivated, rep.LibIDCollisions, rep.Notes.UnnamedGenresTotal, rep.Notes.GenreNamesMapped, rep.Notes.MissingArchivesTotal, deleted)
 	t.Logf("unnamed_genres=%v skipped_malformed=%d skipped_no_libid=%d encodings=%+v",
 		rep.Notes.UnnamedGenres, rep.Notes.SkippedMalformed, rep.Notes.SkippedNoLibID, rep.Notes.Encodings)
 	t.Logf("phases_ms backup=%d reading=%d records=%d fts=%d warmup=%d analyze=%d wall=%s db_bytes=%d",
@@ -135,6 +135,15 @@ func TestImportFullDump(t *testing.T) {
 	t.Logf("catalog counts works=%d editions=%d authors=%d", works, editions, authors)
 	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_WORKS", works)
 	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_AUTHORS", authors)
+	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_GENRE_NAMES_MAPPED", rep.Notes.GenreNamesMapped)
+
+	var genres int
+	if err := d.Read.QueryRow(`SELECT count(*) FROM genres`).Scan(&genres); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("genres=%d", genres)
+	assertEnvCount(t, "FLIBUSTAHUB_EXPECT_GENRES", genres)
+	logGenreAndAuthorHygiene(t, d)
 
 	logReadableSample(t, d)
 
@@ -158,6 +167,33 @@ func TestImportFullDump(t *testing.T) {
 
 	if elapsed > 10*time.Minute {
 		t.Errorf("import exceeded 10m budget: %s (driver decision is the owner's)", elapsed)
+	}
+}
+
+func logGenreAndAuthorHygiene(t *testing.T, d *db.DB) {
+	t.Helper()
+	for _, code := range []string{"det_espionage", "nonf_biography"} {
+		var works, editions int
+		_ = d.Read.QueryRow(`SELECT work_count FROM genres WHERE code = ?`, code).Scan(&works)
+		_ = d.Read.QueryRow(`SELECT count(*) FROM edition_genres eg JOIN genres g ON g.id = eg.genre_id WHERE g.code = ?`, code).Scan(&editions)
+		t.Logf("genre %s work_count=%d editions=%d", code, works, editions)
+	}
+	var rawLabels int
+	_ = d.Read.QueryRow(`SELECT count(*) FROM genres WHERE code IN ('Биографии и мемуары','Шпионский Детектив')`).Scan(&rawLabels)
+	t.Logf("raw_genre_labels_left=%d", rawLabels)
+	if rawLabels != 0 {
+		t.Errorf("dictionary names still stored as genre codes: %d", rawLabels)
+	}
+
+	var emptyLast, namelessSort int
+	_ = d.Read.QueryRow(`SELECT count(*) FROM authors WHERE trim(last_name) = ''`).Scan(&emptyLast)
+	_ = d.Read.QueryRow(`SELECT count(*) FROM authors
+ WHERE trim(last_name) = ''
+   AND (trim(first_name) != '' OR trim(middle_name) != '')
+   AND trim(sort_name) = ''`).Scan(&namelessSort)
+	t.Logf("authors empty last_name=%d sortable_dirty_without_sort_name=%d", emptyLast, namelessSort)
+	if namelessSort != 0 {
+		t.Errorf("%d authors with empty last_name still sort as nameless", namelessSort)
 	}
 }
 

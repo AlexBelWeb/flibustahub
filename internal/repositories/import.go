@@ -11,14 +11,17 @@ import (
 
 // ImportTx holds prepared statements for one import transaction.
 type ImportTx struct {
-	tx           *sql.Tx
-	now          string
-	authors      map[string]int64
-	genres       map[string]int64
-	works        map[string]cachedWork
-	unnamed      []string
-	unnamedSeen  map[string]struct{}
-	UnnamedTotal int
+	tx               *sql.Tx
+	now              string
+	authors          map[string]int64
+	genres           map[string]int64
+	works            map[string]cachedWork
+	unnamed          []string
+	unnamedSeen      map[string]struct{}
+	UnnamedTotal     int
+	GenreNamesMapped int
+	ambiguous        []string
+	ambiguousSeen    map[string]struct{}
 
 	selWork       *sql.Stmt
 	insWork       *sql.Stmt
@@ -60,12 +63,13 @@ func PrepareImport(ctx context.Context, tx *sql.Tx, now time.Time) (*ImportTx, e
 		return nil, err
 	}
 	p := &ImportTx{
-		tx:          tx,
-		now:         now.UTC().Format(time.RFC3339),
-		authors:     map[string]int64{},
-		genres:      map[string]int64{},
-		works:       map[string]cachedWork{},
-		unnamedSeen: map[string]struct{}{},
+		tx:            tx,
+		now:           now.UTC().Format(time.RFC3339),
+		authors:       map[string]int64{},
+		genres:        map[string]int64{},
+		works:         map[string]cachedWork{},
+		unnamedSeen:   map[string]struct{}{},
+		ambiguousSeen: map[string]struct{}{},
 	}
 	var err error
 	p.selWork, err = tx.PrepareContext(ctx, `SELECT id, title, sort_title, IFNULL(lang,'') FROM works WHERE work_key = ?`)
@@ -369,7 +373,14 @@ func (p *ImportTx) insertGenres(ctx context.Context, editionID int64, codes []st
 	return nil
 }
 
-func (p *ImportTx) ensureGenre(ctx context.Context, code string) (int64, error) {
+func (p *ImportTx) ensureGenre(ctx context.Context, raw string) (int64, error) {
+	code, mapped, ambiguous := data.ResolveGenre(raw)
+	if mapped {
+		p.GenreNamesMapped++
+	}
+	if ambiguous {
+		p.noteAmbiguous(raw)
+	}
 	if id, ok := p.genres[code]; ok {
 		return id, nil
 	}
@@ -394,9 +405,22 @@ func (p *ImportTx) ensureGenre(ctx context.Context, code string) (int64, error) 
 	return id, nil
 }
 
+func (p *ImportTx) noteAmbiguous(raw string) {
+	if _, ok := p.ambiguousSeen[raw]; ok {
+		return
+	}
+	p.ambiguousSeen[raw] = struct{}{}
+	p.ambiguous = append(p.ambiguous, raw)
+}
+
 // UnnamedGenres returns at most 20 codes that had no dictionary name.
 func (p *ImportTx) UnnamedGenres() []string {
 	return append([]string(nil), p.unnamed...)
+}
+
+// AmbiguousGenres returns dump GENRE values that matched several dictionary names.
+func (p *ImportTx) AmbiguousGenres() []string {
+	return append([]string(nil), p.ambiguous...)
 }
 
 // DeactivateMissing flips is_active only for rows that actually change.

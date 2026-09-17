@@ -9,7 +9,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+
+	"github.com/alexbelweb/flibustahub/internal/textnorm"
 )
 
 //go:embed genres.json
@@ -18,8 +21,9 @@ var genresJSON []byte
 const LocalFileName = "genres.local.json"
 
 var (
-	genreMu    sync.RWMutex
-	genreNames map[string]string
+	genreMu         sync.RWMutex
+	genreNames      map[string]string
+	genreByNormName map[string][]string
 )
 
 func init() {
@@ -32,8 +36,20 @@ func loadEmbeddedLocked() {
 		panic("data: genres.json: " + err.Error())
 	}
 	genreMu.Lock()
-	genreNames = names
+	installNamesLocked(names)
 	genreMu.Unlock()
+}
+
+func installNamesLocked(names map[string]string) {
+	genreNames = names
+	genreByNormName = make(map[string][]string, len(names))
+	for code, name := range names {
+		key := textnorm.Normalize(name)
+		if key == "" {
+			continue
+		}
+		genreByNormName[key] = append(genreByNormName[key], code)
+	}
 }
 
 // Load installs the embedded dictionary, then optionally merges {dataDir}/genres.local.json.
@@ -69,7 +85,7 @@ func Load(dataDir string, log *slog.Logger) {
 		}
 	}
 	genreMu.Lock()
-	genreNames = names
+	installNamesLocked(names)
 	genreMu.Unlock()
 }
 
@@ -96,4 +112,29 @@ func GenreCount() int {
 	genreMu.RLock()
 	defer genreMu.RUnlock()
 	return len(genreNames)
+}
+
+// ResolveGenre maps a dump GENRE value to a dictionary code.
+// An exact code match is returned unchanged. Otherwise a unique
+// normalized dictionary-name match is substituted (mapped=true).
+// Several matching codes leave the value as-is (ambiguous=true).
+func ResolveGenre(raw string) (code string, mapped, ambiguous bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", false, false
+	}
+	genreMu.RLock()
+	defer genreMu.RUnlock()
+	if _, ok := genreNames[raw]; ok {
+		return raw, false, false
+	}
+	matches := genreByNormName[textnorm.Normalize(raw)]
+	switch len(matches) {
+	case 1:
+		return matches[0], true, false
+	case 0:
+		return raw, false, false
+	default:
+		return raw, false, true
+	}
 }

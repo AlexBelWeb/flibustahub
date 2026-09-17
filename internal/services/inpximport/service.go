@@ -45,6 +45,7 @@ type Notes struct {
 	SkippedMalformed     int                `json:"skipped_malformed"`
 	SkippedNoLibID       int                `json:"skipped_no_libid"`
 	Encodings            inpx.EncodingStats `json:"encodings"`
+	GenreNamesMapped     int                `json:"genre_names_mapped"`
 	PhasesMS             map[string]int     `json:"phases_ms,omitempty"`
 }
 
@@ -267,6 +268,10 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		"version_info", meta.Encodings.VersionInfo, "collection_info", meta.Encodings.CollectionInfo)
 	notes.UnnamedGenres = prep.UnnamedGenres()
 	notes.UnnamedGenresTotal = prep.UnnamedTotal
+	notes.GenreNamesMapped = prep.GenreNamesMapped
+	for _, value := range prep.AmbiguousGenres() {
+		s.log.Info("genre name matches several codes, left unchanged", "value", value)
+	}
 	if err := tx.Commit(); err != nil {
 		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
