@@ -4,6 +4,12 @@ import {app} from '../models';
 
 export function Bootstrap():Promise<app.Bootstrap>;
 
+export function OpenDataDir():Promise<void>;
+
+export function OpenLogsDir():Promise<void>;
+
+export function RetryStartup():Promise<app.Bootstrap>;
+
 export function SetLocale(arg1:string):Promise<void>;
 
 export function SetTheme(arg1:string):Promise<void>;

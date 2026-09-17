@@ -46,3 +46,12 @@ func TestBootstrapUsesSystemLocaleWhenEmpty(t *testing.T) {
 		t.Fatalf("version = %q", got.Version)
 	}
 }
+
+func TestBootstrapSurfacesStartupError(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetStartupError(apperr.New(apperr.CodeConfigUnreadable, nil))
+	got := svc.Bootstrap()
+	if got.StartupError == nil || got.StartupError.Code != apperr.CodeConfigUnreadable {
+		t.Fatalf("startup = %+v", got.StartupError)
+	}
+}

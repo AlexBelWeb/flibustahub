@@ -33,10 +33,9 @@ var assets embed.FS
 func main() {
 	dataDir := os.Getenv("FLIBUSTAHUB_DATADIR")
 	bootLog := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	store, err := config.Load(dataDir, bootLog)
-	if err != nil {
-		bootLog.Error("config load failed", "err", err)
-		os.Exit(1)
+	store, cfgErr := config.Load(dataDir, bootLog)
+	if cfgErr != nil {
+		bootLog.Error("config load failed", "err", cfgErr)
 	}
 	paths := store.Paths()
 	toStdout := version == "dev" || os.Getenv("FLIBUSTAHUB_LOG_STDOUT") == "1"
@@ -49,12 +48,13 @@ func main() {
 	})
 	if err != nil {
 		bootLog.Error("logger setup failed", "err", err)
-		os.Exit(1)
+		logger = bootLog
 	}
 
 	logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
 
 	svc := appsvc.New(store, logger, version, commit, buildDate)
+	svc.SetStartupError(cfgErr)
 	ui := handlers.NewApp(svc)
 	win := handlers.NewRuntime(svc)
 	httpServer := httpapi.New(logger)

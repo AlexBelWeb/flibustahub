@@ -16,6 +16,7 @@ const (
 	CodeInvalidTheme      = "invalid_theme"
 	CodeInvalidEffects    = "invalid_visual_effects"
 	CodeHTTPPortInUse     = "http_port_in_use"
+	CodeOpenDirFailed     = "open_dir_failed"
 )
 
 // Error is a typed application error safe to send to the frontend.

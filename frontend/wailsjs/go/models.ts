@@ -10,6 +10,7 @@ export namespace app {
 	    capabilities: platform.Capabilities;
 	    libraryRoot: string;
 	    paths: config.Paths;
+	    startupError?: apperr.Public;
 	
 	    static createFrom(source: any = {}) {
 	        return new Bootstrap(source);
@@ -26,6 +27,7 @@ export namespace app {
 	        this.capabilities = this.convertValues(source["capabilities"], platform.Capabilities);
 	        this.libraryRoot = source["libraryRoot"];
 	        this.paths = this.convertValues(source["paths"], config.Paths);
+	        this.startupError = this.convertValues(source["startupError"], apperr.Public);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -95,9 +97,29 @@ export namespace platform {
 	        this.os = source["os"];
 	        this.backdropFilter = source["backdropFilter"];
 	        this.framelessOk = source["framelessOk"];
-	        this.effectiveEffects = source["effectiveEffects"];
+	    this.effectiveEffects = source["effectiveEffects"];
 	    }
 	}
 
 }
+
+export namespace apperr {
+	
+	export class Public {
+	    code: string;
+	    params?: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new Public(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.code = source["code"];
+	        this.params = source["params"];
+	    }
+	}
+
+}
+
 

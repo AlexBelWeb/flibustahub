@@ -5,7 +5,7 @@ import { setI18nLocale } from '@/i18n'
 import { isLocaleCode, type LocaleCode } from '@/i18n/registry'
 import { parseBackendError } from '@/lib/backend-error'
 import { useToastStore } from '@/stores/toast'
-import type { Bootstrap } from '@/types/bootstrap'
+import type { Bootstrap, StartupError } from '@/types/bootstrap'
 
 export type Theme = 'system' | 'dark' | 'light'
 export type Effects = 'auto' | 'full' | 'reduced'
@@ -20,6 +20,7 @@ export const useAppStore = defineStore('app', () => {
   const reducedEffects = computed(
     () => bootstrap.value?.capabilities.effectiveEffects === 'reduced',
   )
+  const startupError = computed<StartupError | null>(() => bootstrap.value?.startupError ?? null)
 
   function applyDocumentTheme(value: Theme) {
     const root = document.documentElement
@@ -28,6 +29,13 @@ export const useAppStore = defineStore('app', () => {
     root.classList.toggle('dark', dark)
     root.classList.toggle('light', !dark)
     root.classList.toggle('effects-reduced', reducedEffects.value)
+  }
+
+  function applyBootstrap(data: Bootstrap) {
+    bootstrap.value = data
+    const next: LocaleCode = isLocaleCode(data.locale) ? data.locale : 'en'
+    void setI18nLocale(next)
+    applyDocumentTheme(data.theme as Theme)
   }
 
   async function wrap<T>(fn: () => Promise<T>): Promise<T> {
@@ -44,16 +52,26 @@ export const useAppStore = defineStore('app', () => {
     loading.value = true
     loadError.value = false
     try {
-      const data = await wrap(() => window.go.handlers.App.Bootstrap())
-      bootstrap.value = data
-      const next: LocaleCode = isLocaleCode(data.locale) ? data.locale : 'en'
-      await setI18nLocale(next)
-      applyDocumentTheme(data.theme as Theme)
+      const data = await window.go.handlers.App.Bootstrap()
+      applyBootstrap(data)
     } catch {
       loadError.value = true
     } finally {
       loading.value = false
     }
+  }
+
+  async function retryStartup() {
+    const data = await window.go.handlers.App.RetryStartup()
+    applyBootstrap(data)
+  }
+
+  async function openLogsDir() {
+    await wrap(() => window.go.handlers.App.OpenLogsDir())
+  }
+
+  async function openDataDir() {
+    await wrap(() => window.go.handlers.App.OpenDataDir())
   }
 
   async function changeLocale(code: LocaleCode) {
@@ -75,8 +93,7 @@ export const useAppStore = defineStore('app', () => {
   async function changeEffects(value: Effects) {
     await wrap(() => window.go.handlers.App.SetVisualEffects(value))
     const data = await wrap(() => window.go.handlers.App.Bootstrap())
-    bootstrap.value = data
-    applyDocumentTheme(data.theme as Theme)
+    applyBootstrap(data)
   }
 
   return {
@@ -86,7 +103,11 @@ export const useAppStore = defineStore('app', () => {
     locale,
     theme,
     reducedEffects,
+    startupError,
     load,
+    retryStartup,
+    openLogsDir,
+    openDataDir,
     changeLocale,
     changeTheme,
     changeEffects,

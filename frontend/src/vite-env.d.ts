@@ -11,6 +11,9 @@ interface Window {
     handlers: {
       App: {
         Bootstrap: () => Promise<import('./types/bootstrap').Bootstrap>
+        RetryStartup: () => Promise<import('./types/bootstrap').Bootstrap>
+        OpenLogsDir: () => Promise<void>
+        OpenDataDir: () => Promise<void>
         SetLocale: (code: string) => Promise<void>
         SetTheme: (theme: string) => Promise<void>
         SetVisualEffects: (mode: string) => Promise<void>
