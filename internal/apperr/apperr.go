@@ -20,6 +20,9 @@ const (
 	CodeDBMigrateFailed   = "db_migrate_failed"
 	CodeDBBackupFailed    = "db_backup_failed"
 	CodeOpenDirFailed     = "open_dir_failed"
+	CodeImportCancelled   = "import_cancelled"
+	CodeImportFailed      = "import_failed"
+	CodeINPXNotFound      = "inpx_not_found"
 )
 
 // Error is a typed application error safe to send to the frontend.

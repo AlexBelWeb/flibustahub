@@ -30,15 +30,31 @@ func WalkRecords(r io.ReaderAt, size int64, fn func(Record) error) (DumpMeta, er
 	if err != nil {
 		return DumpMeta{}, err
 	}
+	meta, inps := zipIndex(zr)
+	for _, f := range inps {
+		if err := walkInp(f, fn, &meta); err != nil {
+			return meta, err
+		}
+	}
+	return meta, nil
+}
+
+// PeekMeta reads version and archive names without parsing records.
+func PeekMeta(r io.ReaderAt, size int64) (DumpMeta, error) {
+	zr, err := zip.NewReader(r, size)
+	if err != nil {
+		return DumpMeta{}, err
+	}
+	meta, _ := zipIndex(zr)
+	return meta, nil
+}
+
+func zipIndex(zr *zip.Reader) (DumpMeta, []*zip.File) {
 	meta := DumpMeta{Version: versionFromZip(zr)}
 	var inps []*zip.File
 	seen := map[string]struct{}{}
 	for _, f := range zr.File {
-		name := filepath.ToSlash(f.Name)
-		base := name
-		if i := strings.LastIndex(name, "/"); i >= 0 {
-			base = name[i+1:]
-		}
+		base := filepath.Base(f.Name)
 		if !strings.HasSuffix(strings.ToLower(base), ".inp") {
 			continue
 		}
@@ -53,12 +69,7 @@ func WalkRecords(r io.ReaderAt, size int64, fn func(Record) error) (DumpMeta, er
 		return strings.ToLower(filepath.Base(inps[i].Name)) < strings.ToLower(filepath.Base(inps[j].Name))
 	})
 	sort.Strings(meta.Archives)
-	for _, f := range inps {
-		if err := walkInp(f, fn, &meta); err != nil {
-			return meta, err
-		}
-	}
-	return meta, nil
+	return meta, inps
 }
 
 func walkInp(f *zip.File, fn func(Record) error, meta *DumpMeta) error {

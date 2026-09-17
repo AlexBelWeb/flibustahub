@@ -277,4 +277,11 @@ func TestFTSCreateSource(t *testing.T) {
 			t.Fatalf("unexpected %s: %s", name, sql)
 		}
 	}
+	tr, err := WorksFTSTriggers()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tr) != 2 {
+		t.Fatalf("triggers %d", len(tr))
+	}
 }

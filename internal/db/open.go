@@ -91,6 +91,10 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 		_ = d.Close()
 		return nil, err
 	}
+	if err := d.RecoverSearchIndex(ctx); err != nil {
+		_ = d.Close()
+		return nil, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
+	}
 	return d, nil
 }
 
@@ -175,4 +179,12 @@ func (d *DB) Close() error {
 		d.Read = nil
 	}
 	return first
+}
+
+// Path is the catalog file path.
+func (d *DB) Path() string {
+	if d == nil {
+		return ""
+	}
+	return d.path
 }
