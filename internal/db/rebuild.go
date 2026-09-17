@@ -61,20 +61,36 @@ func RebuildWorksFTS(ctx context.Context, e Execer) error {
 	if _, err := e.ExecContext(ctx, create); err != nil {
 		return err
 	}
+	if _, err := e.ExecContext(ctx, `DROP TABLE IF EXISTS temp.work_series`); err != nil {
+		return err
+	}
+	if _, err := e.ExecContext(ctx, `CREATE TEMP TABLE work_series (
+		work_id INTEGER PRIMARY KEY,
+		series  TEXT
+	)`); err != nil {
+		return err
+	}
+	if _, err := e.ExecContext(ctx, `
+INSERT INTO work_series(work_id, series)
+SELECT e.work_id, group_concat(DISTINCT e.series)
+  FROM editions e
+ WHERE e.is_active = 1 AND e.is_deleted = 0
+   AND e.series IS NOT NULL AND trim(e.series) != ''
+ GROUP BY e.work_id`); err != nil {
+		return fmt.Errorf("work_series: %w", err)
+	}
 	_, err = e.ExecContext(ctx, `
 INSERT INTO works_fts(rowid, title, authors, series)
 SELECT w.id,
-       normalize(w.title),
+       w.sort_title,
        normalize(w.authors_text),
-       (SELECT normalize(group_concat(DISTINCT e.series))
-          FROM editions e
-         WHERE e.work_id = w.id
-           AND e.is_active = 1 AND e.is_deleted = 0
-           AND e.series IS NOT NULL AND trim(e.series) != '')
-  FROM works w`)
+       normalize(s.series)
+  FROM works w
+  LEFT JOIN work_series s ON s.work_id = w.id`)
 	if err != nil {
 		return fmt.Errorf("works_fts fill: %w", err)
 	}
+	_, _ = e.ExecContext(ctx, `DROP TABLE IF EXISTS temp.work_series`)
 	return EnsureWorksFTSTriggers(ctx, e)
 }
 

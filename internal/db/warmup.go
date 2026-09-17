@@ -17,20 +17,25 @@ func WarmUpCatalog(ctx context.Context, e Execer) error {
 		  WHERE e.is_active = 1 AND e.is_deleted = 0`,
 		`UPDATE genres SET work_count = (
 		   SELECT count(*) FROM work_genres wg WHERE wg.genre_id = genres.id)`,
-		`UPDATE authors SET work_count = (
-		   SELECT count(DISTINCT w.id)
-		     FROM work_authors wa
-		     JOIN works w ON w.id = wa.work_id
-		    WHERE wa.author_id = authors.id
-		      AND (
-		        EXISTS (
-		          SELECT 1 FROM editions e
-		           WHERE e.work_id = w.id AND e.is_active = 1 AND e.is_deleted = 0
-		        )
-		        OR w.rating IS NOT NULL
-		        OR (w.comment IS NOT NULL AND trim(w.comment) != '')
-		      )
-		 )`,
+		`DROP TABLE IF EXISTS temp.listable`,
+		`CREATE TEMP TABLE listable (work_id INTEGER PRIMARY KEY)`,
+		`INSERT OR IGNORE INTO listable(work_id)
+		 SELECT DISTINCT work_id FROM editions WHERE is_active = 1 AND is_deleted = 0`,
+		`INSERT OR IGNORE INTO listable(work_id)
+		 SELECT id FROM works
+		  WHERE rating IS NOT NULL
+		     OR (comment IS NOT NULL AND trim(comment) <> '')`,
+		`DROP TABLE IF EXISTS temp.acount`,
+		`CREATE TEMP TABLE acount (author_id INTEGER PRIMARY KEY, n INTEGER NOT NULL)`,
+		`INSERT INTO acount(author_id, n)
+		 SELECT wa.author_id, count(*)
+		   FROM work_authors wa
+		   JOIN listable l ON l.work_id = wa.work_id
+		  GROUP BY wa.author_id`,
+		`UPDATE authors SET work_count =
+		   IFNULL((SELECT n FROM acount a WHERE a.author_id = authors.id), 0)`,
+		`DROP TABLE IF EXISTS temp.listable`,
+		`DROP TABLE IF EXISTS temp.acount`,
 		`DELETE FROM series`,
 		`INSERT INTO series(name, sort_name, work_count)
 		 SELECT e.series,
