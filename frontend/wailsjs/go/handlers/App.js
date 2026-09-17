@@ -6,6 +6,18 @@ export function Bootstrap() {
   return window['go']['handlers']['App']['Bootstrap']();
 }
 
+export function OpenDataDir() {
+  return window['go']['handlers']['App']['OpenDataDir']();
+}
+
+export function OpenLogsDir() {
+  return window['go']['handlers']['App']['OpenLogsDir']();
+}
+
+export function RetryStartup() {
+  return window['go']['handlers']['App']['RetryStartup']();
+}
+
 export function SetLocale(arg1) {
   return window['go']['handlers']['App']['SetLocale'](arg1);
 }

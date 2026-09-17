@@ -221,26 +221,32 @@ func parsePort(v string) (int, error) {
 }
 
 // Load reads config.json from dataDir, replacing a broken file with defaults.
+// A Store is always returned so the UI can start; err is set when the file
+// could not be used as-is.
 func Load(dataDir string, log *slog.Logger) (*Store, error) {
 	if dataDir == "" {
 		dataDir = defaultDataDir()
-	}
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
-		return nil, apperr.Wrap(apperr.CodeConfigWriteFailed, err, nil)
 	}
 	if log == nil {
 		log = slog.Default()
 	}
 	path := filepath.Join(dataDir, "config.json")
 	disk := Defaults(dataDir)
+	makeStore := func() *Store {
+		return &Store{path: path, disk: disk, live: applyEnv(disk), log: log}
+	}
+
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		return makeStore(), apperr.Wrap(apperr.CodeConfigWriteFailed, err, nil)
+	}
 
 	raw, err := os.ReadFile(path)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		// first run
+		return makeStore(), nil
 	case err != nil:
 		log.Error("config: cannot read file, using defaults", "err", err)
-		return nil, apperr.Wrap(apperr.CodeConfigUnreadable, err, nil)
+		return makeStore(), apperr.Wrap(apperr.CodeConfigUnreadable, err, nil)
 	default:
 		var parsed File
 		if unmarshalErr := json.Unmarshal(raw, &parsed); unmarshalErr != nil {
@@ -258,8 +264,7 @@ func Load(dataDir string, log *slog.Logger) (*Store, error) {
 		}
 	}
 
-	s := &Store{path: path, disk: disk, live: applyEnv(disk), log: log}
-	return s, nil
+	return makeStore(), nil
 }
 
 func mergeDefaults(parsed File, dataDir string) File {

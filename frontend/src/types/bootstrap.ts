@@ -15,6 +15,11 @@ export interface Paths {
   configPath: string
 }
 
+export interface StartupError {
+  code: string
+  params?: Record<string, string>
+}
+
 export interface Bootstrap {
   version: string
   commit: string
@@ -25,4 +30,5 @@ export interface Bootstrap {
   capabilities: Capabilities
   libraryRoot: string
   paths: Paths
+  startupError?: StartupError | null
 }

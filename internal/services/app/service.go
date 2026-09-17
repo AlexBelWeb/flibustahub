@@ -2,24 +2,46 @@
 package app
 
 import (
+	"context"
 	"log/slog"
+	"os"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
+	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 )
 
 // Service owns bootstrap state that is not tied to a UI toolkit.
 type Service struct {
-	cfg     *config.Store
-	log     *slog.Logger
-	version string
-	commit  string
-	built   string
+	cfg      *config.Store
+	log      *slog.Logger
+	version  string
+	commit   string
+	built    string
+	catalog  *db.DB
+	startErr error
 }
 
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
 	return &Service{cfg: cfg, log: log, version: version, commit: commit, built: built}
+}
+
+// AttachCatalog stores the catalog handle and a startup error from config or DB.
+func (s *Service) AttachCatalog(catalog *db.DB, startup error) {
+	s.catalog = catalog
+	s.startErr = startup
+}
+
+func (s *Service) Catalog() *db.DB {
+	return s.catalog
+}
+
+func (s *Service) CloseCatalog() {
+	if s.catalog != nil {
+		_ = s.catalog.Close()
+		s.catalog = nil
+	}
 }
 
 // Bootstrap is the payload the UI needs on first paint.
@@ -33,6 +55,7 @@ type Bootstrap struct {
 	Capabilities      platform.Capabilities `json:"capabilities"`
 	LibraryRoot       string                `json:"libraryRoot"`
 	Paths             config.Paths          `json:"paths"`
+	StartupError      *apperr.Public        `json:"startupError,omitempty"`
 }
 
 func (s *Service) Bootstrap() Bootstrap {
@@ -44,7 +67,7 @@ func (s *Service) Bootstrap() Bootstrap {
 		locale = platform.MatchLocale(locale)
 	}
 	caps := platform.Detect(live.VisualEffects)
-	return Bootstrap{
+	out := Bootstrap{
 		Version:           s.version,
 		Commit:            s.commit,
 		BuildDate:         s.built,
@@ -55,6 +78,11 @@ func (s *Service) Bootstrap() Bootstrap {
 		LibraryRoot:       live.LibraryRoot,
 		Paths:             s.cfg.Paths(),
 	}
+	if s.startErr != nil {
+		p := apperr.As(s.startErr).Public()
+		out.StartupError = &p
+	}
+	return out
 }
 
 func (s *Service) SetLocale(code string) error {
@@ -95,4 +123,47 @@ func (s *Service) Logger() *slog.Logger {
 		return s.log
 	}
 	return slog.Default()
+}
+
+// RetryStartup reloads config and reopens the catalog.
+func (s *Service) RetryStartup() Bootstrap {
+	dataDir := s.cfg.Live().DataDir
+	store, cfgErr := config.Load(dataDir, s.Logger())
+	s.cfg = store
+	s.CloseCatalog()
+	if cfgErr != nil {
+		s.startErr = cfgErr
+		return s.Bootstrap()
+	}
+	paths := store.Paths()
+	catalog, dbErr := db.Open(context.Background(), db.Options{
+		Path:       paths.DBPath,
+		BackupsDir: paths.BackupsDir,
+		Log:        s.Logger(),
+	})
+	s.catalog = catalog
+	s.startErr = dbErr
+	return s.Bootstrap()
+}
+
+func (s *Service) OpenLogsDir() error {
+	dir := s.cfg.Paths().LogsDir
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return apperr.Wrap(apperr.CodeOpenDirFailed, err, nil)
+	}
+	if err := platform.OpenDir(dir); err != nil {
+		return apperr.Wrap(apperr.CodeOpenDirFailed, err, nil)
+	}
+	return nil
+}
+
+func (s *Service) OpenDataDir() error {
+	dir := s.cfg.Paths().DataDir
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return apperr.Wrap(apperr.CodeOpenDirFailed, err, nil)
+	}
+	if err := platform.OpenDir(dir); err != nil {
+		return apperr.Wrap(apperr.CodeOpenDirFailed, err, nil)
+	}
+	return nil
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
+	catalogdb "github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/handlers"
 	"github.com/alexbelweb/flibustahub/internal/httpapi"
 	"github.com/alexbelweb/flibustahub/internal/logging"
@@ -33,10 +34,9 @@ var assets embed.FS
 func main() {
 	dataDir := os.Getenv("FLIBUSTAHUB_DATADIR")
 	bootLog := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	store, err := config.Load(dataDir, bootLog)
-	if err != nil {
-		bootLog.Error("config load failed", "err", err)
-		os.Exit(1)
+	store, cfgErr := config.Load(dataDir, bootLog)
+	if cfgErr != nil {
+		bootLog.Error("config load failed", "err", cfgErr)
 	}
 	paths := store.Paths()
 	toStdout := version == "dev" || os.Getenv("FLIBUSTAHUB_LOG_STDOUT") == "1"
@@ -49,12 +49,26 @@ func main() {
 	})
 	if err != nil {
 		bootLog.Error("logger setup failed", "err", err)
-		os.Exit(1)
+		logger = bootLog
 	}
 
 	logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
 
+	catalog, dbErr := catalogdb.Open(context.Background(), catalogdb.Options{
+		Path:       paths.DBPath,
+		BackupsDir: paths.BackupsDir,
+		Log:        logger,
+	})
+	if dbErr != nil {
+		logger.Error("catalog open failed", "err", dbErr)
+	}
+
 	svc := appsvc.New(store, logger, version, commit, buildDate)
+	startup := cfgErr
+	if startup == nil {
+		startup = dbErr
+	}
+	svc.AttachCatalog(catalog, startup)
 	ui := handlers.NewApp(svc)
 	win := handlers.NewRuntime(svc)
 	httpServer := httpapi.New(logger)
@@ -90,6 +104,7 @@ func main() {
 			shutCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			_ = httpServer.Shutdown(shutCtx)
+			svc.CloseCatalog()
 			return false
 		},
 		Bind: []interface{}{

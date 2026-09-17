@@ -16,6 +16,14 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.invalid_visual_effects', params))
     case 'http_port_in_use':
       return String(t('errors.http_port_in_use', params))
+    case 'db_open_failed':
+      return String(t('errors.db_open_failed', params))
+    case 'db_migrate_failed':
+      return String(t('errors.db_migrate_failed', params))
+    case 'db_backup_failed':
+      return String(t('errors.db_backup_failed', params))
+    case 'open_dir_failed':
+      return String(t('errors.open_dir_failed', params))
     default:
       return String(t('errors.internal', params))
   }

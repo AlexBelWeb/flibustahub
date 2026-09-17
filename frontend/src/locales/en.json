@@ -43,7 +43,17 @@
     "invalid_locale": "This interface language is not supported.",
     "invalid_theme": "Unknown color theme.",
     "invalid_visual_effects": "Unknown visual effects mode.",
-    "http_port_in_use": "Port {port} is already in use. The local server did not start; the rest of the app still works."
+    "http_port_in_use": "Port {port} is already in use. The local server did not start; the rest of the app still works.",
+    "db_open_failed": "Could not open the book catalog. Details were written to the log.",
+    "db_migrate_failed": "Could not update the catalog schema. A migration file may have been edited after it was applied.",
+    "db_backup_failed": "Could not create a catalog backup.",
+    "open_dir_failed": "Could not open the folder."
+  },
+  "startup": {
+    "title": "The app could not open its data",
+    "lead": "The window is open, but the catalog is unavailable. You can retry or open the log and data folders.",
+    "openLogs": "Open logs folder",
+    "openData": "Open data folder"
   },
   "status": {
     "version": "Version",

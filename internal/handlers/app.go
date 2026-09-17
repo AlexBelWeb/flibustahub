@@ -105,6 +105,18 @@ func (a *App) Bootstrap() appsvc.Bootstrap {
 	return a.svc.Bootstrap()
 }
 
+func (a *App) RetryStartup() appsvc.Bootstrap {
+	return a.svc.RetryStartup()
+}
+
+func (a *App) OpenLogsDir() error {
+	return a.svc.OpenLogsDir()
+}
+
+func (a *App) OpenDataDir() error {
+	return a.svc.OpenDataDir()
+}
+
 func (a *App) SetLocale(code string) error {
 	return a.svc.SetLocale(code)
 }
