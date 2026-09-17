@@ -76,8 +76,8 @@ func main() {
 		startup = dbErr
 	}
 	svc.AttachCatalog(catalog, startup)
-	ui := handlers.NewApp(svc)
 	win := handlers.NewRuntime(svc)
+	ui := handlers.NewApp(svc, win)
 	httpServer := httpapi.New(logger)
 	if startErr := httpServer.Start("127.0.0.1", store.Live().OPDSPort); startErr != nil {
 		logger.Warn("loopback http did not start", "err", startErr)
@@ -107,6 +107,9 @@ func main() {
 		},
 		OnBeforeClose: func(ctx context.Context) (prevent bool) {
 			win.SetContext(ctx)
+			if win.BeforeClose() {
+				return true
+			}
 			win.PersistWindow()
 			shutCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()

@@ -217,3 +217,41 @@ func TestFindINPXEmptyRoot(t *testing.T) {
 		t.Fatalf("err=%v", err)
 	}
 }
+
+func TestWalkRecordsByteProgress(t *testing.T) {
+	raw := testdata.CatalogINPX()
+	peek, err := PeekMeta(bytes.NewReader(raw), int64(len(raw)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if peek.InpBytesTotal <= 0 {
+		t.Fatal("TOC uncompressed size of .inp members must be known before walking")
+	}
+	var last, n int64
+	meta, err := WalkRecordsProgress(bytes.NewReader(raw), int64(len(raw)), func(_ Record, done, total int64) error {
+		n++
+		if total != peek.InpBytesTotal {
+			t.Fatalf("bytesTotal=%d peek=%d", total, peek.InpBytesTotal)
+		}
+		if done < last {
+			t.Fatalf("bytesDone went backwards: %d → %d", last, done)
+		}
+		if done > total {
+			t.Fatalf("bytesDone %d > bytesTotal %d", done, total)
+		}
+		last = done
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n == 0 {
+		t.Fatal("no records")
+	}
+	if meta.InpBytesTotal != peek.InpBytesTotal {
+		t.Fatalf("walk total %d peek %d", meta.InpBytesTotal, peek.InpBytesTotal)
+	}
+	if last <= 0 {
+		t.Fatal("bytesDone never moved")
+	}
+}

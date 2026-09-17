@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/alexbelweb/flibustahub/internal/config"
+	"github.com/alexbelweb/flibustahub/internal/events"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 	appsvc "github.com/alexbelweb/flibustahub/internal/services/app"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -12,16 +13,41 @@ import (
 
 // Runtime holds the Wails context and window helpers. It is not bound to JS.
 type Runtime struct {
-	svc *appsvc.Service
-	ctx context.Context
+	svc   *appsvc.Service
+	ctx   context.Context
+	guard closeGuard
 }
 
 func NewRuntime(svc *appsvc.Service) *Runtime {
-	return &Runtime{svc: svc}
+	r := &Runtime{svc: svc}
+	r.guard.onTimeout = func() {
+		if r.ctx != nil {
+			runtime.Quit(r.ctx)
+		}
+	}
+	return r
 }
 
 func (r *Runtime) SetContext(ctx context.Context) {
 	r.ctx = ctx
+}
+
+func (r *Runtime) DismissClose() {
+	r.guard.dismiss()
+}
+
+// BeforeClose is called from OnBeforeClose. true means keep the window open.
+func (r *Runtime) BeforeClose() bool {
+	if r.guard.shouldForce() || !r.svc.IsImporting() {
+		return false
+	}
+	prevent := r.guard.prevent()
+	if prevent && r.ctx != nil {
+		runtime.EventsEmit(r.ctx, events.ImportCloseRequested, CloseRequested{
+			Committed: r.svc.ImportCommitted(),
+		})
+	}
+	return prevent
 }
 
 func (r *Runtime) FocusExistingWindow() {
@@ -95,10 +121,11 @@ func screensAsRects(ctx context.Context) []platform.Rect {
 // App is the Wails-bound facade.
 type App struct {
 	svc *appsvc.Service
+	rt  *Runtime
 }
 
-func NewApp(svc *appsvc.Service) *App {
-	return &App{svc: svc}
+func NewApp(svc *appsvc.Service, rt *Runtime) *App {
+	return &App{svc: svc, rt: rt}
 }
 
 func (a *App) Bootstrap() appsvc.Bootstrap {

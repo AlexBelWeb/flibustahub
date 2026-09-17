@@ -22,7 +22,21 @@ type DumpMeta struct {
 	SkippedNoLibID   int
 	RecordsSeen      int
 	Encodings        EncodingStats
+	InpBytesTotal    int64
 }
+
+type countingReader struct {
+	r io.Reader
+	n int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.n += int64(n)
+	return n, err
+}
+
+type recordHandler func(rec Record, bytesDone, bytesTotal int64) error
 
 // EncodingStats counts detected encodings of dump members.
 type EncodingStats struct {
@@ -35,13 +49,22 @@ type EncodingStats struct {
 // WalkRecords opens an .inpx zip, reads version.info / collection.info, and
 // yields records from .inp members in filename order.
 func WalkRecords(r io.ReaderAt, size int64, fn func(Record) error) (DumpMeta, error) {
+	return WalkRecordsProgress(r, size, func(rec Record, _, _ int64) error {
+		return fn(rec)
+	})
+}
+
+// WalkRecordsProgress is WalkRecords plus a running uncompressed-byte cursor
+// against the ZIP TOC total of all .inp members.
+func WalkRecordsProgress(r io.ReaderAt, size int64, fn func(Record, int64, int64) error) (DumpMeta, error) {
 	zr, err := zip.NewReader(r, size)
 	if err != nil {
 		return DumpMeta{}, err
 	}
 	meta, inps := zipIndex(zr)
+	var started int64
 	for _, f := range inps {
-		if err := walkInp(f, fn, &meta); err != nil {
+		if err := walkInp(f, fn, &meta, &started); err != nil {
 			return meta, err
 		}
 	}
@@ -69,6 +92,7 @@ func zipIndex(zr *zip.Reader) (DumpMeta, []*zip.File) {
 			continue
 		}
 		inps = append(inps, f)
+		meta.InpBytesTotal += int64(f.UncompressedSize64)
 		arch := ArchiveNameFromInp(base)
 		if _, ok := seen[arch]; !ok {
 			seen[arch] = struct{}{}
@@ -82,7 +106,8 @@ func zipIndex(zr *zip.Reader) (DumpMeta, []*zip.File) {
 	return meta, inps
 }
 
-func walkInp(f *zip.File, fn func(Record) error, meta *DumpMeta) error {
+func walkInp(f *zip.File, fn recordHandler, meta *DumpMeta, started *int64) error {
+	uncompressed := int64(f.UncompressedSize64)
 	rc, err := f.Open()
 	if err != nil {
 		return err
@@ -101,7 +126,9 @@ func walkInp(f *zip.File, fn func(Record) error, meta *DumpMeta) error {
 	}
 	base := filepath.Base(f.Name)
 	archive := ArchiveNameFromInp(base)
-	sc := bufio.NewScanner(bytes.NewReader(decoded))
+	decodedLen := int64(len(decoded))
+	cr := &countingReader{r: bytes.NewReader(decoded)}
+	sc := bufio.NewScanner(cr)
 	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
 	for sc.Scan() {
 		rec, skip := ParseLine(sc.Bytes(), archive)
@@ -116,10 +143,20 @@ func walkInp(f *zip.File, fn func(Record) error, meta *DumpMeta) error {
 			continue
 		}
 		meta.RecordsSeen++
-		if err := fn(rec); err != nil {
+		done := *started
+		if decodedLen > 0 {
+			done += uncompressed * cr.n / decodedLen
+		} else {
+			done += uncompressed
+		}
+		if cap := *started + uncompressed; done > cap {
+			done = cap
+		}
+		if err := fn(rec, done, meta.InpBytesTotal); err != nil {
 			return err
 		}
 	}
+	*started += uncompressed
 	return sc.Err()
 }
 

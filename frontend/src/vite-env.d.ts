@@ -7,6 +7,11 @@ declare module '*.vue' {
 }
 
 interface Window {
+  runtime?: {
+    EventsOn: (eventName: string, callback: (...data: unknown[]) => void) => () => void
+    EventsOff: (eventName: string) => void
+    Quit: () => void
+  }
   go: {
     handlers: {
       App: {
@@ -17,6 +22,12 @@ interface Window {
         SetLocale: (code: string) => Promise<void>
         SetTheme: (theme: string) => Promise<void>
         SetVisualEffects: (mode: string) => Promise<void>
+        SelectLibraryRoot: (title: string) => Promise<string>
+        PreviewImport: () => Promise<import('./types/import').ImportPreview>
+        StartImport: () => Promise<import('./types/import').ImportReport>
+        CancelImport: () => Promise<void>
+        LastImportReport: () => Promise<import('./types/import').ImportReport>
+        DismissWindowClose: () => Promise<void>
       }
     }
   }

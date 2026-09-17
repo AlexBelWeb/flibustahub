@@ -635,10 +635,45 @@ func TestShouldEmitRecordsRequiresBothGates(t *testing.T) {
 	}
 }
 
+func TestImportProgressBytesAndCommitted(t *testing.T) {
+	d := openCatalog(t)
+	lib := t.TempDir()
+	if err := testdata.WriteLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+	var last Progress
+	var sawBytes, sawCommitted bool
+	svc := New(d, slog.New(slog.DiscardHandler))
+	_, err := svc.Import(context.Background(), Options{
+		LibraryRoot: lib,
+		Progress: func(p Progress) {
+			last = p
+			if p.Phase == PhaseRecords && p.BytesTotal > 0 && p.BytesDone >= 0 {
+				sawBytes = true
+			}
+			if p.Committed {
+				sawCommitted = true
+			}
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sawBytes {
+		t.Fatal("records progress never carried bytes")
+	}
+	if !sawCommitted {
+		t.Fatal("committed flag never set after COMMIT")
+	}
+	if last.Phase != PhaseWarmup || !last.Committed {
+		t.Fatalf("last progress %+v", last)
+	}
+}
+
 func TestRunWithPulseEmitsEachSecond(t *testing.T) {
 	var n atomic.Int32
 	emit := func(Progress) { n.Add(1) }
-	err := runWithPulse(emit, PhaseFTS, 10, func() error {
+	err := runWithPulse(emit, PhaseFTS, 10, 100, func() error {
 		time.Sleep(1100 * time.Millisecond)
 		return nil
 	})

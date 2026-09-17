@@ -5,12 +5,14 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
 	"github.com/alexbelweb/flibustahub/internal/data"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
+	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
 )
 
 // Service owns bootstrap state that is not tied to a UI toolkit.
@@ -21,7 +23,13 @@ type Service struct {
 	commit   string
 	built    string
 	catalog  *db.DB
+	importer *inpximport.Service
 	startErr error
+
+	importMu     sync.Mutex
+	importing    bool
+	importCancel context.CancelFunc
+	lastProgress inpximport.Progress
 }
 
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
@@ -32,6 +40,11 @@ func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Se
 func (s *Service) AttachCatalog(catalog *db.DB, startup error) {
 	s.catalog = catalog
 	s.startErr = startup
+	if catalog != nil {
+		s.importer = inpximport.New(catalog, s.log)
+	} else {
+		s.importer = nil
+	}
 }
 
 func (s *Service) Catalog() *db.DB {
@@ -152,6 +165,11 @@ func (s *Service) RetryStartup() Bootstrap {
 	}
 	s.catalog = catalog
 	s.startErr = dbErr
+	if catalog != nil {
+		s.importer = inpximport.New(catalog, s.Logger())
+	} else {
+		s.importer = nil
+	}
 	return s.Bootstrap()
 }
 

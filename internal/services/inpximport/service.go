@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
@@ -33,7 +34,10 @@ const (
 type Progress struct {
 	Phase        string `json:"phase"`
 	RecordsSeen  int    `json:"recordsSeen"`
-	RecordsTotal int    `json:"recordsTotal"`
+	RecordsTotal int    `json:"recordsTotal,omitempty"`
+	BytesDone    int64  `json:"bytesDone"`
+	BytesTotal   int64  `json:"bytesTotal"`
+	Committed    bool   `json:"committed"`
 }
 
 // Notes is stored in import_batches.notes as JSON.
@@ -132,7 +136,14 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 
-	emit := throttleProgress(opt.Progress)
+	var committed atomic.Bool
+	rawEmit := throttleProgress(opt.Progress)
+	emit := func(p Progress) {
+		if committed.Load() {
+			p.Committed = true
+		}
+		rawEmit(p)
+	}
 	emit(Progress{Phase: PhaseReading})
 
 	tRead := time.Now()
@@ -163,6 +174,9 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	if err := repositories.SetBatchVersion(ctx, conn, batchID, metaPeek.Version); err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
+
+	bytesTotal := metaPeek.InpBytesTotal
+	emit(Progress{Phase: PhaseRecords, BytesDone: 0, BytesTotal: bytesTotal})
 
 	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {
@@ -197,7 +211,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		rollback()
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	meta, err := inpx.WalkRecords(f2, st.Size(), func(rec inpx.Record) error {
+	meta, err := inpx.WalkRecordsProgress(f2, st.Size(), func(rec inpx.Record, bytesDone, total int64) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -237,7 +251,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 				return err
 			}
 		}
-		emit(Progress{Phase: PhaseRecords, RecordsSeen: seen})
+		emit(Progress{Phase: PhaseRecords, RecordsSeen: seen, BytesDone: bytesDone, BytesTotal: total})
 		return nil
 	})
 	_ = f2.Close()
@@ -276,6 +290,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
+	committed.Store(true)
 	if seen > 0 && seen%10000 != 0 {
 		now := time.Now()
 		tick := RecordsTick{
@@ -289,6 +304,10 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		}
 	}
 	mark("records", tRec)
+	if bytesTotal == 0 {
+		bytesTotal = meta.InpBytesTotal
+	}
+	emit(Progress{Phase: PhaseRecords, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
 
 	postCtx := context.Background()
 	tAn := time.Now()
@@ -304,9 +323,9 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		}
 	}
 
-	emit(Progress{Phase: PhaseFTS, RecordsSeen: seen})
+	emit(Progress{Phase: PhaseFTS, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
 	tFTS := time.Now()
-	if err := runWithPulse(emit, PhaseFTS, seen, func() error {
+	if err := runWithPulse(emit, PhaseFTS, seen, bytesTotal, func() error {
 		return db.RebuildWorksFTS(postCtx, conn)
 	}); err != nil {
 		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
@@ -314,9 +333,9 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	}
 	mark("fts", tFTS)
 
-	emit(Progress{Phase: PhaseWarmup, RecordsSeen: seen})
+	emit(Progress{Phase: PhaseWarmup, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
 	tWarm := time.Now()
-	if err := runWithPulse(emit, PhaseWarmup, seen, func() error {
+	if err := runWithPulse(emit, PhaseWarmup, seen, bytesTotal, func() error {
 		if err := db.WarmUpCatalog(postCtx, conn); err != nil {
 			return err
 		}
@@ -396,7 +415,7 @@ func throttleProgress(fn func(Progress)) func(Progress) {
 	var lastSeen int
 	return func(p Progress) {
 		now := time.Now()
-		if p.Phase == PhaseRecords {
+		if p.Phase == PhaseRecords && !p.Committed {
 			elapsed := now.Sub(last)
 			if last.IsZero() {
 				elapsed = progressMinInterval
@@ -411,7 +430,7 @@ func throttleProgress(fn func(Progress)) func(Progress) {
 	}
 }
 
-func runWithPulse(emit func(Progress), phase string, seen int, fn func() error) error {
+func runWithPulse(emit func(Progress), phase string, seen int, bytesTotal int64, fn func() error) error {
 	stop := make(chan struct{})
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -424,7 +443,7 @@ func runWithPulse(emit func(Progress), phase string, seen int, fn func() error) 
 			case <-stop:
 				return
 			case <-t.C:
-				emit(Progress{Phase: phase, RecordsSeen: seen})
+				emit(Progress{Phase: phase, RecordsSeen: seen, BytesDone: bytesTotal, BytesTotal: bytesTotal, Committed: true})
 			}
 		}
 	}()

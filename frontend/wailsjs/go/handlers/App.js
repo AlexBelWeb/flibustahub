@@ -6,6 +6,18 @@ export function Bootstrap() {
   return window['go']['handlers']['App']['Bootstrap']();
 }
 
+export function CancelImport() {
+  return window['go']['handlers']['App']['CancelImport']();
+}
+
+export function DismissWindowClose() {
+  return window['go']['handlers']['App']['DismissWindowClose']();
+}
+
+export function LastImportReport() {
+  return window['go']['handlers']['App']['LastImportReport']();
+}
+
 export function OpenDataDir() {
   return window['go']['handlers']['App']['OpenDataDir']();
 }
@@ -14,8 +26,16 @@ export function OpenLogsDir() {
   return window['go']['handlers']['App']['OpenLogsDir']();
 }
 
+export function PreviewImport() {
+  return window['go']['handlers']['App']['PreviewImport']();
+}
+
 export function RetryStartup() {
   return window['go']['handlers']['App']['RetryStartup']();
+}
+
+export function SelectLibraryRoot(arg1) {
+  return window['go']['handlers']['App']['SelectLibraryRoot'](arg1);
 }
 
 export function SetLocale(arg1) {
@@ -28,4 +48,8 @@ export function SetTheme(arg1) {
 
 export function SetVisualEffects(arg1) {
   return window['go']['handlers']['App']['SetVisualEffects'](arg1);
+}
+
+export function StartImport() {
+  return window['go']['handlers']['App']['StartImport']();
 }

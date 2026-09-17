@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/alexbelweb/flibustahub/internal/data"
@@ -56,4 +57,14 @@ func SetINPXVersion(ctx context.Context, e Execer, version string) error {
 	_, err := e.ExecContext(ctx, `INSERT INTO app_meta(key, value) VALUES (?, ?)
 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, metaINPXVersion, version)
 	return err
+}
+
+// INPXVersion returns the last successfully imported dump version, or empty.
+func INPXVersion(ctx context.Context, e Execer) (string, error) {
+	var v string
+	err := e.QueryRowContext(ctx, `SELECT value FROM app_meta WHERE key = ?`, metaINPXVersion).Scan(&v)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return v, err
 }
