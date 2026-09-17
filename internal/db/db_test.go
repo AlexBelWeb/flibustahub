@@ -359,3 +359,46 @@ func explainQueryPlan(t *testing.T, db *sql.DB, query string) string {
 	}
 	return b.String()
 }
+
+func TestOpenRecoversSearchIndexInBackground(t *testing.T) {
+	d := openTest(t)
+	if _, err := d.Write.Exec(`INSERT INTO works(work_key, title, sort_title, authors_text, created_at, updated_at)
+		VALUES ('k', 'Ёлка', 'елка', 'Автор', 'now', 'now')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetFTSDirty(context.Background(), d.Write, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`DROP TRIGGER IF EXISTS works_fts_au`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`DROP TRIGGER IF EXISTS works_fts_ad`); err != nil {
+		t.Fatal(err)
+	}
+	path := d.Path()
+	backups := d.backupsDir
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       path,
+		BackupsDir: backups,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+	if err := d2.WaitSearchIndex(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !d2.SearchIndexReady() {
+		t.Fatal("expected search index ready")
+	}
+	var n int
+	if err := d2.Read.QueryRow(`SELECT count(*) FROM works_fts`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("works_fts rows = %d", n)
+	}
+}

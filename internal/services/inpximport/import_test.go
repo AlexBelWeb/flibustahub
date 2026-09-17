@@ -387,6 +387,12 @@ func TestFTSDirtyRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = d2.Close() })
+	if err := d2.WaitSearchIndex(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !d2.SearchIndexReady() {
+		t.Fatal("search index should be ready after recovery")
+	}
 	var yo int
 	if err := d2.Read.QueryRow(`SELECT count(*) FROM works_fts WHERE works_fts MATCH ?`, textnorm.Normalize("ёлка")).Scan(&yo); err != nil {
 		t.Fatal(err)

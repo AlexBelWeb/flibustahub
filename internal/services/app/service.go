@@ -56,6 +56,7 @@ type Bootstrap struct {
 	Capabilities      platform.Capabilities `json:"capabilities"`
 	LibraryRoot       string                `json:"libraryRoot"`
 	Paths             config.Paths          `json:"paths"`
+	SearchIndexReady  bool                  `json:"searchIndexReady"`
 	StartupError      *apperr.Public        `json:"startupError,omitempty"`
 }
 
@@ -78,6 +79,7 @@ func (s *Service) Bootstrap() Bootstrap {
 		Capabilities:      caps,
 		LibraryRoot:       live.LibraryRoot,
 		Paths:             s.cfg.Paths(),
+		SearchIndexReady:  s.catalog != nil && s.catalog.SearchIndexReady(),
 	}
 	if s.startErr != nil {
 		p := apperr.As(s.startErr).Public()

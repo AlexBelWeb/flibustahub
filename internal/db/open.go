@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
@@ -30,6 +31,12 @@ type DB struct {
 	log        *slog.Logger
 	now        func() time.Time
 	source     fs.FS
+
+	mu            sync.Mutex
+	recovering    bool
+	recoverErr    error
+	recoverCancel context.CancelFunc
+	recoverDone   chan struct{}
 }
 
 // Options control Open.
@@ -91,7 +98,7 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 		_ = d.Close()
 		return nil, err
 	}
-	if err := d.RecoverSearchIndex(ctx); err != nil {
+	if err := d.startIndexRecovery(ctx); err != nil {
 		_ = d.Close()
 		return nil, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
 	}
@@ -162,6 +169,7 @@ func (d *DB) Close() error {
 	if d == nil {
 		return nil
 	}
+	d.stopIndexRecovery()
 	var first error
 	if d.Write != nil {
 		if _, err := d.Write.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil && first == nil {
