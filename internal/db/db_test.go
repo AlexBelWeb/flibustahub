@@ -341,7 +341,7 @@ func explainQueryPlan(t *testing.T, db *sql.DB, query string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var b strings.Builder
 	for rows.Next() {
 		var id, parent, notused int
@@ -427,7 +427,7 @@ func TestRebuildWorksFTSFillsInBatches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	if err := RebuildWorksFTS(context.Background(), conn); err != nil {
 		t.Fatal(err)
 	}

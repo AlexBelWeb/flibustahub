@@ -123,7 +123,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	if err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if err := db.ApplyImportPragmas(ctx, conn); err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)

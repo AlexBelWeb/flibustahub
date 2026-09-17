@@ -40,7 +40,7 @@ func TestImportFullDump(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer d.Close()
+	defer func() { _ = d.Close() }()
 	if err := d.WaitSearchIndex(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +214,7 @@ func logReadableSample(t *testing.T, d *db.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	i := 0
 	for rows.Next() {
 		var title, authors string
@@ -350,7 +350,7 @@ func queryStrings(t *testing.T, d *db.DB, q string, args ...any) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []string
 	for rows.Next() {
 		var s string
@@ -369,7 +369,7 @@ func logFTSHits(t *testing.T, d *db.DB, label, q, token string) {
 		t.Errorf("%s: %v", label, err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var hits []string
 	for rows.Next() {
 		var s string
@@ -485,7 +485,7 @@ func explainPlan(t *testing.T, d *db.DB, query string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var b strings.Builder
 	for rows.Next() {
 		var id, parent, notused int

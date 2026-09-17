@@ -230,7 +230,7 @@ func OpenPath(path string, fn func(Record) error) (DumpMeta, error) {
 	if err != nil {
 		return DumpMeta{}, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	st, err := f.Stat()
 	if err != nil {
 		return DumpMeta{}, err

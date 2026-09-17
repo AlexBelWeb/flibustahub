@@ -166,11 +166,13 @@ func (d *DB) SearchIndexReady() bool {
 		return false
 	}
 	ctx := context.Background()
-	exec := Execer(d.Read)
-	if exec == nil {
+	var exec Execer
+	switch {
+	case d.Read != nil:
+		exec = d.Read
+	case d.Write != nil:
 		exec = d.Write
-	}
-	if exec == nil {
+	default:
 		return false
 	}
 	dirty, err := ftsDirty(ctx, exec)

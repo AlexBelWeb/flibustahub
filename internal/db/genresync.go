@@ -25,7 +25,7 @@ func SyncGenreNames(ctx context.Context, e Execer) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	type pair struct{ code, name string }
 	var stale []pair
 	for rows.Next() {

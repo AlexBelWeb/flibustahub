@@ -69,7 +69,7 @@ func explainQueryPlan(e interface {
 	if err != nil {
 		return "", err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var b strings.Builder
 	for rows.Next() {
 		var id, parent, notused int
@@ -584,7 +584,7 @@ func TestReimportDoesNotRewriteUnchangedWorks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rs.Close()
+	defer func() { _ = rs.Close() }()
 	var i int
 	for rs.Next() {
 		var r row
