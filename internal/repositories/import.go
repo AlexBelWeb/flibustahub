@@ -15,7 +15,7 @@ type ImportTx struct {
 	now          string
 	authors      map[string]int64
 	genres       map[string]int64
-	works        map[string]int64
+	works        map[string]cachedWork
 	unnamed      []string
 	unnamedSeen  map[string]struct{}
 	UnnamedTotal int
@@ -32,10 +32,16 @@ type ImportTx struct {
 	selEdition    *sql.Stmt
 	insEdition    *sql.Stmt
 	updEdition    *sql.Stmt
-	selEdID       *sql.Stmt
 	delEdGenres   *sql.Stmt
 	insEdGenre    *sql.Stmt
 	insSeen       *sql.Stmt
+}
+
+type cachedWork struct {
+	id        int64
+	title     string
+	sortTitle string
+	lang      string
 }
 
 type existingEdition struct {
@@ -58,11 +64,11 @@ func PrepareImport(ctx context.Context, tx *sql.Tx, now time.Time) (*ImportTx, e
 		now:         now.UTC().Format(time.RFC3339),
 		authors:     map[string]int64{},
 		genres:      map[string]int64{},
-		works:       map[string]int64{},
+		works:       map[string]cachedWork{},
 		unnamedSeen: map[string]struct{}{},
 	}
 	var err error
-	p.selWork, err = tx.PrepareContext(ctx, `SELECT id FROM works WHERE work_key = ?`)
+	p.selWork, err = tx.PrepareContext(ctx, `SELECT id, title, sort_title, IFNULL(lang,'') FROM works WHERE work_key = ?`)
 	if err != nil {
 		return nil, err
 	}
@@ -125,10 +131,6 @@ WHERE id = ? AND (
 	if err != nil {
 		return nil, err
 	}
-	p.selEdID, err = tx.PrepareContext(ctx, `SELECT id FROM editions WHERE libid = ?`)
-	if err != nil {
-		return nil, err
-	}
 	p.delEdGenres, err = tx.PrepareContext(ctx, `DELETE FROM edition_genres WHERE edition_id = ?`)
 	if err != nil {
 		return nil, err
@@ -147,7 +149,7 @@ WHERE id = ? AND (
 func (p *ImportTx) Close() {
 	for _, s := range []*sql.Stmt{
 		p.selWork, p.insWork, p.updWork, p.selAuthor, p.insAuthor, p.insWorkAuthor, p.selWA,
-		p.selGenre, p.insGenre, p.selEdition, p.insEdition, p.updEdition, p.selEdID,
+		p.selGenre, p.insGenre, p.selEdition, p.insEdition, p.updEdition,
 		p.delEdGenres, p.insEdGenre, p.insSeen,
 	} {
 		if s != nil {
@@ -234,21 +236,23 @@ func (p *ImportTx) ensureAuthors(ctx context.Context, authors []inpx.Author) ([]
 }
 
 func (p *ImportTx) ensureWork(ctx context.Context, rec inpx.Record, workKey string, authorIDs []int64) (int64, bool, error) {
-	if id, ok := p.works[workKey]; ok {
+	sortTitle := inpx.SortTitle(rec.Title)
+	if cached, ok := p.works[workKey]; ok {
 		if !rec.IsDeleted {
-			_, _ = p.updWork.ExecContext(ctx, rec.Title, inpx.SortTitle(rec.Title), nullStr(rec.Lang), p.now,
-				id, rec.Title, inpx.SortTitle(rec.Title), nullStr(rec.Lang))
+			if err := p.updateWorkIfChanged(ctx, workKey, cached, rec.Title, sortTitle, rec.Lang); err != nil {
+				return 0, false, err
+			}
 		}
-		return id, false, nil
+		return p.works[workKey].id, false, nil
 	}
-	var id int64
-	err := p.selWork.QueryRowContext(ctx, workKey).Scan(&id)
+	var cached cachedWork
+	err := p.selWork.QueryRowContext(ctx, workKey).Scan(&cached.id, &cached.title, &cached.sortTitle, &cached.lang)
 	if err == sql.ErrNoRows {
-		res, err := p.insWork.ExecContext(ctx, workKey, rec.Title, inpx.SortTitle(rec.Title), inpx.AuthorsText(rec.Authors), nullStr(rec.Lang), p.now, p.now)
+		res, err := p.insWork.ExecContext(ctx, workKey, rec.Title, sortTitle, inpx.AuthorsText(rec.Authors), nullStr(rec.Lang), p.now, p.now)
 		if err != nil {
 			return 0, false, err
 		}
-		id, err = res.LastInsertId()
+		id, err := res.LastInsertId()
 		if err != nil {
 			return 0, false, err
 		}
@@ -257,17 +261,19 @@ func (p *ImportTx) ensureWork(ctx context.Context, rec inpx.Record, workKey stri
 				return 0, false, err
 			}
 		}
-		p.works[workKey] = id
+		p.works[workKey] = cachedWork{id: id, title: rec.Title, sortTitle: sortTitle, lang: rec.Lang}
 		return id, true, nil
 	}
 	if err != nil {
 		return 0, false, err
 	}
+	p.works[workKey] = cached
 	if !rec.IsDeleted {
-		_, _ = p.updWork.ExecContext(ctx, rec.Title, inpx.SortTitle(rec.Title), nullStr(rec.Lang), p.now,
-			id, rec.Title, inpx.SortTitle(rec.Title), nullStr(rec.Lang))
+		if err := p.updateWorkIfChanged(ctx, workKey, cached, rec.Title, sortTitle, rec.Lang); err != nil {
+			return 0, false, err
+		}
 	}
-	p.works[workKey] = id
+	id := p.works[workKey].id
 	var one int
 	if err := p.selWA.QueryRowContext(ctx, id).Scan(&one); err == sql.ErrNoRows {
 		for pos, aid := range authorIDs {
@@ -279,6 +285,21 @@ func (p *ImportTx) ensureWork(ctx context.Context, rec inpx.Record, workKey stri
 		return 0, false, err
 	}
 	return id, false, nil
+}
+
+func (p *ImportTx) updateWorkIfChanged(ctx context.Context, workKey string, cached cachedWork, title, sortTitle, lang string) error {
+	if cached.title == title && cached.sortTitle == sortTitle && cached.lang == lang {
+		return nil
+	}
+	if _, err := p.updWork.ExecContext(ctx, title, sortTitle, nullStr(lang), p.now,
+		cached.id, title, sortTitle, nullStr(lang)); err != nil {
+		return err
+	}
+	cached.title = title
+	cached.sortTitle = sortTitle
+	cached.lang = lang
+	p.works[workKey] = cached
+	return nil
 }
 
 func (p *ImportTx) lookupEdition(ctx context.Context, libid string) (existingEdition, bool, error) {
@@ -296,18 +317,18 @@ func (p *ImportTx) lookupEdition(ctx context.Context, libid string) (existingEdi
 }
 
 func (p *ImportTx) insertEdition(ctx context.Context, rec inpx.Record, workID int64) error {
-	_, err := p.insEdition.ExecContext(ctx,
+	res, err := p.insEdition.ExecContext(ctx,
 		rec.LibID, workID, rec.ArchiveName, rec.File, rec.Ext, rec.Size, nullStr(rec.Series), rec.SeriesNo,
 		nullStr(rec.Lang), rec.LibRate, rec.Keywords, rec.Date, boolInt(rec.IsDeleted),
 	)
 	if err != nil {
 		return err
 	}
-	var edID int64
-	if err := p.selEdID.QueryRowContext(ctx, rec.LibID).Scan(&edID); err != nil {
+	edID, err := res.LastInsertId()
+	if err != nil {
 		return err
 	}
-	return p.replaceGenres(ctx, edID, rec.Genres)
+	return p.insertGenres(ctx, edID, rec.Genres)
 }
 
 func (p *ImportTx) updateEdition(ctx context.Context, id int64, rec inpx.Record, workID int64) (bool, error) {
@@ -332,6 +353,10 @@ func (p *ImportTx) replaceGenres(ctx context.Context, editionID int64, codes []s
 	if _, err := p.delEdGenres.ExecContext(ctx, editionID); err != nil {
 		return err
 	}
+	return p.insertGenres(ctx, editionID, codes)
+}
+
+func (p *ImportTx) insertGenres(ctx context.Context, editionID int64, codes []string) error {
 	for _, code := range codes {
 		gid, err := p.ensureGenre(ctx, code)
 		if err != nil {
