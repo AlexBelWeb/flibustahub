@@ -63,4 +63,3 @@ func WorksFTSTriggers() ([]string, error) {
 	}
 	return out, nil
 }
-
