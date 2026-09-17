@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/alexbelweb/flibustahub/internal/visibility"
 )
 
 // WarmUpCatalog rebuilds materialized genre/series tables and authors/series FTS.
@@ -14,17 +16,12 @@ func WarmUpCatalog(ctx context.Context, e Execer) error {
 		 SELECT DISTINCT e.work_id, eg.genre_id
 		   FROM edition_genres eg
 		   JOIN editions e ON e.id = eg.edition_id
-		  WHERE e.is_active = 1 AND e.is_deleted = 0`,
+		  WHERE ` + visibility.VisibleEditionSQL,
 		`UPDATE genres SET work_count = (
 		   SELECT count(*) FROM work_genres wg WHERE wg.genre_id = genres.id)`,
-		`DROP TABLE IF EXISTS temp.listable`,
-		`CREATE TEMP TABLE listable (work_id INTEGER PRIMARY KEY)`,
-		`INSERT OR IGNORE INTO listable(work_id)
-		 SELECT DISTINCT work_id FROM editions WHERE is_active = 1 AND is_deleted = 0`,
-		`INSERT OR IGNORE INTO listable(work_id)
-		 SELECT id FROM works
-		  WHERE rating IS NOT NULL
-		     OR (comment IS NOT NULL AND trim(comment) <> '')`,
+	}
+	stmts = append(stmts, visibility.ListableTempSQL...)
+	stmts = append(stmts,
 		`DROP TABLE IF EXISTS temp.acount`,
 		`CREATE TEMP TABLE acount (author_id INTEGER PRIMARY KEY, n INTEGER NOT NULL)`,
 		`INSERT INTO acount(author_id, n)
@@ -42,10 +39,10 @@ func WarmUpCatalog(ctx context.Context, e Execer) error {
 		        normalize(e.series),
 		        count(DISTINCT e.work_id)
 		   FROM editions e
-		  WHERE e.is_active = 1 AND e.is_deleted = 0
+		  WHERE `+visibility.VisibleEditionSQL+`
 		    AND e.series IS NOT NULL AND trim(e.series) != ''
 		  GROUP BY e.series`,
-	}
+	)
 	for _, s := range stmts {
 		if _, err := e.ExecContext(ctx, s); err != nil {
 			return fmt.Errorf("warmup: %w", err)

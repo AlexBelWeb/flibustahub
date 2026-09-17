@@ -116,9 +116,8 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	defer func() { _ = db.RestoreWorkPragmas(context.Background(), conn) }()
 
 	started := opt.Now().UTC().Format(time.RFC3339)
-	var batchID int64
-	if err := conn.QueryRowContext(ctx, `INSERT INTO import_batches (started_at, status, inpx_path) VALUES (?, ?, ?) RETURNING id`,
-		started, StatusRunning, path).Scan(&batchID); err != nil {
+	batchID, err := repositories.InsertRunningBatch(ctx, conn, started, StatusRunning, path)
+	if err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 
@@ -149,7 +148,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	}
 	s.log.Info("inpx selected", "path", path, "version", metaPeek.Version)
 	mark("reading", tRead)
-	if _, err := conn.ExecContext(ctx, `UPDATE import_batches SET inpx_version = ? WHERE id = ?`, metaPeek.Version, batchID); err != nil {
+	if err := repositories.SetBatchVersion(ctx, conn, batchID, metaPeek.Version); err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 
@@ -303,13 +302,19 @@ func finishBatch(_ context.Context, conn *sql.Conn, id int64, status string, rep
 	if err != nil {
 		return err
 	}
-	_, err = conn.ExecContext(context.Background(), `UPDATE import_batches SET
-		finished_at = ?, status = ?, inpx_version = ?, records_seen = ?, works_added = ?,
-		editions_added = ?, editions_updated = ?, editions_deactivated = ?, libid_collisions = ?, notes = ?
-		WHERE id = ?`,
-		now().UTC().Format(time.RFC3339), status, rep.INPXVersion, rep.RecordsSeen, rep.WorksAdded,
-		rep.EditionsAdded, rep.EditionsUpdated, rep.EditionsDeactivated, rep.LibIDCollisions, string(raw), id)
-	return err
+	return repositories.FinishBatch(context.Background(), conn, repositories.BatchFinish{
+		ID:                  id,
+		Status:              status,
+		FinishedAt:          now().UTC().Format(time.RFC3339),
+		INPXVersion:         rep.INPXVersion,
+		RecordsSeen:         rep.RecordsSeen,
+		WorksAdded:          rep.WorksAdded,
+		EditionsAdded:       rep.EditionsAdded,
+		EditionsUpdated:     rep.EditionsUpdated,
+		EditionsDeactivated: rep.EditionsDeactivated,
+		LibIDCollisions:     rep.LibIDCollisions,
+		NotesJSON:           string(raw),
+	})
 }
 
 func clip(v []string, n int) []string {
