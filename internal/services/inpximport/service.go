@@ -246,52 +246,53 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	}
 	mark("records", tRec)
 
+	postCtx := context.Background()
 	tAn := time.Now()
-	if err := db.Analyze(ctx, conn); err != nil {
-		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+	if err := db.Analyze(postCtx, conn); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 	mark("analyze", tAn)
 	if opt.BeforeFTS != nil {
 		if err := opt.BeforeFTS(conn); err != nil {
-			_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+			_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 			return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 		}
 	}
 
 	emit(Progress{Phase: PhaseFTS, RecordsSeen: seen})
 	tFTS := time.Now()
-	if err := db.RebuildWorksFTS(ctx, conn); err != nil {
-		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+	if err := db.RebuildWorksFTS(postCtx, conn); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 	mark("fts", tFTS)
 
 	emit(Progress{Phase: PhaseWarmup, RecordsSeen: seen})
 	tWarm := time.Now()
-	if err := db.WarmUpCatalog(ctx, conn); err != nil {
-		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+	if err := db.WarmUpCatalog(postCtx, conn); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	if err := db.Optimize(ctx, conn); err != nil {
-		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+	if err := db.Optimize(postCtx, conn); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	_ = db.WarmCache(ctx, conn)
+	_ = db.WarmCache(postCtx, conn)
 	mark("warmup", tWarm)
-	if err := db.SetFTSDirty(ctx, conn, false); err != nil {
-		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+	if err := db.SetFTSDirty(postCtx, conn, false); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
-	if err := db.SetINPXVersion(ctx, conn, rep.INPXVersion); err != nil {
-		_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+	if err := db.SetINPXVersion(postCtx, conn, rep.INPXVersion); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 
 	notes.PhasesMS = phases
 	rep.Notes = notes
 	rep.Status = StatusDone
-	if err := finishBatch(ctx, conn, batchID, StatusDone, rep, notes, opt.Now); err != nil {
+	if err := finishBatch(postCtx, conn, batchID, StatusDone, rep, notes, opt.Now); err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 	return rep, nil

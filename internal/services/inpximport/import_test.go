@@ -319,6 +319,46 @@ func TestImportCancelRollsBack(t *testing.T) {
 	}
 }
 
+func TestImportCancelDuringFTSKeepsData(t *testing.T) {
+	d := openCatalog(t)
+	lib := t.TempDir()
+	if err := testdata.WriteLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	svc := New(d, slog.New(slog.DiscardHandler))
+	rep, err := svc.Import(ctx, Options{
+		LibraryRoot: lib,
+		BeforeFTS: func(*sql.Conn) error {
+			cancel()
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("cancel after commit must finish: %v", err)
+	}
+	if rep.Status != StatusDone {
+		t.Fatalf("status %s", rep.Status)
+	}
+	var works, fts int
+	if err := d.Read.QueryRow(`SELECT count(*) FROM works`).Scan(&works); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Read.QueryRow(`SELECT count(*) FROM works_fts`).Scan(&fts); err != nil {
+		t.Fatal(err)
+	}
+	if works == 0 || fts != works {
+		t.Fatalf("works=%d fts=%d", works, fts)
+	}
+	var dirty string
+	if err := d.Read.QueryRow(`SELECT value FROM app_meta WHERE key=?`, db.MetaFTSDirty).Scan(&dirty); err != nil {
+		t.Fatal(err)
+	}
+	if dirty != "0" {
+		t.Fatalf("fts_dirty=%s", dirty)
+	}
+}
+
 func TestFTSDirtyRecovery(t *testing.T) {
 	d := openCatalog(t)
 	importFixture(t, d, nil)
