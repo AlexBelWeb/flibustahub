@@ -1,0 +1,213 @@
+package inpx
+
+import (
+	"archive/zip"
+	"bufio"
+	"bytes"
+	"io"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"unicode/utf8"
+)
+
+const utf8BOM = "\uFEFF"
+
+// DumpMeta is version and archive names discovered while reading an INPX.
+type DumpMeta struct {
+	Version          string
+	Archives         []string
+	SkippedMalformed int
+	SkippedNoLibID   int
+	RecordsSeen      int
+}
+
+// WalkRecords opens an .inpx zip, reads version.info / collection.info, and
+// yields records from .inp members in filename order.
+func WalkRecords(r io.ReaderAt, size int64, fn func(Record) error) (DumpMeta, error) {
+	zr, err := zip.NewReader(r, size)
+	if err != nil {
+		return DumpMeta{}, err
+	}
+	meta := DumpMeta{Version: versionFromZip(zr)}
+	var inps []*zip.File
+	seen := map[string]struct{}{}
+	for _, f := range zr.File {
+		name := filepath.ToSlash(f.Name)
+		base := name
+		if i := strings.LastIndex(name, "/"); i >= 0 {
+			base = name[i+1:]
+		}
+		if !strings.HasSuffix(strings.ToLower(base), ".inp") {
+			continue
+		}
+		inps = append(inps, f)
+		arch := ArchiveNameFromInp(base)
+		if _, ok := seen[arch]; !ok {
+			seen[arch] = struct{}{}
+			meta.Archives = append(meta.Archives, arch)
+		}
+	}
+	sort.Slice(inps, func(i, j int) bool {
+		return strings.ToLower(filepath.Base(inps[i].Name)) < strings.ToLower(filepath.Base(inps[j].Name))
+	})
+	sort.Strings(meta.Archives)
+	for _, f := range inps {
+		if err := walkInp(f, fn, &meta); err != nil {
+			return meta, err
+		}
+	}
+	return meta, nil
+}
+
+func walkInp(f *zip.File, fn func(Record) error, meta *DumpMeta) error {
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+	base := filepath.Base(f.Name)
+	archive := ArchiveNameFromInp(base)
+	sc := bufio.NewScanner(rc)
+	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+	for sc.Scan() {
+		rec, skip := ParseLine(sc.Bytes(), archive)
+		switch skip {
+		case SkipMalformed:
+			meta.SkippedMalformed++
+			continue
+		case SkipNoLibID:
+			meta.SkippedNoLibID++
+			continue
+		case SkipEmpty:
+			continue
+		}
+		meta.RecordsSeen++
+		if err := fn(rec); err != nil {
+			return err
+		}
+	}
+	return sc.Err()
+}
+
+func versionFromZip(zr *zip.Reader) string {
+	if v := readZipFile(zr, "version.info"); len(v) > 0 {
+		if line := firstLine(v); line != "" {
+			return line
+		}
+	}
+	if v := readZipFile(zr, "collection.info"); len(v) > 0 {
+		return secondLine(v)
+	}
+	return ""
+}
+
+func readZipFile(zr *zip.Reader, want string) []byte {
+	want = strings.ToLower(want)
+	for _, f := range zr.File {
+		base := strings.ToLower(filepath.Base(f.Name))
+		if base != want {
+			continue
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return nil
+		}
+		b, err := io.ReadAll(rc)
+		_ = rc.Close()
+		if err != nil {
+			return nil
+		}
+		return b
+	}
+	return nil
+}
+
+func firstLine(b []byte) string {
+	b = stripBOM(b)
+	line, _, _ := bytes.Cut(b, []byte{'\n'})
+	return strings.TrimSpace(strings.TrimSuffix(string(line), "\r"))
+}
+
+func secondLine(b []byte) string {
+	b = stripBOM(b)
+	_, rest, found := bytes.Cut(b, []byte{'\n'})
+	if !found {
+		return ""
+	}
+	line, _, _ := bytes.Cut(rest, []byte{'\n'})
+	return strings.TrimSpace(strings.TrimSuffix(string(line), "\r"))
+}
+
+func stripBOM(b []byte) []byte {
+	b = bytes.TrimPrefix(b, []byte{0xEF, 0xBB, 0xBF})
+	if r, size := utf8.DecodeRune(b); r == '\uFEFF' {
+		return b[size:]
+	}
+	s := string(b)
+	return []byte(strings.TrimPrefix(s, utf8BOM))
+}
+
+// OpenPath walks an .inpx file on disk.
+func OpenPath(path string, fn func(Record) error) (DumpMeta, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return DumpMeta{}, err
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil {
+		return DumpMeta{}, err
+	}
+	return WalkRecords(f, st.Size(), fn)
+}
+
+// FindINPX returns explicitPath, or the newest .inpx in the library root (non-recursive).
+func FindINPX(libraryRoot, explicitPath string) (string, error) {
+	if strings.TrimSpace(explicitPath) != "" {
+		return explicitPath, nil
+	}
+	if strings.TrimSpace(libraryRoot) == "" {
+		return "", os.ErrNotExist
+	}
+	entries, err := os.ReadDir(libraryRoot)
+	if err != nil {
+		return "", err
+	}
+	var best string
+	var bestMod int64
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.EqualFold(filepath.Ext(name), ".inpx") {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		mt := info.ModTime().UnixNano()
+		if best == "" || mt > bestMod || (mt == bestMod && name < best) {
+			best = name
+			bestMod = mt
+		}
+	}
+	if best == "" {
+		return "", os.ErrNotExist
+	}
+	return filepath.Join(libraryRoot, best), nil
+}
+
+// MissingArchives reports zip names listed in the dump that are not in libraryRoot.
+func MissingArchives(libraryRoot string, archives []string) []string {
+	var missing []string
+	for _, a := range archives {
+		if _, err := os.Stat(filepath.Join(libraryRoot, a)); err != nil {
+			missing = append(missing, a)
+		}
+	}
+	return missing
+}
