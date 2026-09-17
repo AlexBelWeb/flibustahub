@@ -67,7 +67,8 @@ type Options struct {
 	INPXPath     string
 	Now          func() time.Time
 	Progress     func(Progress)
-	RecordsProbe func(tx *sql.Tx) error // tests: inspect FTS during records
+	RecordsProbe func(tx *sql.Tx) error   // tests: inspect FTS during records
+	BeforeFTS    func(conn *sql.Conn) error // tests: inspect stats/plan before rebuild
 }
 
 // Service imports dumps using the catalog write pool.
@@ -251,6 +252,12 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 	mark("analyze", tAn)
+	if opt.BeforeFTS != nil {
+		if err := opt.BeforeFTS(conn); err != nil {
+			_ = finishBatch(ctx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+			return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+		}
+	}
 
 	emit(Progress{Phase: PhaseFTS, RecordsSeen: seen})
 	tFTS := time.Now()

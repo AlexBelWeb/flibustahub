@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -51,6 +53,64 @@ func importFixture(t *testing.T, d *db.DB, probe func(*sql.Tx) error) Report {
 		t.Fatal(err)
 	}
 	return rep
+}
+
+const seriesLookupSQL = `SELECT group_concat(DISTINCT e.series)
+  FROM editions e
+ WHERE e.work_id = 1
+   AND e.is_active = 1 AND e.is_deleted = 0
+   AND e.series IS NOT NULL AND trim(e.series) != ''`
+
+func explainQueryPlan(e interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, query string) (string, error) {
+	rows, err := e.QueryContext(context.Background(), "EXPLAIN QUERY PLAN "+query)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	var b strings.Builder
+	for rows.Next() {
+		var id, parent, notused int
+		var detail string
+		if err := rows.Scan(&id, &parent, &notused, &detail); err != nil {
+			return "", err
+		}
+		if b.Len() > 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(detail)
+	}
+	return b.String(), rows.Err()
+}
+
+func TestImportHasStatsBeforeFTS(t *testing.T) {
+	d := openCatalog(t)
+	lib := t.TempDir()
+	if err := testdata.WriteLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+	svc := New(d, slog.New(slog.DiscardHandler))
+	_, err := svc.Import(context.Background(), Options{
+		LibraryRoot: lib,
+		BeforeFTS: func(conn *sql.Conn) error {
+			var one int
+			if err := conn.QueryRowContext(context.Background(), `SELECT 1 FROM sqlite_stat1 LIMIT 1`).Scan(&one); err != nil {
+				return err
+			}
+			plan, err := explainQueryPlan(conn, seriesLookupSQL)
+			if err != nil {
+				return err
+			}
+			if strings.Contains(plan, "idx_editions_active") {
+				return fmt.Errorf("hot series lookup walked idx_editions_active:\n%s", plan)
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestImportCatalogFixture(t *testing.T) {
