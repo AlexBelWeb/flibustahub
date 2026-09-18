@@ -4,12 +4,18 @@ package handlers
 import (
 	"context"
 
+	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
 	"github.com/alexbelweb/flibustahub/internal/events"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 	appsvc "github.com/alexbelweb/flibustahub/internal/services/app"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+// DBUpdated is the payload of db:updated. Error is set when open or migrate failed.
+type DBUpdated struct {
+	Error *apperr.Public `json:"error,omitempty"`
+}
 
 // Runtime holds the Wails context and window helpers. It is not bound to JS.
 type Runtime struct {

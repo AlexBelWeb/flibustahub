@@ -11,6 +11,9 @@ export namespace app {
 	    libraryRoot: string;
 	    paths: config.Paths;
 	    searchIndexReady: boolean;
+	    databaseUpdating: boolean;
+	    catalogOpening: boolean;
+	    catalogReady: boolean;
 	    startupError?: apperr.Public;
 	
 	    static createFrom(source: any = {}) {
@@ -29,6 +32,9 @@ export namespace app {
 	        this.libraryRoot = source["libraryRoot"];
 	        this.paths = this.convertValues(source["paths"], config.Paths);
 	        this.searchIndexReady = source["searchIndexReady"];
+	        this.databaseUpdating = source["databaseUpdating"];
+	        this.catalogOpening = source["catalogOpening"];
+	        this.catalogReady = source["catalogReady"];
 	        this.startupError = this.convertValues(source["startupError"], apperr.Public);
 	    }
 	

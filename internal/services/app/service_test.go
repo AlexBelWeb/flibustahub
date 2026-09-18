@@ -59,6 +59,39 @@ func TestBootstrapSurfacesStartupError(t *testing.T) {
 	}
 }
 
+func TestBootstrapDatabaseUpdating(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetDatabaseUpdating(true)
+	got := svc.Bootstrap()
+	if !got.DatabaseUpdating {
+		t.Fatal("expected databaseUpdating")
+	}
+	if got.CatalogReady {
+		t.Fatal("catalog must stay closed while the database is updating")
+	}
+	if got.SearchIndexReady {
+		t.Fatal("search index must not be ready while the catalog is still closed")
+	}
+	if got.CatalogOpening {
+		t.Fatal("pre-open splash must not look like an in-flight open")
+	}
+}
+
+func TestBootstrapSurfacesMigrateFailureWithoutCatalog(t *testing.T) {
+	svc := newTestService(t)
+	svc.AttachCatalog(nil, apperr.New(apperr.CodeDBMigrateFailed, map[string]string{"name": "002_works_added_date"}))
+	got := svc.Bootstrap()
+	if got.CatalogReady {
+		t.Fatal("failed open must not report catalogReady")
+	}
+	if got.DatabaseUpdating {
+		t.Fatal("updating flag must be clear on a failed open")
+	}
+	if got.StartupError == nil || got.StartupError.Code != apperr.CodeDBMigrateFailed {
+		t.Fatalf("startup = %+v", got.StartupError)
+	}
+}
+
 func TestRetryStartupOpensCatalog(t *testing.T) {
 	svc := newTestService(t)
 	svc.AttachCatalog(nil, apperr.New(apperr.CodeDBOpenFailed, nil))
@@ -69,5 +102,14 @@ func TestRetryStartupOpensCatalog(t *testing.T) {
 	}
 	if svc.Catalog() == nil {
 		t.Fatal("catalog not opened")
+	}
+	if !got.CatalogReady {
+		t.Fatal("retry must report catalogReady")
+	}
+	if got.CatalogOpening {
+		t.Fatal("finished retry must not report catalogOpening")
+	}
+	if got.DatabaseUpdating {
+		t.Fatal("finished retry must not report databaseUpdating")
 	}
 }

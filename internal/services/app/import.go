@@ -36,11 +36,11 @@ func (s *Service) SetLibraryRoot(path string) error {
 	if !info.IsDir() {
 		return apperr.New(apperr.CodeINPXNotFound, nil)
 	}
-	return s.cfg.Update(func(f *config.File) { f.LibraryRoot = path })
+	return s.config().Update(func(f *config.File) { f.LibraryRoot = path })
 }
 
 func (s *Service) PreviewImport(ctx context.Context) (ImportPreview, error) {
-	live := s.cfg.Live()
+	live := s.config().Live()
 	path, err := inpx.FindINPX(live.LibraryRoot, live.INPXPath)
 	if err != nil {
 		return ImportPreview{LibraryRoot: live.LibraryRoot}, apperr.Wrap(apperr.CodeINPXNotFound, err, nil)
@@ -59,8 +59,9 @@ func (s *Service) PreviewImport(ctx context.Context) (ImportPreview, error) {
 		return ImportPreview{LibraryRoot: live.LibraryRoot}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
 	catalogVer := ""
-	if s.catalog != nil {
-		catalogVer, err = db.INPXVersion(ctx, s.catalog.Read)
+	snap := s.snap()
+	if snap.catalog != nil {
+		catalogVer, err = db.INPXVersion(ctx, snap.catalog.Read)
 		if err != nil {
 			return ImportPreview{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 		}
@@ -77,7 +78,8 @@ func (s *Service) PreviewImport(ctx context.Context) (ImportPreview, error) {
 }
 
 func (s *Service) StartImport(ctx context.Context, progress func(inpximport.Progress)) (inpximport.ReportDTO, error) {
-	if s.importer == nil || s.catalog == nil {
+	st := s.snap()
+	if st.importer == nil || st.catalog == nil {
 		return inpximport.ReportDTO{}, apperr.New(apperr.CodeImportFailed, nil)
 	}
 	s.importMu.Lock()
@@ -98,8 +100,8 @@ func (s *Service) StartImport(ctx context.Context, progress func(inpximport.Prog
 		cancel()
 	}()
 
-	live := s.cfg.Live()
-	rep, err := s.importer.Import(runCtx, inpximport.Options{
+	live := s.config().Live()
+	rep, err := st.importer.Import(runCtx, inpximport.Options{
 		LibraryRoot: live.LibraryRoot,
 		INPXPath:    live.INPXPath,
 		Progress: func(p inpximport.Progress) {
@@ -140,10 +142,11 @@ func (s *Service) ImportCommitted() bool {
 
 func (s *Service) LastImportReport(ctx context.Context) (inpximport.ReportDTO, error) {
 	empty := inpximport.ReportDTO{}
-	if s.catalog == nil {
+	st := s.snap()
+	if st.catalog == nil {
 		return empty, nil
 	}
-	row, err := repositories.LatestFinishedBatch(ctx, s.catalog.Read)
+	row, err := repositories.LatestFinishedBatch(ctx, st.catalog.Read)
 	if err != nil {
 		return empty, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}

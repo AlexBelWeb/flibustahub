@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
@@ -30,6 +31,11 @@ type Service struct {
 	importing    bool
 	importCancel context.CancelFunc
 	lastProgress inpximport.Progress
+
+	updating  atomic.Bool
+	openMu    sync.Mutex
+	opening   bool
+	openPause <-chan struct{}
 }
 
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
@@ -38,6 +44,8 @@ func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Se
 
 // AttachCatalog stores the catalog handle and a startup error from config or DB.
 func (s *Service) AttachCatalog(catalog *db.DB, startup error) {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
 	s.catalog = catalog
 	s.startErr = startup
 	if catalog != nil {
@@ -47,15 +55,30 @@ func (s *Service) AttachCatalog(catalog *db.DB, startup error) {
 	}
 }
 
+func (s *Service) SetStartupError(err error) {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
+	s.startErr = err
+}
+
 func (s *Service) Catalog() *db.DB {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
 	return s.catalog
 }
 
 func (s *Service) CloseCatalog() {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
+	s.closeCatalogLocked()
+}
+
+func (s *Service) closeCatalogLocked() {
 	if s.catalog != nil {
 		_ = s.catalog.Close()
 		s.catalog = nil
 	}
+	s.importer = nil
 }
 
 // Bootstrap is the payload the UI needs on first paint.
@@ -70,11 +93,43 @@ type Bootstrap struct {
 	LibraryRoot       string                `json:"libraryRoot"`
 	Paths             config.Paths          `json:"paths"`
 	SearchIndexReady  bool                  `json:"searchIndexReady"`
+	DatabaseUpdating  bool                  `json:"databaseUpdating"`
+	CatalogOpening    bool                  `json:"catalogOpening"`
+	CatalogReady      bool                  `json:"catalogReady"`
 	StartupError      *apperr.Public        `json:"startupError,omitempty"`
 }
 
+func (s *Service) config() *config.Store {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
+	return s.cfg
+}
+
+type startSnap struct {
+	cfg      *config.Store
+	catalog  *db.DB
+	importer *inpximport.Service
+	startErr error
+	updating bool
+	opening  bool
+}
+
+func (s *Service) snap() startSnap {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
+	return startSnap{
+		cfg:      s.cfg,
+		catalog:  s.catalog,
+		importer: s.importer,
+		startErr: s.startErr,
+		updating: s.updating.Load(),
+		opening:  s.opening,
+	}
+}
+
 func (s *Service) Bootstrap() Bootstrap {
-	live := s.cfg.Live()
+	st := s.snap()
+	live := st.cfg.Live()
 	locale := live.Locale
 	if locale == "" {
 		locale = platform.DetectLocale()
@@ -91,11 +146,14 @@ func (s *Service) Bootstrap() Bootstrap {
 		VisualEffectsPref: live.VisualEffects,
 		Capabilities:      caps,
 		LibraryRoot:       live.LibraryRoot,
-		Paths:             s.cfg.Paths(),
-		SearchIndexReady:  s.catalog != nil && s.catalog.SearchIndexReady(),
+		Paths:             st.cfg.Paths(),
+		SearchIndexReady:  st.catalog != nil && st.catalog.SearchIndexReady(),
+		DatabaseUpdating:  st.updating,
+		CatalogOpening:    st.opening,
+		CatalogReady:      st.catalog != nil,
 	}
-	if s.startErr != nil {
-		p := apperr.As(s.startErr).Public()
+	if st.startErr != nil {
+		p := apperr.As(st.startErr).Public()
 		out.StartupError = &p
 	}
 	return out
@@ -105,7 +163,7 @@ func (s *Service) SetLocale(code string) error {
 	if code != "ru" && code != "en" {
 		return apperr.New(apperr.CodeInvalidLocale, map[string]string{"locale": code})
 	}
-	return s.cfg.Update(func(f *config.File) { f.Locale = code })
+	return s.config().Update(func(f *config.File) { f.Locale = code })
 }
 
 func (s *Service) SetTheme(theme string) error {
@@ -114,7 +172,7 @@ func (s *Service) SetTheme(theme string) error {
 	default:
 		return apperr.New(apperr.CodeInvalidTheme, map[string]string{"theme": theme})
 	}
-	return s.cfg.Update(func(f *config.File) { f.Theme = theme })
+	return s.config().Update(func(f *config.File) { f.Theme = theme })
 }
 
 func (s *Service) SetVisualEffects(mode string) error {
@@ -123,15 +181,15 @@ func (s *Service) SetVisualEffects(mode string) error {
 	default:
 		return apperr.New(apperr.CodeInvalidEffects, map[string]string{"mode": mode})
 	}
-	return s.cfg.Update(func(f *config.File) { f.VisualEffects = mode })
+	return s.config().Update(func(f *config.File) { f.VisualEffects = mode })
 }
 
 func (s *Service) SaveWindow(state config.WindowState) error {
-	return s.cfg.Update(func(f *config.File) { f.Window = state })
+	return s.config().Update(func(f *config.File) { f.Window = state })
 }
 
 func (s *Service) WindowState() config.WindowState {
-	return s.cfg.Live().Window
+	return s.config().Live().Window
 }
 
 func (s *Service) Logger() *slog.Logger {
@@ -141,40 +199,122 @@ func (s *Service) Logger() *slog.Logger {
 	return slog.Default()
 }
 
-// RetryStartup reloads config and reopens the catalog.
-func (s *Service) RetryStartup() Bootstrap {
-	dataDir := s.cfg.Live().DataDir
-	store, cfgErr := config.Load(dataDir, s.Logger())
-	s.cfg = store
-	s.CloseCatalog()
-	if cfgErr != nil {
-		s.startErr = cfgErr
-		return s.Bootstrap()
+// SetDatabaseUpdating marks a start that still has to apply a catalog migration
+// so the window can show that state before Open runs. It is not the in-flight
+// open flag; that is catalogOpening.
+func (s *Service) SetDatabaseUpdating(v bool) {
+	s.updating.Store(v)
+}
+
+func (s *Service) tryBeginOpening() bool {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
+	if s.opening {
+		return false
 	}
-	paths := store.Paths()
+	s.opening = true
+	return true
+}
+
+func (s *Service) endOpening() {
+	s.openMu.Lock()
+	s.opening = false
+	s.updating.Store(false)
+	s.openMu.Unlock()
+}
+
+func (s *Service) peekStartErr() error {
+	s.openMu.Lock()
+	defer s.openMu.Unlock()
+	return s.startErr
+}
+
+// OpenCatalog closes any previous handle and opens the file. A concurrent
+// caller returns the current start error instead of starting a second open.
+func (s *Service) OpenCatalog() error {
+	if !s.tryBeginOpening() {
+		return s.peekStartErr()
+	}
+	defer s.endOpening()
+	return s.openCatalogWork()
+}
+
+func (s *Service) openCatalogWork() error {
+	s.openMu.Lock()
+	cfg := s.cfg
+	s.openMu.Unlock()
+
+	paths := cfg.Paths()
+	pending, pendErr := db.HasPendingMigrations(context.Background(), paths.DBPath)
+	if pendErr != nil {
+		s.Logger().Warn("pending migrations check failed", "err", pendErr)
+	}
+	s.updating.Store(pending)
+
+	if pause := s.openPause; pause != nil {
+		<-pause
+	}
+
+	s.openMu.Lock()
+	s.closeCatalogLocked()
+	s.openMu.Unlock()
+
 	catalog, dbErr := db.Open(context.Background(), db.Options{
 		Path:       paths.DBPath,
 		BackupsDir: paths.BackupsDir,
 		Log:        s.Logger(),
 	})
+	importer := (*inpximport.Service)(nil)
 	if catalog != nil {
 		data.Load(paths.DataDir, s.Logger())
 		if err := catalog.SyncGenreNames(context.Background()); err != nil {
 			s.Logger().Warn("genre names not synced", "err", err)
 		}
+		importer = inpximport.New(catalog, s.Logger())
 	}
+
+	s.openMu.Lock()
 	s.catalog = catalog
+	s.importer = importer
 	s.startErr = dbErr
-	if catalog != nil {
-		s.importer = inpximport.New(catalog, s.Logger())
-	} else {
-		s.importer = nil
+	s.openMu.Unlock()
+	return dbErr
+}
+
+// RetryStartup reloads config and reopens the catalog without restarting the process.
+// A call that arrives while an open is already running returns the current
+// bootstrap snapshot and does not start another open.
+func (s *Service) RetryStartup() Bootstrap {
+	if !s.tryBeginOpening() {
+		return s.Bootstrap()
 	}
+	defer s.endOpening()
+
+	s.openMu.Lock()
+	dataDir := s.cfg.Live().DataDir
+	s.openMu.Unlock()
+
+	store, cfgErr := config.Load(dataDir, s.Logger())
+
+	s.openMu.Lock()
+	s.cfg = store
+	s.openMu.Unlock()
+
+	if cfgErr != nil {
+		s.openMu.Lock()
+		s.closeCatalogLocked()
+		s.startErr = cfgErr
+		s.openMu.Unlock()
+		s.endOpening()
+		return s.Bootstrap()
+	}
+	_ = s.openCatalogWork()
+	s.endOpening()
 	return s.Bootstrap()
 }
 
 func (s *Service) OpenLogsDir() error {
-	dir := s.cfg.Paths().LogsDir
+	dir := s.config().Paths().LogsDir
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return apperr.Wrap(apperr.CodeOpenDirFailed, err, nil)
 	}
@@ -185,7 +325,7 @@ func (s *Service) OpenLogsDir() error {
 }
 
 func (s *Service) OpenDataDir() error {
-	dir := s.cfg.Paths().DataDir
+	dir := s.config().Paths().DataDir
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return apperr.Wrap(apperr.CodeOpenDirFailed, err, nil)
 	}

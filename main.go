@@ -9,8 +9,8 @@ import (
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
-	"github.com/alexbelweb/flibustahub/internal/data"
 	catalogdb "github.com/alexbelweb/flibustahub/internal/db"
+	"github.com/alexbelweb/flibustahub/internal/events"
 	"github.com/alexbelweb/flibustahub/internal/handlers"
 	"github.com/alexbelweb/flibustahub/internal/httpapi"
 	"github.com/alexbelweb/flibustahub/internal/logging"
@@ -20,6 +20,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // Populated via -ldflags at release time. Git tags are the source of version.
@@ -65,32 +66,41 @@ func main() {
 	}
 	defer releaseInstance()
 
+	pending := false
+	var startCatalog func() error
 	if !primary {
 		logger.Info("another instance is running")
 		svc.AttachCatalog(nil, cfgErr)
 	} else {
 		logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
-		catalog, dbErr := catalogdb.Open(context.Background(), catalogdb.Options{
-			Path:       paths.DBPath,
-			BackupsDir: paths.BackupsDir,
-			Log:        logger,
-		})
-		if dbErr != nil {
-			logger.Error("catalog open failed", "err", dbErr)
+		// First paint can show the migration splash before OnStartup calls Open.
+		// OpenCatalog re-checks the same path, including on RetryStartup.
+		var pendErr error
+		pending, pendErr = catalogdb.HasPendingMigrations(context.Background(), paths.DBPath)
+		if pendErr != nil {
+			logger.Error("pending migrations check failed", "err", pendErr)
 		}
-		data.Load(paths.DataDir, logger)
-		if catalog != nil {
-			if err := catalog.SyncGenreNames(context.Background()); err != nil {
-				logger.Warn("genre names not synced", "err", err)
+		if pending {
+			svc.SetDatabaseUpdating(true)
+		}
+		if cfgErr != nil {
+			svc.SetStartupError(cfgErr)
+		}
+		startCatalog = func() error {
+			dbErr := svc.OpenCatalog()
+			if dbErr != nil {
+				logger.Error("catalog open failed", "err", dbErr)
 			}
-		}
-		startup := cfgErr
-		if startup == nil {
-			startup = dbErr
-		}
-		svc.AttachCatalog(catalog, startup)
-		if startErr := httpServer.Start("127.0.0.1", store.Live().OPDSPort); startErr != nil {
-			logger.Warn("loopback http did not start", "err", startErr)
+			shown := cfgErr
+			if shown == nil {
+				shown = dbErr
+			} else {
+				svc.SetStartupError(cfgErr)
+			}
+			if startErr := httpServer.Start("127.0.0.1", store.Live().OPDSPort); startErr != nil {
+				logger.Warn("loopback http did not start", "err", startErr)
+			}
+			return shown
 		}
 	}
 
@@ -115,6 +125,17 @@ func main() {
 			win.SetContext(ctx)
 			win.RestoreWindow()
 			win.ApplyWindowTheme(store.Live().Theme)
+			if startCatalog != nil {
+				go func() {
+					err := startCatalog()
+					payload := handlers.DBUpdated{}
+					if err != nil {
+						p := apperr.As(err).Public()
+						payload.Error = &p
+					}
+					runtime.EventsEmit(ctx, events.DBUpdated, payload)
+				}()
+			}
 		},
 		OnBeforeClose: func(ctx context.Context) (prevent bool) {
 			win.SetContext(ctx)

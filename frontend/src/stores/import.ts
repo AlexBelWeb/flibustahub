@@ -79,6 +79,10 @@ export const useImportStore = defineStore('import', () => {
   }
 
   async function loadCard() {
+    if (!useAppStore().catalogReady) {
+      cardLoading.value = false
+      return
+    }
     cardLoading.value = true
     previewError.value = null
     try {

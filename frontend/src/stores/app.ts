@@ -4,6 +4,8 @@ import { errorMessage } from '@/i18n/errors'
 import { setI18nLocale } from '@/i18n'
 import { isLocaleCode, type LocaleCode } from '@/i18n/registry'
 import { parseBackendError } from '@/lib/backend-error'
+import { Events } from '@/lib/events'
+import { eventsOn } from '@/lib/wails-runtime'
 import { useToastStore } from '@/stores/toast'
 import type { Bootstrap, StartupError } from '@/types/bootstrap'
 
@@ -21,6 +23,52 @@ export const useAppStore = defineStore('app', () => {
     () => bootstrap.value?.capabilities.effectiveEffects === 'reduced',
   )
   const startupError = computed<StartupError | null>(() => bootstrap.value?.startupError ?? null)
+  const databaseUpdating = computed(() => bootstrap.value?.databaseUpdating ?? false)
+  const catalogOpening = computed(() => bootstrap.value?.catalogOpening ?? false)
+  const catalogReady = computed(() => bootstrap.value?.catalogReady ?? false)
+
+  let listeningDB = false
+
+  function eventRecord(data: unknown): Record<string, unknown> {
+    if (Array.isArray(data) && data.length > 0) {
+      return eventRecord(data[0])
+    }
+    if (data && typeof data === 'object') {
+      return data as Record<string, unknown>
+    }
+    return {}
+  }
+
+  function applyDBUpdated(data: unknown) {
+    const src = eventRecord(data)
+    const raw = src.error
+    if (raw && typeof raw === 'object' && bootstrap.value) {
+      const rec = raw as Record<string, unknown>
+      const code = typeof rec.code === 'string' ? rec.code : ''
+      if (code) {
+        const params =
+          rec.params && typeof rec.params === 'object' && !Array.isArray(rec.params)
+            ? (rec.params as Record<string, string>)
+            : undefined
+        bootstrap.value = {
+          ...bootstrap.value,
+          databaseUpdating: false,
+          catalogOpening: false,
+          catalogReady: false,
+          startupError: { code, params },
+        }
+      }
+    }
+    void refresh()
+  }
+
+  function listenDBUpdated() {
+    if (listeningDB) {
+      return
+    }
+    listeningDB = true
+    eventsOn(Events.DBUpdated, applyDBUpdated)
+  }
 
   function applyDocumentTheme(value: Theme) {
     const root = document.documentElement
@@ -56,9 +104,13 @@ export const useAppStore = defineStore('app', () => {
   async function load() {
     loading.value = true
     loadError.value = false
+    listenDBUpdated()
     try {
       const data = await window.go.handlers.App.Bootstrap()
       applyBootstrap(data)
+      if (!data.catalogReady && !data.startupError) {
+        await refresh()
+      }
     } catch {
       loadError.value = true
     } finally {
@@ -109,6 +161,9 @@ export const useAppStore = defineStore('app', () => {
     theme,
     reducedEffects,
     startupError,
+    databaseUpdating,
+    catalogOpening,
+    catalogReady,
     refresh,
     load,
     retryStartup,
