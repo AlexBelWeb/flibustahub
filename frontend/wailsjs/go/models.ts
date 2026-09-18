@@ -7,10 +7,15 @@ export namespace app {
 	    locale: string;
 	    theme: string;
 	    visualEffectsPref: string;
+	    sidebarCollapsed: boolean;
+	    catalogView: string;
 	    capabilities: platform.Capabilities;
 	    libraryRoot: string;
 	    paths: config.Paths;
 	    searchIndexReady: boolean;
+	    databaseUpdating: boolean;
+	    catalogOpening: boolean;
+	    catalogReady: boolean;
 	    startupError?: apperr.Public;
 	
 	    static createFrom(source: any = {}) {
@@ -25,10 +30,15 @@ export namespace app {
 	        this.locale = source["locale"];
 	        this.theme = source["theme"];
 	        this.visualEffectsPref = source["visualEffectsPref"];
+	        this.sidebarCollapsed = source["sidebarCollapsed"];
+	        this.catalogView = source["catalogView"];
 	        this.capabilities = this.convertValues(source["capabilities"], platform.Capabilities);
 	        this.libraryRoot = source["libraryRoot"];
 	        this.paths = this.convertValues(source["paths"], config.Paths);
 	        this.searchIndexReady = source["searchIndexReady"];
+	        this.databaseUpdating = source["databaseUpdating"];
+	        this.catalogOpening = source["catalogOpening"];
+	        this.catalogReady = source["catalogReady"];
 	        this.startupError = this.convertValues(source["startupError"], apperr.Public);
 	    }
 	
@@ -50,8 +60,24 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class INPXFile {
+	    path: string;
+	    name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new INPXFile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.name = source["name"];
+	    }
+	}
 	export class ImportPreview {
 	    libraryRoot: string;
+	    zipCount: number;
+	    inpxFiles: INPXFile[];
 	    inpxPath: string;
 	    inpxFileName: string;
 	    fileVersion: string;
@@ -66,6 +92,8 @@ export namespace app {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.libraryRoot = source["libraryRoot"];
+	        this.zipCount = source["zipCount"];
+	        this.inpxFiles = this.convertValues(source["inpxFiles"], INPXFile);
 	        this.inpxPath = source["inpxPath"];
 	        this.inpxFileName = source["inpxFileName"];
 	        this.fileVersion = source["fileVersion"];
@@ -73,6 +101,24 @@ export namespace app {
 	        this.sameVersion = source["sameVersion"];
 	        this.hasCatalog = source["hasCatalog"];
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }
@@ -93,6 +139,324 @@ export namespace apperr {
 	        this.params = source["params"];
 	    }
 	}
+
+}
+
+export namespace catalog {
+	
+	export class Author {
+	    id: number;
+	    displayName: string;
+	    sortName: string;
+	    workCount: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Author(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.displayName = source["displayName"];
+	        this.sortName = source["sortName"];
+	        this.workCount = source["workCount"];
+	    }
+	}
+	export class Total {
+	    n: number;
+	    capped?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Total(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.n = source["n"];
+	        this.capped = source["capped"];
+	    }
+	}
+	export class AuthorPage {
+	    items: Author[];
+	    nextCursor?: string;
+	    total?: Total;
+	
+	    static createFrom(source: any = {}) {
+	        return new AuthorPage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], Author);
+	        this.nextCursor = source["nextCursor"];
+	        this.total = this.convertValues(source["total"], Total);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Genre {
+	    id: number;
+	    code: string;
+	    nameRu: string;
+	    workCount: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Genre(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.code = source["code"];
+	        this.nameRu = source["nameRu"];
+	        this.workCount = source["workCount"];
+	    }
+	}
+	export class ListPeopleQuery {
+	    letter: string;
+	    query: string;
+	    cursor: string;
+	    limit: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ListPeopleQuery(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.letter = source["letter"];
+	        this.query = source["query"];
+	        this.cursor = source["cursor"];
+	        this.limit = source["limit"];
+	    }
+	}
+	export class ListWorksQuery {
+	    sort: string;
+	    cursor: string;
+	    lang: string;
+	    genreId: number;
+	    authorId: number;
+	    seriesId: number;
+	    limit: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ListWorksQuery(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.sort = source["sort"];
+	        this.cursor = source["cursor"];
+	        this.lang = source["lang"];
+	        this.genreId = source["genreId"];
+	        this.authorId = source["authorId"];
+	        this.seriesId = source["seriesId"];
+	        this.limit = source["limit"];
+	    }
+	}
+	export class SearchQuery {
+	    q: string;
+	    lang: string;
+	    genreId: number;
+	    authorId: number;
+	    seriesId: number;
+	    offset: number;
+	    limit: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new SearchQuery(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.q = source["q"];
+	        this.lang = source["lang"];
+	        this.genreId = source["genreId"];
+	        this.authorId = source["authorId"];
+	        this.seriesId = source["seriesId"];
+	        this.offset = source["offset"];
+	        this.limit = source["limit"];
+	    }
+	}
+	export class Work {
+	    id: number;
+	    workKey: string;
+	    title: string;
+	    sortTitle: string;
+	    authorsText: string;
+	    lang?: string;
+	    rating?: number;
+	    addedDate?: string;
+	    series?: string;
+	    seriesNo?: string;
+	    editionCount: number;
+	    hasFile: boolean;
+	    size?: number;
+	    librate?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Work(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.workKey = source["workKey"];
+	        this.title = source["title"];
+	        this.sortTitle = source["sortTitle"];
+	        this.authorsText = source["authorsText"];
+	        this.lang = source["lang"];
+	        this.rating = source["rating"];
+	        this.addedDate = source["addedDate"];
+	        this.series = source["series"];
+	        this.seriesNo = source["seriesNo"];
+	        this.editionCount = source["editionCount"];
+	        this.hasFile = source["hasFile"];
+	        this.size = source["size"];
+	        this.librate = source["librate"];
+	    }
+	}
+	export class WorkPage {
+	    items: Work[];
+	    nextCursor?: string;
+	    total?: Total;
+	
+	    static createFrom(source: any = {}) {
+	        return new WorkPage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], Work);
+	        this.nextCursor = source["nextCursor"];
+	        this.total = this.convertValues(source["total"], Total);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Series {
+	    id: number;
+	    name: string;
+	    sortName: string;
+	    workCount: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Series(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.sortName = source["sortName"];
+	        this.workCount = source["workCount"];
+	    }
+	}
+	export class SearchResult {
+	    authors?: Author[];
+	    series?: Series[];
+	    works: WorkPage;
+	    fallback?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SearchResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.authors = this.convertValues(source["authors"], Author);
+	        this.series = this.convertValues(source["series"], Series);
+	        this.works = this.convertValues(source["works"], WorkPage);
+	        this.fallback = source["fallback"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	export class SeriesPage {
+	    items: Series[];
+	    nextCursor?: string;
+	    total?: Total;
+	
+	    static createFrom(source: any = {}) {
+	        return new SeriesPage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], Series);
+	        this.nextCursor = source["nextCursor"];
+	        this.total = this.convertValues(source["total"], Total);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	
 
 }
 
@@ -196,6 +560,7 @@ export namespace inpximport {
 	    status: string;
 	    inpxPath: string;
 	    inpxVersion: string;
+	    finishedAt?: string;
 	    recordsSeen: number;
 	    worksAdded: number;
 	    editionsAdded: number;
@@ -214,6 +579,7 @@ export namespace inpximport {
 	        this.status = source["status"];
 	        this.inpxPath = source["inpxPath"];
 	        this.inpxVersion = source["inpxVersion"];
+	        this.finishedAt = source["finishedAt"];
 	        this.recordsSeen = source["recordsSeen"];
 	        this.worksAdded = source["worksAdded"];
 	        this.editionsAdded = source["editionsAdded"];

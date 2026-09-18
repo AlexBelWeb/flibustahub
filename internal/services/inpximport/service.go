@@ -59,6 +59,7 @@ type Report struct {
 	Status              string
 	INPXPath            string
 	INPXVersion         string
+	FinishedAt          string
 	RecordsSeen         int
 	WorksAdded          int
 	EditionsAdded       int
@@ -112,6 +113,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	mark := func(name string, start time.Time) {
 		phases[name] = int(time.Since(start).Milliseconds())
 	}
+	wallStart := time.Now()
 
 	tBackup := time.Now()
 	if _, err := s.catalog.Backup(ctx); err != nil {
@@ -364,7 +366,27 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	if err := finishBatch(postCtx, conn, batchID, StatusDone, rep, notes, opt.Now); err != nil {
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
+	s.logImportFinished(phases, time.Since(wallStart))
 	return rep, nil
+}
+
+func (s *Service) logImportFinished(phases map[string]int, wall time.Duration) {
+	var dbBytes int64
+	if st, err := os.Stat(s.catalog.Path()); err == nil {
+		dbBytes = st.Size()
+	}
+	s.log.Info("import finished",
+		slog.Group("phases_ms",
+			slog.Int("backup", phases["backup"]),
+			slog.Int("reading", phases["reading"]),
+			slog.Int("records", phases["records"]),
+			slog.Int("fts", phases["fts"]),
+			slog.Int("warmup", phases["warmup"]),
+			slog.Int("analyze", phases["analyze"]),
+		),
+		slog.Int("wall_ms", int(wall.Milliseconds())),
+		slog.Int64("db_bytes", dbBytes),
+	)
 }
 
 func finishBatch(_ context.Context, conn *sql.Conn, id int64, status string, rep Report, notes Notes, now func() time.Time) error {

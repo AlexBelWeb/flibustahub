@@ -4,12 +4,18 @@ package handlers
 import (
 	"context"
 
+	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
 	"github.com/alexbelweb/flibustahub/internal/events"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 	appsvc "github.com/alexbelweb/flibustahub/internal/services/app"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+// DBUpdated is the payload of db:updated. Error is set when open or migrate failed.
+type DBUpdated struct {
+	Error *apperr.Public `json:"error,omitempty"`
+}
 
 // Runtime holds the Wails context and window helpers. It is not bound to JS.
 type Runtime struct {
@@ -133,7 +139,14 @@ func (a *App) Bootstrap() appsvc.Bootstrap {
 }
 
 func (a *App) RetryStartup() appsvc.Bootstrap {
-	return a.svc.RetryStartup()
+	out := a.svc.RetryStartup()
+	if out.CatalogReady && a.rt != nil && a.rt.ctx != nil {
+		go func() {
+			_ = a.svc.WaitSearchIndex(a.rt.ctx)
+			runtime.EventsEmit(a.rt.ctx, events.SearchIndexReady)
+		}()
+	}
+	return out
 }
 
 func (a *App) OpenLogsDir() error {
@@ -154,4 +167,12 @@ func (a *App) SetTheme(theme string) error {
 
 func (a *App) SetVisualEffects(mode string) error {
 	return a.svc.SetVisualEffects(mode)
+}
+
+func (a *App) SetSidebarCollapsed(collapsed bool) error {
+	return a.svc.SetSidebarCollapsed(collapsed)
+}
+
+func (a *App) SetCatalogView(view string) error {
+	return a.svc.SetCatalogView(view)
 }

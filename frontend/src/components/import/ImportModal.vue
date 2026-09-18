@@ -147,12 +147,7 @@ function onCloseDialog(open: boolean) {
           </div>
 
           <div class="mt-8 flex flex-col gap-2">
-            <Button
-              variant="outline"
-              :disabled="!imp.canCancel"
-              :title="imp.canCancel ? undefined : t('import.cancelDisabled')"
-              @click="imp.requestCancel()"
-            >
+            <Button variant="outline" :disabled="!imp.canCancel" @click="imp.requestCancel()">
               {{ t('import.cancel') }}
             </Button>
             <p v-if="!imp.canCancel && imp.running" class="text-sm text-muted-foreground">

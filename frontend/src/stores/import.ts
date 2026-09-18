@@ -5,6 +5,7 @@ import { Events } from '@/lib/events'
 import { parseBackendError, type BackendError } from '@/lib/backend-error'
 import { eventsOn, quitApp } from '@/lib/wails-runtime'
 import { useAppStore } from '@/stores/app'
+import { useCatalogStore } from '@/stores/catalog'
 import type { ImportPreview, ImportProgress, ImportReport } from '@/types/import'
 import { isImportReport } from '@/types/import'
 
@@ -78,7 +79,20 @@ export const useImportStore = defineStore('import', () => {
     }
   }
 
+  async function loadLastReport() {
+    try {
+      const report = await window.go.handlers.App.LastImportReport()
+      lastReport.value = isImportReport(report) ? report : null
+    } catch {
+      lastReport.value = null
+    }
+  }
+
   async function loadCard() {
+    if (!useAppStore().catalogReady) {
+      cardLoading.value = false
+      return
+    }
     cardLoading.value = true
     previewError.value = null
     try {
@@ -119,6 +133,27 @@ export const useImportStore = defineStore('import', () => {
     }
   }
 
+  async function chooseDump(dialogTitle: string) {
+    try {
+      const path = await window.go.handlers.App.SelectINPXFile(dialogTitle)
+      if (!path) {
+        return
+      }
+      await loadCard()
+    } catch (err) {
+      previewError.value = parseBackendError(err)
+    }
+  }
+
+  async function pickDump(path: string) {
+    try {
+      await window.go.handlers.App.SetINPXPath(path)
+      await loadCard()
+    } catch (err) {
+      previewError.value = parseBackendError(err)
+    }
+  }
+
   function requestStart() {
     if (!preview.value) {
       return
@@ -153,6 +188,7 @@ export const useImportStore = defineStore('import', () => {
       lastReport.value = report
       modalStage.value = 'report'
       await useAppStore().refresh()
+      useCatalogStore().reset()
       await loadCard()
     } catch (err) {
       const parsed = parseBackendError(err)
@@ -236,7 +272,10 @@ export const useImportStore = defineStore('import', () => {
     canCancel,
     listen,
     loadCard,
+    loadLastReport,
     chooseFolder,
+    chooseDump,
+    pickDump,
     requestStart,
     runImport,
     requestCancel,

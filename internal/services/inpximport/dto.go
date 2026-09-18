@@ -23,6 +23,7 @@ type ReportDTO struct {
 	Status              string   `json:"status"`
 	INPXPath            string   `json:"inpxPath"`
 	INPXVersion         string   `json:"inpxVersion"`
+	FinishedAt          string   `json:"finishedAt,omitempty"`
 	RecordsSeen         int      `json:"recordsSeen"`
 	WorksAdded          int      `json:"worksAdded"`
 	EditionsAdded       int      `json:"editionsAdded"`
@@ -60,6 +61,7 @@ func (r Report) ToDTO() ReportDTO {
 		Status:              r.Status,
 		INPXPath:            r.INPXPath,
 		INPXVersion:         r.INPXVersion,
+		FinishedAt:          r.FinishedAt,
 		RecordsSeen:         r.RecordsSeen,
 		WorksAdded:          r.WorksAdded,
 		EditionsAdded:       r.EditionsAdded,
@@ -103,12 +105,13 @@ func encodingsDTO(e inpx.EncodingStats) EncodingsDTO {
 }
 
 // ReportFromBatch rebuilds a Report from a finished import_batches row.
-func ReportFromBatch(id int64, status, path, version string, records, works, editionsAdded, editionsUpdated, deactivated, collisions int, notes Notes) Report {
+func ReportFromBatch(id int64, status, path, version, finishedAt string, records, works, editionsAdded, editionsUpdated, deactivated, collisions int, notes Notes) Report {
 	return Report{
 		ID:                  id,
 		Status:              status,
 		INPXPath:            path,
 		INPXVersion:         version,
+		FinishedAt:          finishedAt,
 		RecordsSeen:         records,
 		WorksAdded:          works,
 		EditionsAdded:       editionsAdded,

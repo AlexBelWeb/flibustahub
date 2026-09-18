@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/alexbelweb/flibustahub/internal/apperr"
+	"github.com/alexbelweb/flibustahub/internal/config"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/inpx/testdata"
 	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
@@ -50,6 +52,12 @@ func TestPreviewImportAndLastReport(t *testing.T) {
 	if prev.INPXFileName != testdata.DumpName || prev.FileVersion != "20260901" {
 		t.Fatalf("%+v", prev)
 	}
+	if prev.ZipCount != 2 {
+		t.Fatalf("zipCount=%d", prev.ZipCount)
+	}
+	if len(prev.INPXFiles) != 1 || prev.INPXFiles[0].Name != testdata.DumpName {
+		t.Fatalf("inpxFiles=%+v", prev.INPXFiles)
+	}
 	if prev.HasCatalog || prev.SameVersion {
 		t.Fatalf("empty catalog flagged as imported: %+v", prev)
 	}
@@ -90,15 +98,30 @@ func TestPreviewImportAndLastReport(t *testing.T) {
 	}
 }
 
-func TestPreviewImportMissingDump(t *testing.T) {
+func TestPreviewImportEmptyFolder(t *testing.T) {
 	svc := newTestService(t)
 	dir := t.TempDir()
 	if err := svc.SetLibraryRoot(dir); err != nil {
 		t.Fatal(err)
 	}
+	prev, err := svc.PreviewImport(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prev.ZipCount != 0 || len(prev.INPXFiles) != 0 || prev.INPXPath != "" {
+		t.Fatalf("%+v", prev)
+	}
+}
+
+func TestPreviewImportUnreadableFolder(t *testing.T) {
+	svc := newTestService(t)
+	missing := filepath.Join(t.TempDir(), "gone")
+	if err := svc.cfg.Update(func(f *config.File) { f.LibraryRoot = missing }); err != nil {
+		t.Fatal(err)
+	}
 	_, err := svc.PreviewImport(context.Background())
-	if err == nil {
-		t.Fatal("expected inpx_not_found")
+	if apperr.As(err).Code != apperr.CodeLibraryUnreadable {
+		t.Fatalf("got %v", err)
 	}
 }
 

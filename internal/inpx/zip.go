@@ -276,6 +276,42 @@ func FindINPX(libraryRoot, explicitPath string) (string, error) {
 	return filepath.Join(libraryRoot, best), nil
 }
 
+// DumpFile is an .inpx found in the library root. Archives are never opened.
+type DumpFile struct {
+	Path string `json:"path"`
+	Name string `json:"name"`
+}
+
+// InspectLibraryRoot lists .inpx files and counts .zip names in the folder itself.
+// A missing or unreadable folder is an error, not an empty listing.
+func InspectLibraryRoot(root string) (zipCount int, dumps []DumpFile, err error) {
+	root = strings.TrimSpace(root)
+	if root == "" {
+		return 0, nil, nil
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return 0, nil, err
+	}
+	dumps = make([]DumpFile, 0)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		switch ext {
+		case ".zip":
+			zipCount++
+		case ".inpx":
+			dumps = append(dumps, DumpFile{
+				Path: filepath.Join(root, e.Name()),
+				Name: e.Name(),
+			})
+		}
+	}
+	return zipCount, dumps, nil
+}
+
 // MissingArchives reports zip names listed in the dump that are not in libraryRoot.
 func MissingArchives(libraryRoot string, archives []string) []string {
 	var missing []string

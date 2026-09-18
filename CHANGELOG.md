@@ -23,17 +23,33 @@ Conventions:
 - If the settings cannot be loaded at startup, the window still opens, explains what happened and offers to retry.
 - The book catalog is stored in a local database, and the schema is upgraded automatically when the application is updated.
 - A backup is created before the schema of an existing database is upgraded; the three most recent backups are kept.
-- The home screen lets you choose the library folder and import the catalog from an `.inpx` file.
+- The home screen shows how many books are in the catalog, when the last import ran, and a grid of recent arrivals.
+- The catalog can be searched and browsed in virtualized lists, with tile or table layout.
+- Authors, series and genres have their own lists with an alphabet index.
+- Opening a book goes to a simple work page and returns to the same place in the list.
+- First-run setup walks through choosing the library folder, the `.inpx` dump and starting the import.
+- A command palette (Ctrl+K) finds books, authors, series and recent searches as you type.
+- While a database schema update is applied at startup, a dedicated screen explains that a backup was made and asks you to wait.
 - While an import is running the window is blocked and shows the current stage, the number of records processed and a progress bar based on the size of the dump; the import can be cancelled until the data is written to the database.
 - An import report is shown afterwards: how many works and editions were added or changed, which archives are missing from disk, which genres have no name, the file encodings that were detected and how long each stage took.
 
 ### Changed
 
+- Catalog filters open as a sliding panel and can be set by language, genre, author and series; the selection stays in the address bar.
+- The command palette, sidebar and drop-down lists use the same themed controls as the rest of the window, including keyboard movement in the palette and on the book grid.
+- Sidebar, filter and list pictograms use a single icon set instead of mixed letter marks and ad-hoc drawings.
+
 ### Fixed
 
 - If the data folder already contains a catalog created by another program, this is stated plainly: the file is neither opened nor converted.
+- The collapsed sidebar no longer leaves an empty strip beside the icons.
+- Catalog lists no longer come up blank while a result count is shown.
+- Filter chips show the selected name, not the filter kind.
+- Highlighting a row in a searchable list no longer draws a second, clipped focus ring.
 
 ### Removed
+
+- The home screen no longer ends with a button that only opened the library folder settings.
 
 ### Performance
 

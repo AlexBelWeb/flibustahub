@@ -27,9 +27,14 @@ export interface Bootstrap {
   locale: string
   theme: string
   visualEffectsPref: string
+  sidebarCollapsed: boolean
+  catalogView: string
   capabilities: Capabilities
   libraryRoot: string
   paths: Paths
   searchIndexReady: boolean
+  databaseUpdating: boolean
+  catalogOpening: boolean
+  catalogReady: boolean
   startupError?: StartupError | null
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/textnorm"
+	"github.com/alexbelweb/flibustahub/migrations"
 )
 
 func openTest(t *testing.T, opts ...func(*Options)) *DB {
@@ -92,8 +93,159 @@ func TestMigrateTwiceIsNoop(t *testing.T) {
 	if err := d2.Write.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 1 {
+	if n != 2 {
 		t.Fatalf("schema_migrations rows = %d", n)
+	}
+}
+
+func TestWorksAddedDateMigration(t *testing.T) {
+	d := openTest(t)
+	var n int
+	if err := d.Read.QueryRow(`SELECT count(*) FROM pragma_table_info('works') WHERE name = 'added_date'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("works.added_date missing")
+	}
+	var notnull int
+	var dflt sql.NullString
+	if err := d.Read.QueryRow(`SELECT "notnull", dflt_value FROM pragma_table_info('works') WHERE name = 'added_date'`).Scan(&notnull, &dflt); err != nil {
+		t.Fatal(err)
+	}
+	if notnull != 1 {
+		t.Fatal("works.added_date must be NOT NULL")
+	}
+	if err := d.Read.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='index' AND name='idx_works_added'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("idx_works_added missing")
+	}
+	if err := d.Read.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='index' AND name='idx_series_sort'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("idx_series_sort missing")
+	}
+	var total, listable string
+	if err := d.Read.QueryRow(`SELECT value FROM app_meta WHERE key = ?`, MetaWorksTotal).Scan(&total); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Read.QueryRow(`SELECT value FROM app_meta WHERE key = ?`, MetaWorksListable).Scan(&listable); err != nil {
+		t.Fatal(err)
+	}
+	if total != "0" || listable != "0" {
+		t.Fatalf("empty catalog counters total=%s listable=%s", total, listable)
+	}
+}
+
+func TestMigration002FillsAddedDateAndCounts(t *testing.T) {
+	initial, err := migrations.FS.ReadFile("001_initial.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: fstest.MapFS{"001_initial.sql": &fstest.MapFile{Data: initial}},
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO works(id, work_key, title, sort_title, authors_text, created_at, updated_at, rating)
+		VALUES (1, 'k1', 'Has date', 'has date', 'A', 't', 't', NULL),
+		       (2, 'k2', 'Ghost', 'ghost', 'B', 't', 't', 9)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO editions(libid, work_id, archive_name, file_name, added_date, is_deleted, is_active)
+		VALUES ('1', 1, 'a.zip', 'f.fb2', '2024-02-03', 0, 1)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       opt.Path,
+		BackupsDir: opt.BackupsDir,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+
+	var dated, ghost string
+	if err := d2.Read.QueryRow(`SELECT added_date FROM works WHERE id = 1`).Scan(&dated); err != nil {
+		t.Fatal(err)
+	}
+	if dated != "2024-02-03" {
+		t.Fatalf("visible work added_date = %q", dated)
+	}
+	if err := d2.Read.QueryRow(`SELECT added_date FROM works WHERE id = 2`).Scan(&ghost); err != nil {
+		t.Fatal(err)
+	}
+	if ghost != "" {
+		t.Fatalf("missing date must be empty string, got %q", ghost)
+	}
+	var total, listable string
+	if err := d2.Read.QueryRow(`SELECT value FROM app_meta WHERE key = ?`, MetaWorksTotal).Scan(&total); err != nil {
+		t.Fatal(err)
+	}
+	if err := d2.Read.QueryRow(`SELECT value FROM app_meta WHERE key = ?`, MetaWorksListable).Scan(&listable); err != nil {
+		t.Fatal(err)
+	}
+	if total != "2" || listable != "2" {
+		t.Fatalf("counters total=%s listable=%s", total, listable)
+	}
+}
+
+func TestHasPendingMigrations(t *testing.T) {
+	missing, err := HasPendingMigrations(context.Background(), filepath.Join(t.TempDir(), "no.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if missing {
+		t.Fatal("missing file is not a pending migration")
+	}
+
+	d := openTest(t)
+	path := d.Path()
+	_ = d.Close()
+	got, err := HasPendingMigrations(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got {
+		t.Fatal("fully migrated catalog must not be pending")
+	}
+
+	initial, err := migrations.FS.ReadFile("001_initial.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: fstest.MapFS{"001_initial.sql": &fstest.MapFile{Data: initial}},
+	}
+	d1, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	onePath := d1.Path()
+	_ = d1.Close()
+	pending, err := HasPendingMigrations(context.Background(), onePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !pending {
+		t.Fatal("catalog with only 001 applied must be pending")
 	}
 }
 

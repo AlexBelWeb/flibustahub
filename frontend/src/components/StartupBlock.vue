@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { errorMessage } from '@/i18n/errors'
 import { useAppStore } from '@/stores/app'
 
@@ -29,19 +30,25 @@ async function retry() {
 
 <template>
   <div class="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-6">
-    <div class="rounded-2xl border border-border bg-card p-8">
-      <h1 class="font-display text-3xl font-semibold">{{ t('startup.title') }}</h1>
-      <p class="mt-3 text-muted-foreground">{{ t('startup.lead') }}</p>
-      <p class="mt-4 text-base">{{ detail }}</p>
-      <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <Button :disabled="busy" @click="retry">{{ t('common.retry') }}</Button>
-        <Button variant="outline" :disabled="busy" @click="app.openLogsDir()">
-          {{ t('startup.openLogs') }}
-        </Button>
-        <Button variant="outline" :disabled="busy" @click="app.openDataDir()">
-          {{ t('startup.openData') }}
-        </Button>
-      </div>
-    </div>
+    <Card class="p-0">
+      <CardHeader class="p-8 pb-0">
+        <CardTitle class="font-display text-3xl">{{ t('startup.title') }}</CardTitle>
+      </CardHeader>
+      <CardContent class="p-8 pt-3">
+        <p class="text-muted-foreground">{{ t('startup.lead') }}</p>
+        <p class="mt-4 text-base">{{ detail }}</p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <Button :disabled="busy || app.catalogOpening" @click="retry">{{
+            t('common.retry')
+          }}</Button>
+          <Button variant="outline" :disabled="busy" @click="app.openLogsDir()">
+            {{ t('startup.openLogs') }}
+          </Button>
+          <Button variant="outline" :disabled="busy" @click="app.openDataDir()">
+            {{ t('startup.openData') }}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   </div>
 </template>

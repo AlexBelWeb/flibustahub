@@ -96,4 +96,32 @@ func TestAtomicSaveRoundTrip(t *testing.T) {
 	if got.Locale != "ru" || got.Window.Width != 1280 {
 		t.Fatalf("reloaded = %+v", got)
 	}
+	if got.CatalogView != CatalogViewTable {
+		t.Fatalf("default catalog view = %q", got.CatalogView)
+	}
+	if got.SidebarCollapsed {
+		t.Fatal("sidebar must start expanded")
+	}
+}
+
+func TestSidebarAndCatalogViewPersist(t *testing.T) {
+	dir := t.TempDir()
+	store, err := Load(dir, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(func(f *File) {
+		f.SidebarCollapsed = true
+		f.CatalogView = CatalogViewTile
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := Load(dir, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := reloaded.Live()
+	if !got.SidebarCollapsed || got.CatalogView != CatalogViewTile {
+		t.Fatalf("reloaded = %+v", got)
+	}
 }

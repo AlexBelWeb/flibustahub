@@ -30,6 +30,7 @@ export interface ImportReport {
   status: string
   inpxPath: string
   inpxVersion: string
+  finishedAt?: string
   recordsSeen: number
   worksAdded: number
   editionsAdded: number
@@ -39,8 +40,15 @@ export interface ImportReport {
   notes: ImportNotes
 }
 
+export interface INPXFile {
+  path: string
+  name: string
+}
+
 export interface ImportPreview {
   libraryRoot: string
+  zipCount: number
+  inpxFiles: INPXFile[]
   inpxPath: string
   inpxFileName: string
   fileVersion: string

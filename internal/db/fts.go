@@ -12,9 +12,12 @@ var ftsCreateRe = regexp.MustCompile(`(?is)CREATE VIRTUAL TABLE\s+(works_fts|aut
 var worksFTSTriggerRe = regexp.MustCompile(`(?is)CREATE TRIGGER\s+(works_fts_au|works_fts_ad)\b.*?END;`)
 
 const (
-	MetaFTSDirty     = "fts_dirty"
-	importCacheSize  = -128000
-	workingCacheSize = -64000
+	MetaFTSDirty      = "fts_dirty"
+	MetaWorksTotal    = "works_total"
+	MetaWorksListable = "works_listable"
+	MetaLastWarmup    = "last_warmup_at"
+	importCacheSize   = -128000
+	workingCacheSize  = -64000
 )
 
 func initialSQL() (string, error) {

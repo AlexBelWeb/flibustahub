@@ -6,4 +6,6 @@ package events
 const (
 	ImportProgress       = "import:progress"
 	ImportCloseRequested = "import:closeRequested"
+	DBUpdated            = "db:updated"
+	SearchIndexReady     = "search:indexReady"
 )

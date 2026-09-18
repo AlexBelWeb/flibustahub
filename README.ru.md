@@ -45,7 +45,13 @@ TODO: папка данных, база, кэш обложек, логи, рез
 
 ## Сборка из исходников
 
-TODO: версии Go и Node, системные пакеты для Linux (`build-essential`, `pkg-config`, `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`), команды.
+Нужны Go 1.25+, Node.js 22, [Task](https://taskfile.dev) и CLI Wails v2 (`go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0`). На Linux дополнительно: `build-essential`, `pkg-config`, `libgtk-3-dev` и `libwebkit2gtk-4.1-dev`.
+
+```bash
+task build
+```
+
+Бинарник появляется в `build/bin/FlibustaHub.exe` на Windows и `build/bin/FlibustaHub` на Linux. Каталог уже в `.gitignore`. Для приёмки и замеров нужна эта релизная сборка, а не `wails dev`.
 
 ## Архитектура
 
