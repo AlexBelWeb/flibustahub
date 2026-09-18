@@ -34,7 +34,9 @@ async function retry() {
       <p class="mt-3 text-muted-foreground">{{ t('startup.lead') }}</p>
       <p class="mt-4 text-base">{{ detail }}</p>
       <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <Button :disabled="busy || app.catalogOpening" @click="retry">{{ t('common.retry') }}</Button>
+        <Button :disabled="busy || app.catalogOpening" @click="retry">{{
+          t('common.retry')
+        }}</Button>
         <Button variant="outline" :disabled="busy" @click="app.openLogsDir()">
           {{ t('startup.openLogs') }}
         </Button>

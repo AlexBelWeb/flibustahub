@@ -17,11 +17,7 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-background text-foreground">
-    <div
-      v-if="app.loading || app.databaseUpdating"
-      class="min-h-screen"
-      aria-busy="true"
-    />
+    <div v-if="app.loading || app.databaseUpdating" class="min-h-screen" aria-busy="true" />
     <StartupBlock v-else-if="app.startupError" />
     <div
       v-else-if="app.catalogOpening || !app.catalogReady"
