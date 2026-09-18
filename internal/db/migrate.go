@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/fs"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -74,6 +75,57 @@ func parseMigration(source fs.FS, name string) (Migration, error) {
 		SQL:      string(raw),
 		Checksum: hex.EncodeToString(sum[:]),
 	}, nil
+}
+
+// HasPendingMigrations reports whether path already has a v2 catalog that
+// still needs a later migration file. A missing file, an empty new database,
+// or an occupied foreign catalog are not pending: Open handles those without
+// a long fill, and the UI must not show "updating the database" for them.
+func HasPendingMigrations(ctx context.Context, path string) (bool, error) {
+	if path == "" {
+		return false, nil
+	}
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
+	}
+	files, err := loadMigrations(migrations.FS)
+	if err != nil {
+		return false, apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
+	}
+	conn, err := sql.Open("sqlite", fileDSN(path))
+	if err != nil {
+		return false, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
+	}
+	defer func() { _ = conn.Close() }()
+	if err := conn.PingContext(ctx); err != nil {
+		return false, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
+	}
+	if err := rejectOccupiedCatalog(ctx, conn, files); err != nil {
+		return false, nil
+	}
+	var hasTable int
+	if err := conn.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name='schema_migrations'`).Scan(&hasTable); err != nil {
+		return false, apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
+	}
+	if hasTable == 0 {
+		return false, nil
+	}
+	applied, err := readApplied(ctx, conn)
+	if err != nil {
+		return false, apperr.Wrap(apperr.CodeDBMigrateFailed, err, nil)
+	}
+	if len(applied) == 0 {
+		return false, nil
+	}
+	for _, f := range files {
+		if _, ok := applied[f.Version]; !ok {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func applyMigrations(ctx context.Context, d *DB, source fs.FS) error {
