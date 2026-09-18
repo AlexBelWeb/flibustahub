@@ -53,34 +53,45 @@ func main() {
 		logger = bootLog
 	}
 
-	logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
-
-	catalog, dbErr := catalogdb.Open(context.Background(), catalogdb.Options{
-		Path:       paths.DBPath,
-		BackupsDir: paths.BackupsDir,
-		Log:        logger,
-	})
-	if dbErr != nil {
-		logger.Error("catalog open failed", "err", dbErr)
-	}
-	data.Load(paths.DataDir, logger)
-	if catalog != nil {
-		if err := catalog.SyncGenreNames(context.Background()); err != nil {
-			logger.Warn("genre names not synced", "err", err)
-		}
-	}
-
 	svc := appsvc.New(store, logger, version, commit, buildDate)
-	startup := cfgErr
-	if startup == nil {
-		startup = dbErr
-	}
-	svc.AttachCatalog(catalog, startup)
 	win := handlers.NewRuntime(svc)
 	ui := handlers.NewApp(svc, win)
 	httpServer := httpapi.New(logger)
-	if startErr := httpServer.Start("127.0.0.1", store.Live().OPDSPort); startErr != nil {
-		logger.Warn("loopback http did not start", "err", startErr)
+
+	releaseInstance, primary, lockErr := platform.AcquireInstance(paths.DataDir)
+	if lockErr != nil {
+		logger.Error("instance lock failed", "err", lockErr)
+		primary = true
+	}
+	defer releaseInstance()
+
+	if !primary {
+		logger.Info("another instance is running")
+		svc.AttachCatalog(nil, cfgErr)
+	} else {
+		logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
+		catalog, dbErr := catalogdb.Open(context.Background(), catalogdb.Options{
+			Path:       paths.DBPath,
+			BackupsDir: paths.BackupsDir,
+			Log:        logger,
+		})
+		if dbErr != nil {
+			logger.Error("catalog open failed", "err", dbErr)
+		}
+		data.Load(paths.DataDir, logger)
+		if catalog != nil {
+			if err := catalog.SyncGenreNames(context.Background()); err != nil {
+				logger.Warn("genre names not synced", "err", err)
+			}
+		}
+		startup := cfgErr
+		if startup == nil {
+			startup = dbErr
+		}
+		svc.AttachCatalog(catalog, startup)
+		if startErr := httpServer.Start("127.0.0.1", store.Live().OPDSPort); startErr != nil {
+			logger.Warn("loopback http did not start", "err", startErr)
+		}
 	}
 
 	saved := store.Live().Window
