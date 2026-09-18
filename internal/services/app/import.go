@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
@@ -13,15 +14,23 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
 )
 
+// INPXFile is one dump file found in the library root.
+type INPXFile struct {
+	Path string `json:"path"`
+	Name string `json:"name"`
+}
+
 // ImportPreview is the dump chosen for import, shown before StartImport.
 type ImportPreview struct {
-	LibraryRoot    string `json:"libraryRoot"`
-	INPXPath       string `json:"inpxPath"`
-	INPXFileName   string `json:"inpxFileName"`
-	FileVersion    string `json:"fileVersion"`
-	CatalogVersion string `json:"catalogVersion"`
-	SameVersion    bool   `json:"sameVersion"`
-	HasCatalog     bool   `json:"hasCatalog"`
+	LibraryRoot    string     `json:"libraryRoot"`
+	ZipCount       int        `json:"zipCount"`
+	INPXFiles      []INPXFile `json:"inpxFiles"`
+	INPXPath       string     `json:"inpxPath"`
+	INPXFileName   string     `json:"inpxFileName"`
+	FileVersion    string     `json:"fileVersion"`
+	CatalogVersion string     `json:"catalogVersion"`
+	SameVersion    bool       `json:"sameVersion"`
+	HasCatalog     bool       `json:"hasCatalog"`
 }
 
 func (s *Service) SetLibraryRoot(path string) error {
@@ -39,42 +48,73 @@ func (s *Service) SetLibraryRoot(path string) error {
 	return s.config().Update(func(f *config.File) { f.LibraryRoot = path })
 }
 
+func (s *Service) SetINPXPath(path string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return s.config().Update(func(f *config.File) { f.INPXPath = "" })
+	}
+	path = filepath.Clean(path)
+	info, err := os.Stat(path)
+	if err != nil {
+		return apperr.Wrap(apperr.CodeINPXNotFound, err, nil)
+	}
+	if info.IsDir() || !strings.EqualFold(filepath.Ext(path), ".inpx") {
+		return apperr.New(apperr.CodeINPXNotFound, nil)
+	}
+	return s.config().Update(func(f *config.File) { f.INPXPath = path })
+}
+
 func (s *Service) PreviewImport(ctx context.Context) (ImportPreview, error) {
 	live := s.config().Live()
-	path, err := inpx.FindINPX(live.LibraryRoot, live.INPXPath)
-	if err != nil {
-		return ImportPreview{LibraryRoot: live.LibraryRoot}, apperr.Wrap(apperr.CodeINPXNotFound, err, nil)
+	empty := ImportPreview{LibraryRoot: live.LibraryRoot, INPXFiles: []INPXFile{}}
+	if strings.TrimSpace(live.LibraryRoot) == "" {
+		return empty, nil
 	}
-	st, err := os.Stat(path)
+	zipCount, dumps, err := inpx.InspectLibraryRoot(live.LibraryRoot)
 	if err != nil {
-		return ImportPreview{LibraryRoot: live.LibraryRoot}, apperr.Wrap(apperr.CodeINPXNotFound, err, nil)
+		return empty, apperr.Wrap(apperr.CodeLibraryUnreadable, err, nil)
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		return ImportPreview{LibraryRoot: live.LibraryRoot}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	files := make([]INPXFile, 0, len(dumps))
+	for _, d := range dumps {
+		files = append(files, INPXFile{Path: d.Path, Name: d.Name})
 	}
-	meta, err := inpx.PeekMeta(f, st.Size())
-	_ = f.Close()
-	if err != nil {
-		return ImportPreview{LibraryRoot: live.LibraryRoot}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	out := ImportPreview{
+		LibraryRoot: live.LibraryRoot,
+		ZipCount:    zipCount,
+		INPXFiles:   files,
 	}
-	catalogVer := ""
-	snap := s.snap()
-	if snap.catalog != nil {
-		catalogVer, err = db.INPXVersion(ctx, snap.catalog.Read)
-		if err != nil {
-			return ImportPreview{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	selected := strings.TrimSpace(live.INPXPath)
+	if selected == "" {
+		if newest, findErr := inpx.FindINPX(live.LibraryRoot, ""); findErr == nil {
+			selected = newest
 		}
 	}
-	return ImportPreview{
-		LibraryRoot:    live.LibraryRoot,
-		INPXPath:       path,
-		INPXFileName:   filepath.Base(path),
-		FileVersion:    meta.Version,
-		CatalogVersion: catalogVer,
-		SameVersion:    catalogVer != "" && catalogVer == meta.Version,
-		HasCatalog:     catalogVer != "",
-	}, nil
+	if selected != "" {
+		out.INPXPath = selected
+		out.INPXFileName = filepath.Base(selected)
+		st, statErr := os.Stat(selected)
+		if statErr == nil && !st.IsDir() {
+			f, openErr := os.Open(selected)
+			if openErr == nil {
+				meta, peekErr := inpx.PeekMeta(f, st.Size())
+				_ = f.Close()
+				if peekErr == nil {
+					out.FileVersion = meta.Version
+				}
+			}
+		}
+	}
+	snap := s.snap()
+	if snap.catalog != nil {
+		catalogVer, verErr := db.INPXVersion(ctx, snap.catalog.Read)
+		if verErr != nil {
+			return ImportPreview{}, apperr.Wrap(apperr.CodeImportFailed, verErr, nil)
+		}
+		out.CatalogVersion = catalogVer
+		out.HasCatalog = catalogVer != ""
+		out.SameVersion = catalogVer != "" && catalogVer == out.FileVersion
+	}
+	return out, nil
 }
 
 func (s *Service) StartImport(ctx context.Context, progress func(inpximport.Progress)) (inpximport.ReportDTO, error) {
@@ -154,7 +194,7 @@ func (s *Service) LastImportReport(ctx context.Context) (inpximport.ReportDTO, e
 		return empty, nil
 	}
 	rep := inpximport.ReportFromBatch(
-		row.ID, row.Status, row.INPXPath, row.INPXVersion,
+		row.ID, row.Status, row.INPXPath, row.INPXVersion, row.FinishedAt,
 		row.RecordsSeen, row.WorksAdded, row.EditionsAdded, row.EditionsUpdated,
 		row.EditionsDeactivated, row.LibIDCollisions,
 		inpximport.ParseNotes(row.NotesJSON),

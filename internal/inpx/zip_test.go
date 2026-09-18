@@ -165,6 +165,33 @@ func TestMixedInpEncodings(t *testing.T) {
 	}
 }
 
+func TestInspectLibraryRootCountsNamesOnly(t *testing.T) {
+	dir := t.TempDir()
+	if err := testdata.WriteLibraryRoot(dir); err != nil {
+		t.Fatal(err)
+	}
+	zips, dumps, err := InspectLibraryRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if zips != 2 {
+		t.Fatalf("zipCount=%d", zips)
+	}
+	if len(dumps) != 1 || dumps[0].Name != testdata.DumpName {
+		t.Fatalf("dumps=%v", dumps)
+	}
+	if filepath.Dir(dumps[0].Path) != dir {
+		t.Fatalf("must not recurse: %s", dumps[0].Path)
+	}
+}
+
+func TestInspectLibraryRootUnreadable(t *testing.T) {
+	_, _, err := InspectLibraryRoot(filepath.Join(t.TempDir(), "missing"))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestFindINPXNonRecursive(t *testing.T) {
 	dir := t.TempDir()
 	if err := testdata.WriteLibraryRoot(dir); err != nil {

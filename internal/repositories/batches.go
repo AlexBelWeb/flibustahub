@@ -55,6 +55,7 @@ type BatchRow struct {
 	Status              string
 	INPXPath            string
 	INPXVersion         string
+	FinishedAt          string
 	RecordsSeen         int
 	WorksAdded          int
 	EditionsAdded       int
@@ -67,11 +68,12 @@ type BatchRow struct {
 // LatestFinishedBatch returns the newest non-running import batch, or nil.
 func LatestFinishedBatch(ctx context.Context, q queryRower) (*BatchRow, error) {
 	row := q.QueryRowContext(ctx, `SELECT id, status, inpx_path, COALESCE(inpx_version, ''),
+		COALESCE(finished_at, ''),
 		records_seen, works_added, editions_added, editions_updated, editions_deactivated,
 		libid_collisions, COALESCE(notes, '')
 		FROM import_batches WHERE status != 'running' ORDER BY id DESC LIMIT 1`)
 	var b BatchRow
-	err := row.Scan(&b.ID, &b.Status, &b.INPXPath, &b.INPXVersion,
+	err := row.Scan(&b.ID, &b.Status, &b.INPXPath, &b.INPXVersion, &b.FinishedAt,
 		&b.RecordsSeen, &b.WorksAdded, &b.EditionsAdded, &b.EditionsUpdated,
 		&b.EditionsDeactivated, &b.LibIDCollisions, &b.NotesJSON)
 	if err == sql.ErrNoRows {

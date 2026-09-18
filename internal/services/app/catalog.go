@@ -63,6 +63,38 @@ func (s *Service) RandomWork(ctx context.Context) (catalog.Work, error) {
 	return c.RandomWork(ctx)
 }
 
+func (s *Service) GetWork(ctx context.Context, id int64) (catalog.Work, error) {
+	c, err := s.catalogSvc()
+	if err != nil {
+		return catalog.Work{}, err
+	}
+	return c.GetWork(ctx, id)
+}
+
+func (s *Service) GetAuthor(ctx context.Context, id int64) (catalog.Author, error) {
+	c, err := s.catalogSvc()
+	if err != nil {
+		return catalog.Author{}, err
+	}
+	return c.GetAuthor(ctx, id)
+}
+
+func (s *Service) GetGenre(ctx context.Context, id int64) (catalog.Genre, error) {
+	c, err := s.catalogSvc()
+	if err != nil {
+		return catalog.Genre{}, err
+	}
+	return c.GetGenre(ctx, id)
+}
+
+func (s *Service) GetSeries(ctx context.Context, id int64) (catalog.Series, error) {
+	c, err := s.catalogSvc()
+	if err != nil {
+		return catalog.Series{}, err
+	}
+	return c.GetSeries(ctx, id)
+}
+
 func (s *Service) CatalogAlphabet() []string {
 	st := s.snap()
 	return catalog.New(st.catalog, s.Logger()).Alphabet()

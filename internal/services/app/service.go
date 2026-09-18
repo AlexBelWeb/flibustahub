@@ -89,6 +89,8 @@ type Bootstrap struct {
 	Locale            string                `json:"locale"`
 	Theme             string                `json:"theme"`
 	VisualEffectsPref string                `json:"visualEffectsPref"`
+	SidebarCollapsed  bool                  `json:"sidebarCollapsed"`
+	CatalogView       string                `json:"catalogView"`
 	Capabilities      platform.Capabilities `json:"capabilities"`
 	LibraryRoot       string                `json:"libraryRoot"`
 	Paths             config.Paths          `json:"paths"`
@@ -144,6 +146,8 @@ func (s *Service) Bootstrap() Bootstrap {
 		Locale:            locale,
 		Theme:             live.Theme,
 		VisualEffectsPref: live.VisualEffects,
+		SidebarCollapsed:  live.SidebarCollapsed,
+		CatalogView:       live.CatalogView,
 		Capabilities:      caps,
 		LibraryRoot:       live.LibraryRoot,
 		Paths:             st.cfg.Paths(),
@@ -182,6 +186,27 @@ func (s *Service) SetVisualEffects(mode string) error {
 		return apperr.New(apperr.CodeInvalidEffects, map[string]string{"mode": mode})
 	}
 	return s.config().Update(func(f *config.File) { f.VisualEffects = mode })
+}
+
+func (s *Service) SetSidebarCollapsed(collapsed bool) error {
+	return s.config().Update(func(f *config.File) { f.SidebarCollapsed = collapsed })
+}
+
+func (s *Service) SetCatalogView(view string) error {
+	switch view {
+	case config.CatalogViewTile, config.CatalogViewTable:
+	default:
+		return apperr.New(apperr.CodeInvalidCatalogView, map[string]string{"view": view})
+	}
+	return s.config().Update(func(f *config.File) { f.CatalogView = view })
+}
+
+func (s *Service) WaitSearchIndex(ctx context.Context) error {
+	st := s.snap()
+	if st.catalog == nil {
+		return nil
+	}
+	return st.catalog.WaitSearchIndex(ctx)
 }
 
 func (s *Service) SaveWindow(state config.WindowState) error {

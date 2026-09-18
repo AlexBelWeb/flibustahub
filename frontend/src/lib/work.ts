@@ -1,0 +1,26 @@
+const COVER_HUES = [12, 28, 160, 200, 255, 320, 340, 48]
+
+export function isBlankTitle(title: string | undefined): boolean {
+  if (!title) {
+    return true
+  }
+  return title.replace(/[\p{P}\p{S}\s]/gu, '') === ''
+}
+
+export function authorParts(authorsText: string | undefined): string[] {
+  if (!authorsText) {
+    return []
+  }
+  return authorsText
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
+export function coverHue(workKey: string): number {
+  let hash = 0
+  for (let i = 0; i < workKey.length; i += 1) {
+    hash = (hash * 33 + workKey.charCodeAt(i)) >>> 0
+  }
+  return COVER_HUES[hash % COVER_HUES.length]
+}

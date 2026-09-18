@@ -10,12 +10,52 @@ export function CancelImport() {
   return window['go']['handlers']['App']['CancelImport']();
 }
 
+export function CatalogAlphabet() {
+  return window['go']['handlers']['App']['CatalogAlphabet']();
+}
+
+export function ClearSearchHistory() {
+  return window['go']['handlers']['App']['ClearSearchHistory']();
+}
+
 export function DismissWindowClose() {
   return window['go']['handlers']['App']['DismissWindowClose']();
 }
 
+export function GetAuthor(arg1) {
+  return window['go']['handlers']['App']['GetAuthor'](arg1);
+}
+
+export function GetGenre(arg1) {
+  return window['go']['handlers']['App']['GetGenre'](arg1);
+}
+
+export function GetSeries(arg1) {
+  return window['go']['handlers']['App']['GetSeries'](arg1);
+}
+
+export function GetWork(arg1) {
+  return window['go']['handlers']['App']['GetWork'](arg1);
+}
+
 export function LastImportReport() {
   return window['go']['handlers']['App']['LastImportReport']();
+}
+
+export function ListAuthors(arg1) {
+  return window['go']['handlers']['App']['ListAuthors'](arg1);
+}
+
+export function ListGenres(arg1) {
+  return window['go']['handlers']['App']['ListGenres'](arg1);
+}
+
+export function ListSeries(arg1) {
+  return window['go']['handlers']['App']['ListSeries'](arg1);
+}
+
+export function ListWorks(arg1) {
+  return window['go']['handlers']['App']['ListWorks'](arg1);
 }
 
 export function OpenDataDir() {
@@ -30,16 +70,48 @@ export function PreviewImport() {
   return window['go']['handlers']['App']['PreviewImport']();
 }
 
+export function RandomWork() {
+  return window['go']['handlers']['App']['RandomWork']();
+}
+
+export function RecordSearch(arg1) {
+  return window['go']['handlers']['App']['RecordSearch'](arg1);
+}
+
 export function RetryStartup() {
   return window['go']['handlers']['App']['RetryStartup']();
+}
+
+export function SearchCatalog(arg1) {
+  return window['go']['handlers']['App']['SearchCatalog'](arg1);
+}
+
+export function SearchHistory() {
+  return window['go']['handlers']['App']['SearchHistory']();
+}
+
+export function SelectINPXFile(arg1) {
+  return window['go']['handlers']['App']['SelectINPXFile'](arg1);
 }
 
 export function SelectLibraryRoot(arg1) {
   return window['go']['handlers']['App']['SelectLibraryRoot'](arg1);
 }
 
+export function SetCatalogView(arg1) {
+  return window['go']['handlers']['App']['SetCatalogView'](arg1);
+}
+
+export function SetINPXPath(arg1) {
+  return window['go']['handlers']['App']['SetINPXPath'](arg1);
+}
+
 export function SetLocale(arg1) {
   return window['go']['handlers']['App']['SetLocale'](arg1);
+}
+
+export function SetSidebarCollapsed(arg1) {
+  return window['go']['handlers']['App']['SetSidebarCollapsed'](arg1);
 }
 
 export function SetTheme(arg1) {

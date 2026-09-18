@@ -515,6 +515,78 @@ func (s *Service) ListGenres(ctx context.Context, query string) ([]Genre, error)
 	return out, nil
 }
 
+func notFound(kind string) error {
+	return apperr.New(apperr.CodeNotFound, map[string]string{"kind": kind})
+}
+
+func (s *Service) GetWork(ctx context.Context, id int64) (Work, error) {
+	if err := s.ready(); err != nil {
+		return Work{}, err
+	}
+	if id <= 0 {
+		return Work{}, notFound("work")
+	}
+	items, err := s.hydrate(ctx, []int64{id}, "")
+	if err != nil {
+		return Work{}, err
+	}
+	if len(items) == 0 {
+		return Work{}, notFound("work")
+	}
+	return items[0], nil
+}
+
+func (s *Service) GetAuthor(ctx context.Context, id int64) (Author, error) {
+	if err := s.ready(); err != nil {
+		return Author{}, err
+	}
+	if id <= 0 {
+		return Author{}, notFound("author")
+	}
+	a, err := s.cat.Author(ctx, id)
+	if err == sql.ErrNoRows {
+		return Author{}, notFound("author")
+	}
+	if err != nil {
+		return Author{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+	}
+	return Author{ID: a.ID, DisplayName: a.DisplayName, SortName: a.SortName, WorkCount: a.WorkCount}, nil
+}
+
+func (s *Service) GetGenre(ctx context.Context, id int64) (Genre, error) {
+	if err := s.ready(); err != nil {
+		return Genre{}, err
+	}
+	if id <= 0 {
+		return Genre{}, notFound("genre")
+	}
+	g, err := s.cat.Genre(ctx, id)
+	if err == sql.ErrNoRows {
+		return Genre{}, notFound("genre")
+	}
+	if err != nil {
+		return Genre{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+	}
+	return Genre{ID: g.ID, Code: g.Code, NameRU: g.NameRU, WorkCount: g.WorkCount}, nil
+}
+
+func (s *Service) GetSeries(ctx context.Context, id int64) (Series, error) {
+	if err := s.ready(); err != nil {
+		return Series{}, err
+	}
+	if id <= 0 {
+		return Series{}, notFound("series")
+	}
+	ser, err := s.cat.SeriesByID(ctx, id)
+	if err == sql.ErrNoRows {
+		return Series{}, notFound("series")
+	}
+	if err != nil {
+		return Series{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+	}
+	return Series{ID: ser.ID, Name: ser.Name, SortName: ser.SortName, WorkCount: ser.WorkCount}, nil
+}
+
 func (s *Service) RandomWork(ctx context.Context) (Work, error) {
 	if err := s.ready(); err != nil {
 		return Work{}, err

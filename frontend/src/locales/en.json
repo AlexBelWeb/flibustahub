@@ -4,12 +4,40 @@
     "tagline": "A local catalog of your book library"
   },
   "home": {
-    "title": "Welcome",
-    "lead": "Choose the folder with your books and import the catalog. Language and theme can be changed at any time."
+    "title": "Home",
+    "lead": "Catalog, search and new arrivals — without touching the archive folder.",
+    "books": "Books in the catalog",
+    "lastImport": "Last import",
+    "lastImportNever": "No import has been run yet",
+    "lastImportVersion": "version {version}",
+    "newArrivals": "New arrivals",
+    "emptyTitle": "The catalog has no books yet",
+    "emptyBody": "Choose the library folder and import a dump. The counter and new arrivals will appear afterwards.",
+    "continueSetup": "Continue setup"
   },
   "nav": {
     "home": "Home",
-    "settings": "Settings"
+    "books": "Books",
+    "authors": "Authors",
+    "series": "Series",
+    "genres": "Genres",
+    "recommendations": "Recommendations",
+    "settings": "Settings",
+    "collapse": "Collapse menu",
+    "expand": "Expand menu",
+    "search": "Search"
+  },
+  "activity": {
+    "import": "Catalog import in progress",
+    "index": "Search index is being rebuilt"
+  },
+  "startup": {
+    "title": "The app could not open its data",
+    "lead": "The window is open, but the catalog is unavailable. You can retry or open the log and data folders.",
+    "openLogs": "Open logs folder",
+    "openData": "Open data folder",
+    "updatingTitle": "Updating the database",
+    "updatingLead": "A schema update is being applied. A catalog backup has been saved. Please wait and do not close the app."
   },
   "settings": {
     "title": "Settings",
@@ -25,6 +53,9 @@
       "effectsFull": "Full",
       "effectsReduced": "Reduced",
       "effectsHint": "On Linux the reduced mode replaces blur with a solid overlay."
+    },
+    "library": {
+      "title": "Library"
     }
   },
   "common": {
@@ -33,10 +64,15 @@
     "confirm": "Continue",
     "copy": "Copy",
     "copied": "Copied",
-    "stay": "Stay"
+    "stay": "Stay",
+    "back": "Back",
+    "cancel": "Cancel",
+    "loading": "Loading",
+    "notFound": "Not found"
   },
   "toast": {
-    "duplicateCount": "×{n}"
+    "duplicateCount": "×{n}",
+    "region": "Notifications"
   },
   "errors": {
     "internal": "An internal error occurred. Details were written to the log.",
@@ -53,13 +89,11 @@
     "open_dir_failed": "Could not open the folder.",
     "import_cancelled": "Import was cancelled. The catalog is unchanged.",
     "import_failed": "Could not import the catalog. Details were written to the log.",
-    "inpx_not_found": "No .inpx catalog file was found in this folder. Choose the library root that contains the dump."
-  },
-  "startup": {
-    "title": "The app could not open its data",
-    "lead": "The window is open, but the catalog is unavailable. You can retry or open the log and data folders.",
-    "openLogs": "Open logs folder",
-    "openData": "Open data folder"
+    "inpx_not_found": "No .inpx catalog file was found in this folder. Choose the library root that contains the dump.",
+    "library_unreadable": "The chosen folder could not be read. Pick a different one or check access.",
+    "open_file_failed": "Could not open the file picker.",
+    "not_found": "This record was not found.",
+    "invalid_catalog_view": "Unknown list layout."
   },
   "status": {
     "version": "Version",
@@ -68,16 +102,131 @@
     "effectsFull": "full",
     "effectsReduced": "reduced"
   },
+  "list": {
+    "empty": "Nothing here yet.",
+    "emptyFiltered": "No books match the selected filters.",
+    "emptySearch": "Nothing was found. Try a different query.",
+    "emptyLetter": "Nothing on this letter.",
+    "error": "The list could not be loaded.",
+    "end": "End of the list",
+    "more": "Loading more",
+    "searchLimit": "Showing the first {n} most relevant results. Narrow the query.",
+    "resetFilters": "Clear filters"
+  },
+  "catalog": {
+    "title": "Books",
+    "search": "Search the catalog",
+    "sort": "Sort",
+    "sortTitle": "Title",
+    "sortAdded": "Date added",
+    "sortRelevance": "Relevance",
+    "tile": "Tiles",
+    "table": "Table",
+    "random": "Random book",
+    "filters": "Filters",
+    "filtersLead": "Language, genre, author and series. Filters are kept in the address.",
+    "removeFilter": "Remove filter",
+    "sortSeries": "Series number",
+    "lang": "Language",
+    "langAny": "Any",
+    "langRu": "Russian",
+    "langEn": "English",
+    "langUk": "Ukrainian",
+    "langBg": "Bulgarian",
+    "genre": "Genre",
+    "author": "Author",
+    "series": "Series",
+    "found": "{n} found",
+    "foundCapped": "{n}+ found",
+    "indexRebuilding": "The search index is being rebuilt",
+    "submitToSearch": "Press Enter to search while the index is not ready.",
+    "untitled": "Untitled",
+    "authorsMore": "{name} and {n} more",
+    "files": "{n} file | {n} files",
+    "ghost": "File missing from the dump",
+    "seriesNo": "No. {n}",
+    "colTitle": "Title",
+    "colAuthors": "Authors",
+    "colSeries": "Series",
+    "colLang": "Language",
+    "colSize": "Size",
+    "colRating": "Rating"
+  },
+  "authors": {
+    "title": "Authors",
+    "search": "Find an author",
+    "works": "{n} book | {n} books",
+    "emptySearch": "No authors found."
+  },
+  "series": {
+    "title": "Series",
+    "search": "Find a series",
+    "works": "{n} book | {n} books",
+    "emptySearch": "No series found."
+  },
+  "genres": {
+    "title": "Genres",
+    "search": "Find a genre",
+    "works": "{n} book | {n} books",
+    "emptySearch": "No genres found."
+  },
+  "book": {
+    "lang": "Language",
+    "size": "Size",
+    "series": "Series"
+  },
+  "palette": {
+    "title": "Search",
+    "placeholder": "Title, author or series",
+    "empty": "Start typing a query",
+    "history": "Recent searches",
+    "clearHistory": "Clear history",
+    "clearHistoryTitle": "Clear search history?",
+    "clearHistoryBody": "Recent queries will be deleted. This cannot be undone.",
+    "books": "Books",
+    "authors": "Authors",
+    "series": "Series",
+    "openAll": "All results",
+    "noResults": "Nothing found"
+  },
+  "onboarding": {
+    "title": "Library setup",
+    "stepFolder": "Books folder",
+    "stepDump": "Catalog file",
+    "stepImport": "Import",
+    "folderLead": "Choose the library root — the folder with archives and the .inpx file.",
+    "zipCount": "{n} .zip archive found | {n} .zip archives found",
+    "zipNone": "This folder has no .zip files. You can still import the catalog.",
+    "chooseFolder": "Choose folder",
+    "dumpLead": "If several files are present, pick one. If none, choose a file manually.",
+    "dumpNone": "This folder has no .inpx file.",
+    "pickManual": "Choose a file manually",
+    "next": "Next",
+    "importLead": "Start the import of the selected dump. Ratings and notes are left untouched.",
+    "skip": "Later",
+    "close": "Close the wizard"
+  },
+  "recommendations": {
+    "title": "Recommendations",
+    "emptyTitle": "Recommendations are not available yet",
+    "emptyBody": "They will appear together with AI provider settings."
+  },
+  "alphabet": {
+    "yo": "Е (Ё)",
+    "other": "Other"
+  },
   "import": {
     "title": "Library catalog",
     "chooseFolder": "Choose books folder",
     "changeFolder": "Choose a different folder",
     "chooseFolderTitle": "Books folder",
+    "chooseDumpTitle": "Catalog file .inpx",
     "emptyTitle": "Books folder is not set yet",
     "emptyBody": "Choose the library root — the folder that contains the archives and the catalog file.",
     "folder": "Folder",
     "dumpFile": "Catalog file",
     "dumpVersion": "Dump version",
+    "zipCount": ".zip archives in the folder",
     "start": "Start import",
     "cancel": "Cancel",
     "cancelTitle": "Cancel the import?",

@@ -139,7 +139,14 @@ func (a *App) Bootstrap() appsvc.Bootstrap {
 }
 
 func (a *App) RetryStartup() appsvc.Bootstrap {
-	return a.svc.RetryStartup()
+	out := a.svc.RetryStartup()
+	if out.CatalogReady && a.rt != nil && a.rt.ctx != nil {
+		go func() {
+			_ = a.svc.WaitSearchIndex(a.rt.ctx)
+			runtime.EventsEmit(a.rt.ctx, events.SearchIndexReady)
+		}()
+	}
+	return out
 }
 
 func (a *App) OpenLogsDir() error {
@@ -160,4 +167,12 @@ func (a *App) SetTheme(theme string) error {
 
 func (a *App) SetVisualEffects(mode string) error {
 	return a.svc.SetVisualEffects(mode)
+}
+
+func (a *App) SetSidebarCollapsed(collapsed bool) error {
+	return a.svc.SetSidebarCollapsed(collapsed)
+}
+
+func (a *App) SetCatalogView(view string) error {
+	return a.svc.SetCatalogView(view)
 }

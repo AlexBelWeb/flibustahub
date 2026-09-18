@@ -80,30 +80,30 @@ type SeriesPage struct {
 }
 
 type ListWorksQuery struct {
-	Sort     string
-	Cursor   string
-	Lang     string
-	GenreID  int64
-	AuthorID int64
-	SeriesID int64
-	Limit    int
+	Sort     string `json:"sort"`
+	Cursor   string `json:"cursor"`
+	Lang     string `json:"lang"`
+	GenreID  int64  `json:"genreId"`
+	AuthorID int64  `json:"authorId"`
+	SeriesID int64  `json:"seriesId"`
+	Limit    int    `json:"limit"`
 }
 
 type ListPeopleQuery struct {
-	Letter string
-	Query  string
-	Cursor string
-	Limit  int
+	Letter string `json:"letter"`
+	Query  string `json:"query"`
+	Cursor string `json:"cursor"`
+	Limit  int    `json:"limit"`
 }
 
 type SearchQuery struct {
-	Q        string
-	Lang     string
-	GenreID  int64
-	AuthorID int64
-	SeriesID int64
-	Offset   int
-	Limit    int
+	Q        string `json:"q"`
+	Lang     string `json:"lang"`
+	GenreID  int64  `json:"genreId"`
+	AuthorID int64  `json:"authorId"`
+	SeriesID int64  `json:"seriesId"`
+	Offset   int    `json:"offset"`
+	Limit    int    `json:"limit"`
 }
 
 type SearchResult struct {

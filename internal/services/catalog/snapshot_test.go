@@ -105,6 +105,24 @@ func explainSQL(t *testing.T, d *db.DB, q string, args ...any) string {
 	return b.String()
 }
 
+func TestSnapshotHomeDashboard(t *testing.T) {
+	svc, _ := openSnapshot(t)
+	ctx := context.Background()
+	d := warm(t, "home_arrivals_18", func() {
+		page, err := svc.ListWorks(ctx, ListWorksQuery{Sort: SortAdded, Limit: 18})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Items) != 18 {
+			t.Fatalf("items=%d", len(page.Items))
+		}
+		if page.Total == nil || page.Total.Capped {
+			t.Fatalf("home total must be exact, got %+v", page.Total)
+		}
+	})
+	budget(t, "home_arrivals_18", d, 300*time.Millisecond)
+}
+
 func TestSnapshotBudgets(t *testing.T) {
 	svc, d := openSnapshot(t)
 	ctx := context.Background()

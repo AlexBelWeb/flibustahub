@@ -150,7 +150,6 @@ function onCloseDialog(open: boolean) {
             <Button
               variant="outline"
               :disabled="!imp.canCancel"
-              :title="imp.canCancel ? undefined : t('import.cancelDisabled')"
               @click="imp.requestCancel()"
             >
               {{ t('import.cancel') }}

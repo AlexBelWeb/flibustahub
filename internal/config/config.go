@@ -20,31 +20,35 @@ const (
 	ThemeDark   = "dark"
 	ThemeLight  = "light"
 
-	EffectsAuto     = "auto"
-	EffectsFull     = "full"
-	EffectsReduced  = "reduced"
-	DefaultOPDSPort = 8787
-	DefaultOPDSBind = "127.0.0.1"
+	EffectsAuto      = "auto"
+	EffectsFull      = "full"
+	EffectsReduced   = "reduced"
+	CatalogViewTile  = "tile"
+	CatalogViewTable = "table"
+	DefaultOPDSPort  = 8787
+	DefaultOPDSBind  = "127.0.0.1"
 )
 
 // File is the on-disk config.json document.
 type File struct {
-	DataDir         string      `json:"dataDir,omitempty"`
-	DBPath          string      `json:"dbPath,omitempty"`
-	CoversDir       string      `json:"coversDir,omitempty"`
-	LogsDir         string      `json:"logsDir,omitempty"`
-	BackupsDir      string      `json:"backupsDir,omitempty"`
-	DownloadsDir    string      `json:"downloadsDir,omitempty"`
-	LibraryRoot     string      `json:"libraryRoot"`
-	INPXPath        string      `json:"inpxPath"`
-	OPDSEnabled     bool        `json:"opdsEnabled"`
-	OPDSPort        int         `json:"opdsPort"`
-	OPDSBindAddress string      `json:"opdsBindAddress"`
-	Theme           string      `json:"theme"`
-	Locale          string      `json:"locale"`
-	VisualEffects   string      `json:"visualEffects"`
-	Window          WindowState `json:"window"`
-	AIProvider      string      `json:"aiProvider"`
+	DataDir          string      `json:"dataDir,omitempty"`
+	DBPath           string      `json:"dbPath,omitempty"`
+	CoversDir        string      `json:"coversDir,omitempty"`
+	LogsDir          string      `json:"logsDir,omitempty"`
+	BackupsDir       string      `json:"backupsDir,omitempty"`
+	DownloadsDir     string      `json:"downloadsDir,omitempty"`
+	LibraryRoot      string      `json:"libraryRoot"`
+	INPXPath         string      `json:"inpxPath"`
+	OPDSEnabled      bool        `json:"opdsEnabled"`
+	OPDSPort         int         `json:"opdsPort"`
+	OPDSBindAddress  string      `json:"opdsBindAddress"`
+	Theme            string      `json:"theme"`
+	Locale           string      `json:"locale"`
+	VisualEffects    string      `json:"visualEffects"`
+	Window           WindowState `json:"window"`
+	SidebarCollapsed bool        `json:"sidebarCollapsed"`
+	CatalogView      string      `json:"catalogView"`
+	AIProvider       string      `json:"aiProvider"`
 }
 
 // WindowState is restored on startup after checking it still fits a monitor.
@@ -119,6 +123,7 @@ func Defaults(dataDir string) File {
 		Theme:           ThemeSystem,
 		Locale:          "",
 		VisualEffects:   EffectsAuto,
+		CatalogView:     CatalogViewTable,
 		AIProvider:      "",
 	}
 }
@@ -154,6 +159,9 @@ func (f File) withDerivedPaths() File {
 	}
 	if f.VisualEffects == "" {
 		f.VisualEffects = EffectsAuto
+	}
+	if f.CatalogView == "" {
+		f.CatalogView = CatalogViewTable
 	}
 	f.DataDir = dataDir
 	return f
@@ -304,6 +312,10 @@ func mergeDefaults(parsed File, dataDir string) File {
 		base.VisualEffects = parsed.VisualEffects
 	}
 	base.Window = parsed.Window
+	base.SidebarCollapsed = parsed.SidebarCollapsed
+	if parsed.CatalogView != "" {
+		base.CatalogView = parsed.CatalogView
+	}
 	base.AIProvider = parsed.AIProvider
 	return base.withDerivedPaths()
 }

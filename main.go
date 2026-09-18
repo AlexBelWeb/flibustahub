@@ -90,6 +90,8 @@ func main() {
 			dbErr := svc.OpenCatalog()
 			if dbErr != nil {
 				logger.Error("catalog open failed", "err", dbErr)
+			} else {
+				logger.Info("catalog ready")
 			}
 			shown := cfgErr
 			if shown == nil {
@@ -134,6 +136,10 @@ func main() {
 						payload.Error = &p
 					}
 					runtime.EventsEmit(ctx, events.DBUpdated, payload)
+					if err == nil {
+						_ = svc.WaitSearchIndex(ctx)
+						runtime.EventsEmit(ctx, events.SearchIndexReady)
+					}
 				}()
 			}
 		},

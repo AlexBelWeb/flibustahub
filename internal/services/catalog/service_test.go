@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/textnorm"
 )
@@ -397,5 +398,31 @@ func TestFilterWithoutReadyCountIsCapped(t *testing.T) {
 	}
 	if both.Total == nil || both.Total.N < 1 {
 		t.Fatalf("compound filter total %+v", both.Total)
+	}
+}
+
+func TestGettersUnknownID(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	if _, err := svc.GetWork(ctx, 99); apperr.As(err).Code != apperr.CodeNotFound {
+		t.Fatalf("work: %v", err)
+	}
+	if _, err := svc.GetAuthor(ctx, 99); apperr.As(err).Code != apperr.CodeNotFound {
+		t.Fatalf("author: %v", err)
+	}
+	if _, err := svc.GetGenre(ctx, 99); apperr.As(err).Code != apperr.CodeNotFound {
+		t.Fatalf("genre: %v", err)
+	}
+	if _, err := svc.GetSeries(ctx, 99); apperr.As(err).Code != apperr.CodeNotFound {
+		t.Fatalf("series: %v", err)
+	}
+	work, err := svc.GetWork(ctx, 1)
+	if err != nil || work.Title != "Ёлка" {
+		t.Fatalf("work %+v %v", work, err)
+	}
+	author, err := svc.GetAuthor(ctx, 1)
+	if err != nil || author.DisplayName == "" {
+		t.Fatalf("author %+v %v", author, err)
 	}
 }

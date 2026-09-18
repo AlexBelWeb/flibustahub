@@ -8,6 +8,7 @@ import { Events } from '@/lib/events'
 import { eventsOn } from '@/lib/wails-runtime'
 import { useToastStore } from '@/stores/toast'
 import type { Bootstrap, StartupError } from '@/types/bootstrap'
+import type { CatalogView } from '@/types/catalog'
 
 export type Theme = 'system' | 'dark' | 'light'
 export type Effects = 'auto' | 'full' | 'reduced'
@@ -26,8 +27,16 @@ export const useAppStore = defineStore('app', () => {
   const databaseUpdating = computed(() => bootstrap.value?.databaseUpdating ?? false)
   const catalogOpening = computed(() => bootstrap.value?.catalogOpening ?? false)
   const catalogReady = computed(() => bootstrap.value?.catalogReady ?? false)
+  const searchIndexReady = computed(() => bootstrap.value?.searchIndexReady ?? false)
+  const sidebarCollapsed = computed(() => bootstrap.value?.sidebarCollapsed ?? false)
+  const catalogView = computed<CatalogView>(() =>
+    bootstrap.value?.catalogView === 'tile' ? 'tile' : 'table',
+  )
+  const narrow = ref(false)
 
   let listeningDB = false
+  let listeningIndex = false
+  let pollTimer = 0
 
   function eventRecord(data: unknown): Record<string, unknown> {
     if (Array.isArray(data) && data.length > 0) {
@@ -59,7 +68,27 @@ export const useAppStore = defineStore('app', () => {
         }
       }
     }
-    void refresh()
+    void refresh().then(() => {
+      schedulePoll()
+    })
+  }
+
+  function shouldPoll(): boolean {
+    const data = bootstrap.value
+    return Boolean(data && !data.startupError && (data.databaseUpdating || data.catalogOpening))
+  }
+
+  function schedulePoll() {
+    window.clearTimeout(pollTimer)
+    pollTimer = 0
+    if (!shouldPoll()) {
+      return
+    }
+    pollTimer = window.setTimeout(() => {
+      void refresh().then(() => {
+        schedulePoll()
+      })
+    }, 400)
   }
 
   function listenDBUpdated() {
@@ -68,6 +97,25 @@ export const useAppStore = defineStore('app', () => {
     }
     listeningDB = true
     eventsOn(Events.DBUpdated, applyDBUpdated)
+  }
+
+  function listenIndexReady() {
+    if (listeningIndex) {
+      return
+    }
+    listeningIndex = true
+    eventsOn(Events.SearchIndexReady, () => {
+      void refresh()
+    })
+  }
+
+  function watchViewport() {
+    const mq = window.matchMedia('(max-width: 1099px)')
+    const apply = () => {
+      narrow.value = mq.matches
+    }
+    apply()
+    mq.addEventListener('change', apply)
   }
 
   function applyDocumentTheme(value: Theme) {
@@ -105,12 +153,12 @@ export const useAppStore = defineStore('app', () => {
     loading.value = true
     loadError.value = false
     listenDBUpdated()
+    listenIndexReady()
+    watchViewport()
     try {
       const data = await window.go.handlers.App.Bootstrap()
       applyBootstrap(data)
-      if (!data.catalogReady && !data.startupError) {
-        await refresh()
-      }
+      schedulePoll()
     } catch {
       loadError.value = true
     } finally {
@@ -121,6 +169,7 @@ export const useAppStore = defineStore('app', () => {
   async function retryStartup() {
     const data = await window.go.handlers.App.RetryStartup()
     applyBootstrap(data)
+    schedulePoll()
   }
 
   async function openLogsDir() {
@@ -153,6 +202,26 @@ export const useAppStore = defineStore('app', () => {
     applyBootstrap(data)
   }
 
+  async function toggleSidebar() {
+    await setSidebarCollapsed(!sidebarCollapsed.value)
+  }
+
+  async function setSidebarCollapsed(collapsed: boolean) {
+    await wrap(() => window.go.handlers.App.SetSidebarCollapsed(collapsed))
+    if (bootstrap.value) {
+      bootstrap.value = { ...bootstrap.value, sidebarCollapsed: collapsed }
+    }
+  }
+
+  async function changeCatalogView(view: CatalogView) {
+    await wrap(() => window.go.handlers.App.SetCatalogView(view))
+    if (bootstrap.value) {
+      bootstrap.value = { ...bootstrap.value, catalogView: view }
+    }
+  }
+
+  const sidebarIconsOnly = computed(() => sidebarCollapsed.value || narrow.value)
+
   return {
     bootstrap,
     loading,
@@ -164,6 +233,11 @@ export const useAppStore = defineStore('app', () => {
     databaseUpdating,
     catalogOpening,
     catalogReady,
+    searchIndexReady,
+    sidebarCollapsed,
+    sidebarIconsOnly,
+    catalogView,
+    narrow,
     refresh,
     load,
     retryStartup,
@@ -172,6 +246,9 @@ export const useAppStore = defineStore('app', () => {
     changeLocale,
     changeTheme,
     changeEffects,
+    toggleSidebar,
+    setSidebarCollapsed,
+    changeCatalogView,
     applyDocumentTheme,
   }
 })

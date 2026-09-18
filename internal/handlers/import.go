@@ -34,6 +34,33 @@ func (a *App) SelectLibraryRoot(title string) (string, error) {
 	return dir, nil
 }
 
+func (a *App) SelectINPXFile(title string) (string, error) {
+	if a.rt == nil || a.rt.ctx == nil {
+		return "", apperr.New(apperr.CodeOpenFileFailed, nil)
+	}
+	path, err := runtime.OpenFileDialog(a.rt.ctx, runtime.OpenDialogOptions{
+		Title: title,
+		Filters: []runtime.FileFilter{{
+			DisplayName: "INPX",
+			Pattern:     "*.inpx",
+		}},
+	})
+	if err != nil {
+		return "", apperr.Wrap(apperr.CodeOpenFileFailed, err, nil)
+	}
+	if path == "" {
+		return "", nil
+	}
+	if err := a.svc.SetINPXPath(path); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func (a *App) SetINPXPath(path string) error {
+	return a.svc.SetINPXPath(path)
+}
+
 func (a *App) PreviewImport() (appsvc.ImportPreview, error) {
 	return a.svc.PreviewImport(context.Background())
 }

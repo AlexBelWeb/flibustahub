@@ -32,6 +32,14 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.import_failed', params))
     case 'inpx_not_found':
       return String(t('errors.inpx_not_found', params))
+    case 'library_unreadable':
+      return String(t('errors.library_unreadable', params))
+    case 'open_file_failed':
+      return String(t('errors.open_file_failed', params))
+    case 'not_found':
+      return String(t('errors.not_found', params))
+    case 'invalid_catalog_view':
+      return String(t('errors.invalid_catalog_view', params))
     default:
       return String(t('errors.internal', params))
   }

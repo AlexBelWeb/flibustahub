@@ -113,3 +113,20 @@ func TestRetryStartupOpensCatalog(t *testing.T) {
 		t.Fatal("finished retry must not report databaseUpdating")
 	}
 }
+
+func TestSetCatalogViewAndSidebar(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.SetCatalogView("mosaic"); apperr.As(err).Code != apperr.CodeInvalidCatalogView {
+		t.Fatalf("got %v", err)
+	}
+	if err := svc.SetCatalogView(config.CatalogViewTile); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SetSidebarCollapsed(true); err != nil {
+		t.Fatal(err)
+	}
+	got := svc.Bootstrap()
+	if got.CatalogView != config.CatalogViewTile || !got.SidebarCollapsed {
+		t.Fatalf("%+v", got)
+	}
+}

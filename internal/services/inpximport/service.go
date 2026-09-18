@@ -59,6 +59,7 @@ type Report struct {
 	Status              string
 	INPXPath            string
 	INPXVersion         string
+	FinishedAt          string
 	RecordsSeen         int
 	WorksAdded          int
 	EditionsAdded       int

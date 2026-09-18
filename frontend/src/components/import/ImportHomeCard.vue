@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ImportReport from '@/components/import/ImportReport.vue'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/i18n/errors'
 import { useImportStore } from '@/stores/import'
 import {
@@ -26,6 +27,10 @@ onMounted(() => {
 function chooseFolder() {
   void imp.chooseFolder(t('import.chooseFolderTitle'))
 }
+
+function chooseDump() {
+  void imp.chooseDump(t('import.chooseDumpTitle'))
+}
 </script>
 
 <template>
@@ -33,10 +38,10 @@ function chooseFolder() {
     <h2 class="font-display text-xl font-medium">{{ t('import.title') }}</h2>
 
     <div v-if="imp.cardLoading" class="mt-4 grid min-h-56 gap-3" aria-busy="true">
-      <div class="h-6 w-1/3 animate-pulse rounded bg-muted" />
-      <div class="h-4 w-2/3 animate-pulse rounded bg-muted" />
-      <div class="h-10 w-48 animate-pulse rounded-lg bg-muted" />
-      <div class="h-24 animate-pulse rounded-xl bg-muted" />
+      <Skeleton class="h-6 w-1/3" />
+      <Skeleton class="h-4 w-2/3" />
+      <Skeleton class="h-10 w-48" />
+      <Skeleton class="h-24 rounded-xl" />
     </div>
 
     <div v-else-if="!imp.hasFolder" class="mt-4 grid min-h-56 content-start gap-3">
@@ -60,6 +65,10 @@ function chooseFolder() {
           <dd class="font-mono break-all">{{ imp.preview.libraryRoot }}</dd>
         </div>
         <div class="grid gap-1">
+          <dt class="text-muted-foreground">{{ t('import.zipCount') }}</dt>
+          <dd class="tabular-nums">{{ imp.preview.zipCount }}</dd>
+        </div>
+        <div class="grid gap-1">
           <dt class="text-muted-foreground">{{ t('import.dumpFile') }}</dt>
           <dd class="font-mono break-all">{{ imp.preview.inpxFileName }}</dd>
         </div>
@@ -68,10 +77,25 @@ function chooseFolder() {
           <dd class="tabular-nums">{{ imp.preview.fileVersion }}</dd>
         </div>
       </dl>
+      <div v-if="imp.preview.inpxFiles?.length > 1" class="grid gap-2">
+        <button
+          v-for="file in imp.preview.inpxFiles"
+          :key="file.path"
+          type="button"
+          class="rounded-lg border border-border px-3 py-2 text-left font-mono text-sm hover:bg-accent"
+          :class="imp.preview.inpxPath === file.path ? 'border-primary' : ''"
+          @click="imp.pickDump(file.path)"
+        >
+          {{ file.name }}
+        </button>
+      </div>
       <div class="flex flex-wrap gap-2">
         <Button :disabled="imp.running" @click="imp.requestStart()">{{ t('import.start') }}</Button>
         <Button variant="outline" :disabled="imp.running" @click="chooseFolder">
           {{ t('import.changeFolder') }}
+        </Button>
+        <Button variant="outline" :disabled="imp.running" @click="chooseDump">
+          {{ t('onboarding.pickManual') }}
         </Button>
       </div>
 
