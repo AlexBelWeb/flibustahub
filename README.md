@@ -1,63 +1,65 @@
 # FlibustaHub
 
-Локальный каталог библиотеки книг с поиском, личными оценками, OPDS-сервером для читалок и AI-рекомендациями. Десктопное приложение для Windows и Linux.
+**English** · [Русский](README.ru.md)
 
-> **Статус:** в разработке. Этот README — каркас; полное содержание заполняется ближе к первому релизу.
+A local catalog for your book library: search, personal ratings, an OPDS server for e-readers and AI recommendations. Desktop application for Windows and Linux.
 
-## Возможности
+> **Status:** in development. This README is a skeleton; the full text is written closer to the first release.
 
-- Импорт каталога из дампа `.inpx` (порядка 700 000 книг) в локальную базу SQLite.
-- Быстрый поиск по названиям, авторам и сериям через FTS5.
-- Личные оценки и заметки, которые не теряются при ежемесячном переимпорте.
-- Чтение и скачивание `fb2` прямо из `zip`-архивов, без распаковки на диск.
-- Встроенный OPDS-сервер для e-ink читалок в домашней сети.
-- AI-рекомендации на основе личных оценок (Gemini, OpenAI, Ollama).
-- Работает без интернета.
+## Features
 
-## Требования
+- Imports a catalog from an `.inpx` dump (around 700,000 books) into a local SQLite database.
+- Fast search over titles, authors and series through FTS5.
+- Personal ratings and notes that survive the monthly re-import.
+- Reads and extracts `fb2` files straight from `zip` archives, without unpacking them to disk.
+- Built-in OPDS server for e-ink readers on your home network.
+- AI recommendations based on your own ratings (Gemini, OpenAI, Ollama).
+- Works without an internet connection.
 
-- Windows 10 и новее (WebView2) либо Linux с WebKitGTK.
-- Дамп библиотеки: файл `.inpx` и `zip`-архивы с книгами.
+## Requirements
 
-## Установка
+- Windows 10 or newer (WebView2), or Linux with WebKitGTK.
+- A library dump: an `.inpx` file and the `zip` archives with the books.
 
-TODO: ссылка на страницу релизов.
+## Installation
 
-Бинарники не подписаны сертификатом, поэтому при первом запуске Windows SmartScreen может показать предупреждение. Это ожидаемо.
+TODO: link to the releases page.
 
-## Первый запуск
+The binaries are not code-signed, so Windows SmartScreen may warn you on first launch. That is expected.
 
-TODO: описание визарда — выбор папки библиотеки, автопоиск `.inpx`, импорт.
+## First run
 
-## Подключение читалки по OPDS
+TODO: the wizard — choosing the library folder, locating the `.inpx` file, running the import.
 
-TODO: включение публичного доступа, выбор сетевого интерфейса, адрес и QR-код.
+## Connecting an e-reader over OPDS
 
-## AI-рекомендации
+TODO: enabling public access, choosing the network interface, the address and the QR code.
 
-TODO: поддерживаемые провайдеры, где взять ключ, где ключ хранится (OS Credential Storage) и почему он не покидает машину.
+## AI recommendations
 
-## Где хранятся данные
+TODO: supported providers, where to get an API key, where the key is stored (OS credential storage) and why it never leaves the machine.
 
-TODO: `dataDir`, база, кэш обложек, логи, резервные копии. Личные оценки и заметки хранятся отдельно от папки с книгами и остаются доступны, даже если она недоступна.
+## Where the data is stored
 
-## Сборка из исходников
+TODO: the data directory, the database, the cover cache, logs and backups. Personal ratings and notes are stored separately from the library folder and stay available even when that folder is not.
 
-TODO: версии Go и Node, системные пакеты для Linux (`build-essential`, `pkg-config`, `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`), команды.
+## Building from source
 
-## Архитектура
+TODO: Go and Node versions, Linux system packages (`build-essential`, `pkg-config`, `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`), commands.
 
-TODO: схема слоёв (Wails bindings и HTTP-сервер → общие сервисы приложения → репозитории → SQLite и файловая система) — здесь или в `docs/architecture.md`.
+## Architecture
 
-## Документация
+TODO: the layer diagram (Wails bindings and the HTTP server → shared application services → repositories → SQLite and the file system).
 
-- История изменений: `CHANGELOG.md`.
-- Как участвовать: `CONTRIBUTING.md`.
+## Documentation
 
-## Лицензия
+- Change history: `CHANGELOG.md`.
+- How to contribute: `CONTRIBUTING.md`.
 
-MIT — см. `LICENSE`.
+## License
 
-## Оговорка
+MIT — see `LICENSE`.
 
-Приложение является каталогизатором **локальных файлов пользователя**. Оно не содержит, не распространяет и не скачивает книги, не содержит ссылок на источники дампов библиотек. Ответственность за легальность используемых файлов лежит на пользователе.
+## Disclaimer
+
+This application is a catalog for **the user's own local files**. It does not contain, distribute or download books, and it contains no links to library dump sources. Responsibility for the legality of the files used lies with the user.
