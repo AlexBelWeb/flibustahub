@@ -114,6 +114,31 @@ func TestImportHasStatsBeforeFTS(t *testing.T) {
 	}
 }
 
+func TestImportLogsFinishedSummary(t *testing.T) {
+	d := openCatalog(t)
+	lib := t.TempDir()
+	if err := testdata.WriteLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	svc := New(d, slog.New(slog.NewJSONHandler(&buf, nil)))
+	if _, err := svc.Import(context.Background(), Options{LibraryRoot: lib}); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, `"msg":"import finished"`) {
+		t.Fatalf("expected import finished log, got %s", out)
+	}
+	for _, key := range []string{
+		`"backup"`, `"reading"`, `"records"`, `"fts"`, `"warmup"`, `"analyze"`,
+		`"wall_ms"`, `"db_bytes"`,
+	} {
+		if !strings.Contains(out, key) {
+			t.Errorf("finished log missing %s", key)
+		}
+	}
+}
+
 func TestImportCatalogFixture(t *testing.T) {
 	d := openCatalog(t)
 	var ftsDuringRecords int
