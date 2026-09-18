@@ -13,6 +13,11 @@ tasks:
     cmds:
       - go test ./internal/...
 
+  build:
+    desc: Release build (wails build). Binary in build/bin/
+    cmds:
+      - wails build
+
   lint:
     desc: Run Go linters
     cmds:

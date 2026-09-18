@@ -45,7 +45,13 @@ TODO: the data directory, the database, the cover cache, logs and backups. Perso
 
 ## Building from source
 
-TODO: Go and Node versions, Linux system packages (`build-essential`, `pkg-config`, `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`), commands.
+Requires Go 1.25+, Node.js 22, [Task](https://taskfile.dev), and the Wails v2 CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0`). On Linux also install `build-essential`, `pkg-config`, `libgtk-3-dev`, and `libwebkit2gtk-4.1-dev`.
+
+```bash
+task build
+```
+
+The binary is written to `build/bin/FlibustaHub.exe` on Windows and `build/bin/FlibustaHub` on Linux. That directory is gitignored. Use this release build (not `wails dev`) for local acceptance and performance checks.
 
 ## Architecture
 
