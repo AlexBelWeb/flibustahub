@@ -44,7 +44,7 @@ const lanes = computed(() => {
   return 5
 })
 
-const estimate = computed(() => (props.view === 'tile' ? 420 : 48))
+const estimate = computed(() => (props.view === 'tile' ? 500 : 48))
 
 const virtualizer = useVirtualizer(
   computed(() => ({

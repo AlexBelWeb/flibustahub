@@ -16,26 +16,46 @@ const (
 	encScore  = 32 * 1024
 )
 
+var (
+	unicodeUTF16LE = unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM)
+	unicodeUTF16BE = unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)
+)
+
 type charset struct {
 	name string
 	enc  encoding.Encoding
 }
 
-// DecodeBody converts an FB2 payload to UTF-8.
-// BOM is honoured first; otherwise encoding= is read from the first ~800 bytes.
-// Candidates are tried in order and the variant with the fewest U+FFFD runes wins.
-func DecodeBody(raw []byte) []byte {
+// DecodeBody converts an FB2 payload to UTF-8 and names the encoding used.
+// BOM is honoured first; otherwise UTF-16 without BOM is recognised by the
+// share of NUL bytes; otherwise encoding= is read from the first ~800 bytes.
+// Candidates are scored by text plausibility, not by U+FFFD count.
+func DecodeBody(raw []byte) ([]byte, string) {
 	if len(raw) == 0 {
-		return raw
+		return raw, ""
 	}
 	declared, bomSkip := declaredCharset(raw)
-	cands := make([]charset, 0, 4)
-	if declared.name != "" {
+	if declared.name != "" && bomSkip > 0 {
+		out, err := decodeAll(declared, raw[bomSkip:])
+		if err == nil {
+			return out, declared.name
+		}
+	}
+	if u16, ok := utf16WithoutBOM(raw); ok {
+		out, err := decodeAll(u16, raw)
+		if err == nil {
+			return out, u16.name
+		}
+	}
+
+	cands := make([]charset, 0, 5)
+	if declared.name != "" && bomSkip == 0 {
 		cands = append(cands, declared)
 	}
 	for _, c := range []charset{
 		{name: "utf-8", enc: encoding.Nop},
 		{name: "windows-1251", enc: charmap.Windows1251},
+		{name: "cp866", enc: charmap.CodePage866},
 		{name: "koi8-r", enc: charmap.KOI8R},
 	} {
 		if !hasCharset(cands, c.name) {
@@ -43,25 +63,60 @@ func DecodeBody(raw []byte) []byte {
 		}
 	}
 
-	best := cands[0]
-	bestN := int(^uint(0) >> 1)
-	for _, c := range cands {
+	validUTF8 := likelyUTF8(raw)
+	var (
+		best     charset
+		bestBody []byte
+		bestN    = -1.0
+	)
+	for i, c := range cands {
 		in := payloadFor(c, declared, raw, bomSkip)
-		sample := in
+		out, err := decodeAll(c, in)
+		if err != nil {
+			continue
+		}
+		sample := out
 		if len(sample) > encScore {
 			sample = sample[:encScore]
 		}
-		_, n := decodeCount(c, sample)
-		if n < bestN {
-			bestN = n
+		score := TextScore(string(sample))
+		if validUTF8 && c.name == "utf-8" && score >= minPlausible {
+			score += 0.15
+		}
+		if score > bestN || (bestBody == nil && i == 0) {
+			bestN = score
 			best = c
+			bestBody = out
 		}
 	}
-	out, err := decodeAll(best, payloadFor(best, declared, raw, bomSkip))
-	if err != nil {
-		return bytes.ToValidUTF8(raw, []byte("\ufffd"))
+	if bestBody == nil {
+		return bytes.ToValidUTF8(raw, []byte("\ufffd")), "utf-8"
 	}
-	return out
+	return bestBody, best.name
+}
+
+func likelyUTF8(raw []byte) bool {
+	if !utf8.Valid(raw) {
+		return false
+	}
+	n := len(raw)
+	if n > encScore {
+		n = encScore
+	}
+	cyr, high := 0, 0
+	for _, r := range string(raw[:n]) {
+		if r < 0x80 {
+			continue
+		}
+		high++
+		if r >= 0x0400 && r <= 0x04FF {
+			cyr++
+		}
+	}
+	if high == 0 {
+		return true
+	}
+	return cyr*2 >= high
 }
 
 func payloadFor(c, declared charset, raw []byte, bomSkip int) []byte {
@@ -115,11 +170,13 @@ func charsetFromName(name string) charset {
 	case "utf-8", "utf8":
 		return charset{name: "utf-8", enc: encoding.Nop}
 	case "utf-16le", "utf16le":
-		return charset{name: "utf-16le", enc: unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM)}
+		return charset{name: "utf-16le", enc: unicodeUTF16LE}
 	case "utf-16be", "utf16be", "utf-16", "utf16":
-		return charset{name: "utf-16be", enc: unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)}
+		return charset{name: "utf-16be", enc: unicodeUTF16BE}
 	case "windows-1251", "cp1251", "windows1251":
 		return charset{name: "windows-1251", enc: charmap.Windows1251}
+	case "cp866", "ibm866", "866", "dos":
+		return charset{name: "cp866", enc: charmap.CodePage866}
 	case "koi8-r", "koi8r", "koi8-u", "koi8u":
 		return charset{name: "koi8-r", enc: charmap.KOI8R}
 	case "iso-8859-5", "iso8859-5", "iso88595":
@@ -142,14 +199,6 @@ func hasCharset(cands []charset, name string) bool {
 		}
 	}
 	return false
-}
-
-func decodeCount(c charset, sample []byte) ([]byte, int) {
-	out, err := decodeAll(c, sample)
-	if err != nil {
-		return nil, len(sample) + 1
-	}
-	return out, bytes.Count(out, []byte("\ufffd"))
 }
 
 func decodeAll(c charset, in []byte) ([]byte, error) {

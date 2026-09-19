@@ -152,6 +152,85 @@ func TestUTF16LEBOM(t *testing.T) {
 	}
 }
 
+func TestParseParagraphBreaks(t *testing.T) {
+	raw := []byte(`<?xml version="1.0" encoding="utf-8"?><FictionBook><description><title-info>` +
+		`<annotation><p>First</p><empty-line/><p>Second</p></annotation>` +
+		`</title-info></description></FictionBook>`)
+	got, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Annotation != "First\n\nSecond" {
+		t.Fatalf("annotation = %q", got.Annotation)
+	}
+}
+
+func TestCP866Annotation(t *testing.T) {
+	xmlUTF := `<?xml version="1.0" encoding="cp866"?>` +
+		`<FictionBook><description><title-info>` +
+		`<annotation><p>Ёлка</p></annotation>` +
+		`</title-info></description></FictionBook>`
+	raw, err := charmap.CodePage866.NewEncoder().Bytes([]byte(xmlUTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Annotation != "Ёлка" {
+		t.Fatalf("annotation = %q encoding=%s", got.Annotation, got.Encoding)
+	}
+}
+
+func TestUTF16LENoBOM(t *testing.T) {
+	xmlUTF := `<?xml version="1.0"?><FictionBook><description><title-info>` +
+		`<annotation><p>Ёлка</p></annotation></title-info></description></FictionBook>`
+	u := utf16.Encode([]rune(xmlUTF))
+	raw := make([]byte, 0, len(u)*2)
+	for _, r := range u {
+		raw = append(raw, byte(r), byte(r>>8))
+	}
+	got, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Annotation != "Ёлка" {
+		t.Fatalf("annotation = %q encoding=%s", got.Annotation, got.Encoding)
+	}
+}
+
+func TestImplausibleAnnotationDropped(t *testing.T) {
+	raw := []byte(`<?xml version="1.0" encoding="utf-8"?><FictionBook><description><title-info>` +
+		`<annotation><p>╔══╗ ░▒▓│┤ © ¤</p></annotation></title-info></description></FictionBook>`)
+	got, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Annotation != "" {
+		t.Fatalf("wanted empty, got %q", got.Annotation)
+	}
+	if !got.AnnotationRejected {
+		t.Fatal("gate must reject the text")
+	}
+}
+
+func TestUTF8BeatsDeclared1251(t *testing.T) {
+	raw := []byte(`<?xml version="1.0" encoding="windows-1251"?><FictionBook><description><title-info>` +
+		`<annotation><p>Привет, мир. Это настоящий текст.</p></annotation>` +
+		`</title-info></description></FictionBook>`)
+	got, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Annotation != "Привет, мир. Это настоящий текст." {
+		t.Fatalf("annotation = %q encoding=%s", got.Annotation, got.Encoding)
+	}
+	if got.Encoding != "utf-8" {
+		t.Fatalf("encoding = %s", got.Encoding)
+	}
+}
+
 func TestReplacementAnnotationDropped(t *testing.T) {
 	raw := []byte(`<?xml version="1.0" encoding="utf-8"?><FictionBook><description><title-info>` +
 		`<annotation><p>bad &#xfffd; text</p></annotation></title-info></description></FictionBook>`)

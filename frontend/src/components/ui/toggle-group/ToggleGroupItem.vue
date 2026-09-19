@@ -16,7 +16,7 @@ const forwarded = useForwardProps(delegatedProps)
     :class="
       cn(
         buttonVariants({ variant: 'outline', size: 'sm' }),
-        'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground',
+        'data-[state=on]:bg-accent data-[state=on]:text-accent-foreground',
         props.class,
       )
     "

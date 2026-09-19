@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Skeleton } from '@/components/ui/skeleton'
-import { authorParts, coverHue, isBlankTitle } from '@/lib/work'
+import { authorParts, coverHue, isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import { useAppStore } from '@/stores/app'
 import { useCoversStore } from '@/stores/covers'
 import type { Work } from '@/types/catalog'
@@ -15,8 +15,9 @@ const props = withDefaults(
     prio?: 'open' | 'visible' | 'prefetch'
     observe?: boolean
     compact?: boolean
+    fit?: 'cover' | 'contain'
   }>(),
-  { prio: 'visible', observe: true, compact: false },
+  { prio: 'visible', observe: true, compact: false, fit: 'cover' },
 )
 
 const { t } = useI18n()
@@ -24,6 +25,7 @@ const app = useAppStore()
 const covers = useCoversStore()
 const root = ref<HTMLElement | null>(null)
 const status = ref<'plate' | 'loading' | 'image'>('plate')
+const slow = ref(false)
 const src = ref('')
 let observer: IntersectionObserver | null = null
 let intersecting = false
@@ -31,11 +33,15 @@ let inflight: AbortController | null = null
 let blobURL = ''
 let absent = false
 let temporary = false
+let slowTimer: ReturnType<typeof setTimeout> | null = null
 
 const title = computed(() =>
   isBlankTitle(props.work.title) ? t('catalog.untitled') : props.work.title,
 )
-const authors = computed(() => authorParts(props.work.authorsText).join(', '))
+const authors = computed(() => {
+  const named = authorParts(props.work.authorsText).filter((name) => !isUnknownAuthor(name))
+  return named.length ? named.join(', ') : t('catalog.unknownAuthor')
+})
 const hue = computed(() => coverHue(props.work.workKey || String(props.work.id)))
 const canFetch = computed(() =>
   Boolean(
@@ -59,9 +65,26 @@ function revokeBlob() {
   }
 }
 
+function clearSlow() {
+  if (slowTimer) {
+    clearTimeout(slowTimer)
+    slowTimer = null
+  }
+  slow.value = false
+}
+
+function markLoading() {
+  status.value = 'loading'
+  clearSlow()
+  slowTimer = setTimeout(() => {
+    slow.value = true
+  }, 1000)
+}
+
 function showPlate() {
   revokeBlob()
   src.value = ''
+  clearSlow()
   status.value = 'plate'
 }
 
@@ -73,7 +96,7 @@ function load(prio: string) {
   abortInflight()
   const ac = new AbortController()
   inflight = ac
-  status.value = 'loading'
+  markLoading()
   void (async () => {
     try {
       const resp = await fetch(coverURL(), {
@@ -102,6 +125,7 @@ function load(prio: string) {
       revokeBlob()
       blobURL = URL.createObjectURL(blob)
       src.value = blobURL
+      clearSlow()
       status.value = 'image'
       temporary = false
     } catch {
@@ -193,6 +217,7 @@ onMounted(() => {
 onUnmounted(() => {
   observer?.disconnect()
   abortInflight()
+  clearSlow()
   revokeBlob()
   src.value = ''
 })
@@ -211,16 +236,30 @@ onUnmounted(() => {
       </slot>
     </div>
     <Skeleton
-      v-if="status === 'loading'"
+      v-if="status === 'loading' && !slow"
       class="absolute inset-0 rounded-none"
+      aria-hidden="true"
+    />
+    <p
+      v-if="status === 'loading' && slow"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-background/70 px-3 text-center text-sm text-foreground"
+    >
+      {{ t('book.readingDisk') }}
+    </p>
+    <img
+      v-if="src && fit === 'contain'"
+      :src="src"
+      alt=""
+      class="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-50"
       aria-hidden="true"
     />
     <img
       v-if="src"
       :src="src"
       alt=""
-      class="absolute inset-0 h-full w-full object-cover"
-      :class="status === 'image' ? 'opacity-100' : 'opacity-0'"
+      class="absolute inset-0 h-full w-full"
+      :class="fit === 'contain' ? 'object-contain' : 'object-cover'"
+      :style="status === 'image' ? undefined : { opacity: 0 }"
       @error="onFailed"
     />
   </div>

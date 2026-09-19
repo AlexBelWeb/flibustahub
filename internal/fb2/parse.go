@@ -15,12 +15,14 @@ var ErrTruncated = errors.New("fb2 truncated")
 
 // Book is the cover image and annotation taken from one FB2 document.
 type Book struct {
-	Cover             []byte
-	CoverKind         ImageKind
-	HasCover          bool
-	UnrecognizedCover bool
-	CoverID           string
-	Annotation        string
+	Cover              []byte
+	CoverKind          ImageKind
+	HasCover           bool
+	UnrecognizedCover  bool
+	CoverID            string
+	Annotation         string
+	Encoding           string
+	AnnotationRejected bool
 }
 
 // Parse reads a complete FB2 body. The payload is decoded first, then scanned
@@ -29,7 +31,7 @@ func Parse(raw []byte) (Book, error) {
 	if len(bytes.TrimSpace(raw)) == 0 {
 		return Book{}, ErrTruncated
 	}
-	utf := DecodeBody(raw)
+	utf, enc := DecodeBody(raw)
 	if !bytes.Contains(bytes.ToLower(utf), []byte("</fictionbook>")) {
 		return Book{}, ErrTruncated
 	}
@@ -49,6 +51,7 @@ func Parse(raw []byte) (Book, error) {
 		bin          strings.Builder
 		binaries     = map[string]string{}
 	)
+	out.Encoding = enc
 
 	for {
 		tok, err := dec.Token()
@@ -89,6 +92,10 @@ func Parse(raw []byte) (Book, error) {
 				inCoverpage = false
 			case "annotation":
 				inAnnotation = false
+			case "p", "empty-line":
+				if inAnnotation {
+					ann.WriteByte('\n')
+				}
 			case "coverpage":
 				inCoverpage = false
 			case "binary":
@@ -107,9 +114,12 @@ func Parse(raw []byte) (Book, error) {
 		}
 	}
 
-	out.Annotation = strings.TrimSpace(collapseSpace(ann.String()))
-	if strings.ContainsRune(out.Annotation, '\uFFFD') {
+	rawAnn := normalizeAnnotation(ann.String())
+	if rawAnn != "" && !PlausibleText(rawAnn) {
+		out.AnnotationRejected = true
 		out.Annotation = ""
+	} else {
+		out.Annotation = rawAnn
 	}
 	if out.CoverID == "" {
 		return out, nil
@@ -159,6 +169,12 @@ func decodeBase64(s string) ([]byte, error) {
 	return out, nil
 }
 
-func collapseSpace(s string) string {
-	return strings.Join(strings.Fields(s), " ")
+func normalizeAnnotation(s string) string {
+	lines := strings.Split(s, "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.Join(strings.Fields(line), " ")
+		out = append(out, line)
+	}
+	return strings.TrimSpace(strings.Join(out, "\n"))
 }

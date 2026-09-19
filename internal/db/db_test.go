@@ -94,7 +94,7 @@ func TestMigrateTwiceIsNoop(t *testing.T) {
 	if err := d2.Write.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 2 {
+	if n != 3 {
 		t.Fatalf("schema_migrations rows = %d", n)
 	}
 }
@@ -201,6 +201,65 @@ func TestMigration002FillsAddedDateAndCounts(t *testing.T) {
 	}
 	if total != "2" || listable != "2" {
 		t.Fatalf("counters total=%s listable=%s", total, listable)
+	}
+}
+
+func TestMigration003ClearsImplausibleAnnotations(t *testing.T) {
+	m1, err := migrations.FS.ReadFile("001_initial.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, err := migrations.FS.ReadFile("002_works_added_date.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: fstest.MapFS{
+			"001_initial.sql":          &fstest.MapFile{Data: m1},
+			"002_works_added_date.sql": &fstest.MapFile{Data: m2},
+		},
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO works(id, work_key, title, sort_title, authors_text, created_at, updated_at, annotation, annotation_checked_at)
+		VALUES (1, 'k1', 'Good', 'good', 'A', 't', 't', 'Обычный текст аннотации.', '2026-01-01T00:00:00Z'),
+		       (2, 'k2', 'Bad', 'bad', 'B', 't', 't', '╔══╗ © ¤ ░▒▓│┤', '2026-01-01T00:00:00Z')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       opt.Path,
+		BackupsDir: opt.BackupsDir,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+
+	var good sql.NullString
+	var goodAt sql.NullString
+	if err := d2.Read.QueryRow(`SELECT annotation, annotation_checked_at FROM works WHERE id = 1`).Scan(&good, &goodAt); err != nil {
+		t.Fatal(err)
+	}
+	if !good.Valid || good.String != "Обычный текст аннотации." || !goodAt.Valid {
+		t.Fatalf("good annotation lost: %v %v", good, goodAt)
+	}
+	var bad sql.NullString
+	var badAt sql.NullString
+	if err := d2.Read.QueryRow(`SELECT annotation, annotation_checked_at FROM works WHERE id = 2`).Scan(&bad, &badAt); err != nil {
+		t.Fatal(err)
+	}
+	if bad.Valid || badAt.Valid {
+		t.Fatalf("implausible annotation must be cleared, got %v %v", bad, badAt)
 	}
 }
 
@@ -395,6 +454,19 @@ func TestSQLFunctions(t *testing.T) {
 	}
 	if got != " елка " {
 		t.Fatalf("search_norm = %q", got)
+	}
+	var ok int64
+	if err := d.Read.QueryRow(`SELECT text_plausible('Обычный текст аннотации.')`).Scan(&ok); err != nil {
+		t.Fatal(err)
+	}
+	if ok != 1 {
+		t.Fatalf("plausible = %d", ok)
+	}
+	if err := d.Read.QueryRow(`SELECT text_plausible('╔══╗ © ¤ ░▒▓│┤')`).Scan(&ok); err != nil {
+		t.Fatal(err)
+	}
+	if ok != 0 {
+		t.Fatalf("implausible = %d", ok)
 	}
 	var n sql.NullString
 	if err := d.Read.QueryRow(`SELECT normalize(NULL)`).Scan(&n); err != nil {

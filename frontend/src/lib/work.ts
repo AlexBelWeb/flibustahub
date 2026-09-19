@@ -7,6 +7,14 @@ export function isBlankTitle(title: string | undefined): boolean {
   return title.replace(/[\p{P}\p{S}\s]/gu, '') === ''
 }
 
+export function isUnknownAuthor(name: string | undefined): boolean {
+  if (!name) {
+    return true
+  }
+  const n = name.replace(/,/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
+  return n === '' || n === 'неизвестен автор'
+}
+
 export function authorParts(authorsText: string | undefined): string[] {
   if (!authorsText) {
     return []

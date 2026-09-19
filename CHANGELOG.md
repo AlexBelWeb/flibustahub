@@ -41,6 +41,11 @@ Conventions:
 - Catalog filters open as a sliding panel and can be set by language, genre, author and series; the selection stays in the address bar.
 - The command palette, sidebar and drop-down lists use the same themed controls as the rest of the window, including keyboard movement in the palette and on the book grid.
 - Sidebar, filter and list pictograms use a single icon set instead of mixed letter marks and ad-hoc drawings.
+- Book tiles always show the title and authors under the cover; the coloured plate replaces a missing image, not the captions.
+- The book panel and book page show the cover in full on a blurred, darkened copy of the same picture; the page uses a narrow cover column beside the text.
+- Language is shown as a name, not a dump code; a missing author is labelled in plain language and is not a link.
+- If a cover or annotation takes about a second to read from disk, the panel says so instead of waiting on a skeleton.
+- A tile that has several files only shows the labelled count, not a bare number next to it.
 
 ### Fixed
 
@@ -54,6 +59,9 @@ Conventions:
 - After a successful import, books that previously had no cover are checked again instead of staying blank.
 - Clearing the cover cache is visible without reloading the window.
 - If a cover cannot be loaded right now, the title plate is shown; opening the book again or returning to the list tries once more.
+- Annotations are no longer stored as mojibake; already stored garbage is cleared so the book is read again (database migration).
+- Annotation paragraphs stay as separate lines.
+- The tile/table switch no longer uses the accent colour that marks a primary action.
 
 ### Removed
 

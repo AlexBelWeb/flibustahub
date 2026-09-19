@@ -5,8 +5,8 @@ import { useI18n } from 'vue-i18n'
 import BookCover from '@/components/catalog/BookCover.vue'
 import HighlightText from '@/components/catalog/HighlightText.vue'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatBytes } from '@/lib/format'
-import { authorParts, isBlankTitle } from '@/lib/work'
+import { formatBytes, languageName } from '@/lib/format'
+import { authorParts, isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import { withWorkQuery } from '@/lib/work-route'
 import type { Work } from '@/types/catalog'
 
@@ -21,8 +21,12 @@ const route = useRoute()
 const title = computed(() =>
   isBlankTitle(props.work.title) ? t('catalog.untitled') : props.work.title,
 )
-const authors = computed(() => authorParts(props.work.authorsText).join(', '))
+const authors = computed(() => {
+  const named = authorParts(props.work.authorsText).filter((name) => !isUnknownAuthor(name))
+  return named.length ? named.join(', ') : t('catalog.unknownAuthor')
+})
 const size = computed(() => (props.work.size ? formatBytes(props.work.size, locale.value) : ''))
+const lang = computed(() => languageName(props.work.lang, locale.value))
 </script>
 
 <template>
@@ -51,7 +55,7 @@ const size = computed(() => (props.work.size ? formatBytes(props.work.size, loca
       {{ work.series }}
       <span v-if="work.seriesNo">{{ t('catalog.seriesNo', { n: work.seriesNo }) }}</span>
     </span>
-    <span class="truncate text-muted-foreground">{{ work.lang }}</span>
+    <span class="truncate text-muted-foreground">{{ lang }}</span>
     <span class="truncate text-right tabular-nums text-muted-foreground">{{ size }}</span>
     <span class="truncate text-right tabular-nums">{{ work.rating || work.librate }}</span>
   </RouterLink>

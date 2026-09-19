@@ -1,3 +1,19 @@
+export function languageName(code: string | undefined, locale: string): string {
+  const raw = (code || '').trim()
+  if (!raw) {
+    return ''
+  }
+  try {
+    const name = new Intl.DisplayNames([locale], { type: 'language' }).of(raw)
+    if (!name || name === raw) {
+      return raw
+    }
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  } catch {
+    return raw
+  }
+}
+
 export function formatCount(value: number, locale: string): string {
   return new Intl.NumberFormat(locale, { useGrouping: true }).format(value)
 }

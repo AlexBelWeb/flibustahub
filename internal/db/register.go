@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/alexbelweb/flibustahub/internal/fb2"
 	"github.com/alexbelweb/flibustahub/internal/textnorm"
 	"modernc.org/sqlite"
 )
@@ -19,6 +20,10 @@ func registerFunctions() error {
 			return
 		}
 		registerErr = sqlite.RegisterDeterministicScalarFunction("search_norm", 1, scalarString(textnorm.SearchNorm))
+		if registerErr != nil {
+			return
+		}
+		registerErr = sqlite.RegisterDeterministicScalarFunction("text_plausible", 1, scalarPlausible)
 	})
 	return registerErr
 }
@@ -37,4 +42,23 @@ func scalarString(fn func(string) string) func(*sqlite.FunctionContext, []driver
 			return fn(fmt.Sprint(v)), nil
 		}
 	}
+}
+
+func scalarPlausible(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
+	if len(args) != 1 || args[0] == nil {
+		return int64(1), nil
+	}
+	var s string
+	switch v := args[0].(type) {
+	case string:
+		s = v
+	case []byte:
+		s = string(v)
+	default:
+		s = fmt.Sprint(v)
+	}
+	if fb2.PlausibleText(s) {
+		return int64(1), nil
+	}
+	return int64(0), nil
 }

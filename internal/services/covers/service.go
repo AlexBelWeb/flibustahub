@@ -282,6 +282,7 @@ func (s *Service) run(ctx context.Context, workID int64, need Need) error {
 		s.remember(workID, out, false)
 		return out
 	}
+	start := time.Now()
 	zr, err := zip.OpenReader(zipPath)
 	if err != nil {
 		out := apperr.Wrap(apperr.CodeFB2Unreadable, err, map[string]string{"workId": formatID(workID)})
@@ -294,6 +295,14 @@ func (s *Service) run(ctx context.Context, workID int64, need Need) error {
 	}
 
 	book, err := fb2.ParseZip(&zr.Reader, ed.FileName, ed.FileExt)
+	elapsed := time.Since(start)
+	if elapsed >= time.Second {
+		s.log.Info("storage read waited",
+			"workId", workID,
+			"archive", ed.ArchiveName,
+			"ms", elapsed.Milliseconds(),
+		)
+	}
 	if err != nil {
 		out := apperr.Wrap(apperr.CodeFB2Unreadable, err, map[string]string{"workId": formatID(workID)})
 		s.remember(workID, out, true)
@@ -317,7 +326,13 @@ func (s *Service) run(ctx context.Context, workID int64, need Need) error {
 	}
 	if need.has(NeedAnnotation) {
 		var text *string
-		if strings.TrimSpace(book.Annotation) != "" {
+		if book.AnnotationRejected {
+			s.log.Warn("annotation rejected as implausible",
+				"workId", workID,
+				"archive", ed.ArchiveName,
+				"encoding", book.Encoding,
+			)
+		} else if strings.TrimSpace(book.Annotation) != "" {
 			a := book.Annotation
 			text = &a
 		}
