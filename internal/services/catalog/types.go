@@ -14,6 +14,8 @@ const (
 	SearchDepth   = 500
 	HistoryKeep   = 200
 	HistoryRecent = 10
+
+	SearchPeoplePreview = 3
 )
 
 // Total is a cheap or capped count. Nil on a page means the UI must not show N.
@@ -127,10 +129,12 @@ type SearchQuery struct {
 }
 
 type SearchResult struct {
-	Authors  []Author `json:"authors,omitempty"`
-	Series   []Series `json:"series,omitempty"`
-	Works    WorkPage `json:"works"`
-	Fallback bool     `json:"fallback,omitempty"`
+	Authors      []Author `json:"authors,omitempty"`
+	Series       []Series `json:"series,omitempty"`
+	AuthorsTotal *Total   `json:"authorsTotal,omitempty"`
+	SeriesTotal  *Total   `json:"seriesTotal,omitempty"`
+	Works        WorkPage `json:"works"`
+	Fallback     bool     `json:"fallback,omitempty"`
 }
 
 func normalizeSort(s string) string {

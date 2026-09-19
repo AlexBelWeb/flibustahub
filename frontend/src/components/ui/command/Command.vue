@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ComboboxRootEmits, ComboboxRootProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
+import { ref } from 'vue'
 import { ComboboxRoot, useForwardPropsEmits } from 'reka-ui'
 import { cn, reactiveOmit } from '@/lib/utils'
 
@@ -11,10 +12,18 @@ const props = withDefaults(defineProps<ComboboxRootProps & { class?: HTMLAttribu
 const emits = defineEmits<ComboboxRootEmits>()
 const delegatedProps = reactiveOmit(props as Record<string, unknown>, 'class')
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
+const rootRef = ref<{ highlightFirstItem?: () => void } | null>(null)
+
+defineExpose({
+  highlightFirstItem() {
+    rootRef.value?.highlightFirstItem?.()
+  },
+})
 </script>
 
 <template>
   <ComboboxRoot
+    ref="rootRef"
     v-bind="forwarded"
     :class="
       cn(

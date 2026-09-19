@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Funnel, X } from '@lucide/vue'
 import EntityFilter from '@/components/catalog/EntityFilter.vue'
+import HighlightText from '@/components/catalog/HighlightText.vue'
 import ListState from '@/components/catalog/ListState.vue'
 import VirtualWorkList from '@/components/catalog/VirtualWorkList.vue'
 import { Badge } from '@/components/ui/badge'
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/sheet'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { errorMessage } from '@/i18n/errors'
-import { formatCount } from '@/lib/format'
+import { formatCount, formatCappedCount } from '@/lib/format'
 import { queryId, queryText } from '@/lib/route-query'
 import { withWorkQuery } from '@/lib/work-route'
 import { useAppStore } from '@/stores/app'
@@ -290,6 +291,29 @@ const hasFilters = computed(() =>
   ),
 )
 
+const authorsOverflow = computed(() => {
+  const total = state.value.authorsTotal
+  if (!total) {
+    return false
+  }
+  return total.capped || total.n > state.value.authors.length
+})
+
+const seriesOverflow = computed(() => {
+  const total = state.value.seriesTotal
+  if (!total) {
+    return false
+  }
+  return total.capped || total.n > state.value.series.length
+})
+
+const showSearchHits = computed(
+  () =>
+    searching.value &&
+    state.value.status === 'ready' &&
+    (state.value.authors.length > 0 || state.value.series.length > 0),
+)
+
 const sortOptions = computed(() => {
   const items = [
     { value: 'title', label: t('catalog.sortTitle') },
@@ -522,6 +546,53 @@ onMounted(() => {
       {{ foundLabel }}
     </p>
 
+    <div v-if="showSearchHits" class="grid gap-4">
+      <section v-if="state.authors.length" class="grid gap-2">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="text-sm font-medium text-muted-foreground">{{ t('palette.authors') }}</h2>
+          <RouterLink
+            v-if="authorsOverflow"
+            class="text-sm text-primary underline-offset-4 hover:underline"
+            :to="{ name: 'authors', query: { q } }"
+          >
+            {{ t('palette.allAuthors', { n: formatCappedCount(state.authorsTotal, locale) }) }}
+          </RouterLink>
+        </div>
+        <ul class="flex flex-wrap gap-2">
+          <li v-for="item in state.authors" :key="item.id">
+            <RouterLink
+              class="inline-flex rounded-full border border-border bg-card px-3 py-1 text-sm hover:bg-accent"
+              :to="{ name: 'author', params: { authorId: String(item.id) } }"
+            >
+              <HighlightText :text="item.displayName" :query="q" />
+            </RouterLink>
+          </li>
+        </ul>
+      </section>
+      <section v-if="state.series.length" class="grid gap-2">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 class="text-sm font-medium text-muted-foreground">{{ t('palette.series') }}</h2>
+          <RouterLink
+            v-if="seriesOverflow"
+            class="text-sm text-primary underline-offset-4 hover:underline"
+            :to="{ name: 'series', query: { q } }"
+          >
+            {{ t('palette.allSeries', { n: formatCappedCount(state.seriesTotal, locale) }) }}
+          </RouterLink>
+        </div>
+        <ul class="flex flex-wrap gap-2">
+          <li v-for="item in state.series" :key="item.id">
+            <RouterLink
+              class="inline-flex rounded-full border border-border bg-card px-3 py-1 text-sm hover:bg-accent"
+              :to="{ name: 'seriesDetail', params: { seriesId: String(item.id) } }"
+            >
+              <HighlightText :text="item.name" :query="q" />
+            </RouterLink>
+          </li>
+        </ul>
+      </section>
+    </div>
+
     <ListState
       class="flex min-h-0 flex-1 flex-col"
       :status="state.status"
@@ -535,6 +606,7 @@ onMounted(() => {
         }}</Button>
       </template>
       <VirtualWorkList
+        v-if="state.items.length || state.loadingMore"
         :items="state.items"
         :view="app.catalogView as CatalogView"
         :query="q"

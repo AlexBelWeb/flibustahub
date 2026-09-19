@@ -119,6 +119,8 @@ export interface SearchQuery {
 export interface SearchResult {
   authors?: Author[]
   series?: Series[]
+  authorsTotal?: CatalogTotal
+  seriesTotal?: CatalogTotal
   works: WorkPage
   fallback?: boolean
 }
@@ -141,6 +143,8 @@ export function asSearchResult(value: SearchResult | null | undefined): SearchRe
   return {
     authors: value?.authors ?? [],
     series: value?.series ?? [],
+    authorsTotal: value?.authorsTotal,
+    seriesTotal: value?.seriesTotal,
     works: asWorkPage(value?.works),
     fallback: Boolean(value?.fallback),
   }

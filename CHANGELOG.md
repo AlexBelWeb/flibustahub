@@ -52,6 +52,8 @@ Conventions:
 - Language is shown as a name, not a dump code; a missing author is labelled in plain language and is not a link.
 - If a cover or annotation takes about a second to read from disk, the panel says so instead of waiting on a skeleton.
 - A tile that has several files only shows the labelled count, not a bare number next to it.
+- Search looks up books by title, author name and series together, so typing an author opens their books instead of an empty list.
+- Search results show matching authors and series above the book list; the command palette highlights the first match and offers “all authors” / “all series” when there are more.
 
 ### Fixed
 

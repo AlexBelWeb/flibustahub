@@ -1,3 +1,5 @@
+import { getI18n } from '@/i18n'
+
 export function languageName(code: string | undefined, locale: string): string {
   const raw = (code || '').trim()
   if (!raw) {
@@ -16,6 +18,29 @@ export function languageName(code: string | undefined, locale: string): string {
 
 export function formatCount(value: number, locale: string): string {
   return new Intl.NumberFormat(locale, { useGrouping: true }).format(value)
+}
+
+export function formatCappedCount(
+  total: { n: number; capped?: boolean } | undefined,
+  locale: string,
+): string {
+  if (!total) {
+    return ''
+  }
+  const n = formatCount(total.n, locale)
+  return total.capped ? `${n}+` : n
+}
+
+export function formatFiles(n: number, locale: string): string {
+  const t = getI18n().global.t
+  const form = new Intl.PluralRules(locale).select(n)
+  if (form === 'one') {
+    return t('catalog.filesOne', { n })
+  }
+  if (form === 'few') {
+    return t('catalog.filesFew', { n })
+  }
+  return t('catalog.filesMany', { n })
 }
 
 export function formatDuration(ms: number, locale: string): string {

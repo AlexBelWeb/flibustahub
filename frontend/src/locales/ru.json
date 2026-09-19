@@ -204,7 +204,9 @@
     "books": "Книги",
     "authors": "Авторы",
     "series": "Серии",
-    "openAll": "Все результаты",
+    "openAll": "Все результаты для «{q}»",
+    "allAuthors": "Все авторы ({n})",
+    "allSeries": "Все серии ({n})",
     "noResults": "Ничего не найдено"
   },
   "onboarding": {

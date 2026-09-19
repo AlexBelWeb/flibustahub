@@ -289,7 +289,7 @@ func (s *Service) Search(ctx context.Context, q SearchQuery) (SearchResult, erro
 		err      error
 	)
 	if useFTS {
-		sp.FTS = ftsPhrase(tokens, "title series")
+		sp.FTS = ftsPhrase(tokens, worksFTSColumns)
 		ids, err = s.cat.SearchWorkIDsFTS(ctx, sp)
 		if err != nil {
 			s.log.Warn("fts search failed, using like fallback", "err", err)
@@ -328,22 +328,33 @@ func (s *Service) Search(ctx context.Context, q SearchQuery) (SearchResult, erro
 		Fallback: fallback,
 	}
 	if offset == 0 {
-		out.Authors, out.Series = s.searchPeople(ctx, tokens, fallback || !useFTS)
+		out.Authors, out.Series, out.AuthorsTotal, out.SeriesTotal = s.searchPeople(ctx, tokens, fallback || !useFTS)
 	}
 	return out, nil
 }
 
-func (s *Service) searchPeople(ctx context.Context, tokens []string, like bool) ([]Author, []Series) {
-	const peopleN = 10
+func cappedSearchTotal(n int) *Total {
+	t := &Total{N: n, Capped: n > SearchDepth}
+	if t.Capped {
+		t.N = SearchDepth
+	}
+	return t
+}
+
+func (s *Service) searchPeople(ctx context.Context, tokens []string, like bool) ([]Author, []Series, *Total, *Total) {
+	fetchN := SearchPeoplePreview + 1
+	authorMatch := ftsPhrase(tokens, "display_name sort_name")
+	seriesMatch := ftsPhrase(tokens, "name")
 	var aids, sids []int64
+	var authorsTotal, seriesTotal *Total
 	var err error
 	if !like {
-		aids, err = s.cat.SearchAuthorIDsFTS(ctx, ftsPhrase(tokens, "display_name sort_name"), peopleN)
+		aids, err = s.cat.SearchAuthorIDsFTS(ctx, authorMatch, fetchN)
 		if err != nil {
 			s.log.Warn("authors fts failed, using like fallback", "err", err)
 			like = true
 		} else {
-			sids, err = s.cat.SearchSeriesIDsFTS(ctx, ftsPhrase(tokens, "name"), peopleN)
+			sids, err = s.cat.SearchSeriesIDsFTS(ctx, seriesMatch, fetchN)
 			if err != nil {
 				s.log.Warn("series fts failed, using like fallback", "err", err)
 				like = true
@@ -352,16 +363,39 @@ func (s *Service) searchPeople(ctx context.Context, tokens []string, like bool) 
 	}
 	if like {
 		pats := likePatterns(tokens)
-		aids, err = s.cat.SearchAuthorIDsLIKE(ctx, pats, peopleN)
+		aids, err = s.cat.SearchAuthorIDsLIKE(ctx, pats, fetchN)
 		if err != nil {
 			s.log.Warn("authors like search failed", "err", err)
 			aids = nil
 		}
-		sids, err = s.cat.SearchSeriesIDsLIKE(ctx, pats, peopleN)
+		sids, err = s.cat.SearchSeriesIDsLIKE(ctx, pats, fetchN)
 		if err != nil {
 			s.log.Warn("series like search failed", "err", err)
 			sids = nil
 		}
+		if len(aids) > SearchPeoplePreview {
+			authorsTotal = &Total{N: SearchPeoplePreview, Capped: true}
+		}
+		if len(sids) > SearchPeoplePreview {
+			seriesTotal = &Total{N: SearchPeoplePreview, Capped: true}
+		}
+	} else {
+		if n, err := s.cat.CountAuthorsCappedFTS(ctx, authorMatch, SearchDepth+1); err != nil {
+			s.log.Warn("authors count failed", "err", err)
+		} else {
+			authorsTotal = cappedSearchTotal(n)
+		}
+		if n, err := s.cat.CountSeriesCappedFTS(ctx, seriesMatch, SearchDepth+1); err != nil {
+			s.log.Warn("series count failed", "err", err)
+		} else {
+			seriesTotal = cappedSearchTotal(n)
+		}
+	}
+	if len(aids) > SearchPeoplePreview {
+		aids = aids[:SearchPeoplePreview]
+	}
+	if len(sids) > SearchPeoplePreview {
+		sids = sids[:SearchPeoplePreview]
 	}
 	arows, _ := s.cat.AuthorsByIDs(ctx, aids)
 	srows, _ := s.cat.SeriesByIDs(ctx, sids)
@@ -373,7 +407,7 @@ func (s *Service) searchPeople(ctx context.Context, tokens []string, like bool) 
 	for i, r := range srows {
 		series[i] = Series{ID: r.ID, Name: r.Name, SortName: r.SortName, WorkCount: r.WorkCount}
 	}
-	return authors, series
+	return authors, series, authorsTotal, seriesTotal
 }
 
 func (s *Service) ListAuthors(ctx context.Context, q ListPeopleQuery) (AuthorPage, error) {

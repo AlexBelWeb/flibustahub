@@ -389,6 +389,8 @@ export namespace catalog {
 	export class SearchResult {
 	    authors?: Author[];
 	    series?: Series[];
+	    authorsTotal?: Total;
+	    seriesTotal?: Total;
 	    works: WorkPage;
 	    fallback?: boolean;
 	
@@ -400,6 +402,8 @@ export namespace catalog {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.authors = this.convertValues(source["authors"], Author);
 	        this.series = this.convertValues(source["series"], Series);
+	        this.authorsTotal = this.convertValues(source["authorsTotal"], Total);
+	        this.seriesTotal = this.convertValues(source["seriesTotal"], Total);
 	        this.works = this.convertValues(source["works"], WorkPage);
 	        this.fallback = source["fallback"];
 	    }

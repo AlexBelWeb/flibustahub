@@ -25,8 +25,8 @@ func TestTokensStripAndDropEmpty(t *testing.T) {
 }
 
 func TestFTSPhrase(t *testing.T) {
-	q := ftsPhrase([]string{"елка", "гром"}, "title series")
-	want := `{title series}: "елка"* AND "гром"*`
+	q := ftsPhrase([]string{"елка", "гром"}, worksFTSColumns)
+	want := `{title authors series}: "елка"* AND "гром"*`
 	if q != want {
 		t.Fatalf("got %q", q)
 	}

@@ -204,7 +204,9 @@
     "books": "Books",
     "authors": "Authors",
     "series": "Series",
-    "openAll": "All results",
+    "openAll": "All results for “{q}”",
+    "allAuthors": "All authors ({n})",
+    "allSeries": "All series ({n})",
     "noResults": "Nothing found"
   },
   "onboarding": {

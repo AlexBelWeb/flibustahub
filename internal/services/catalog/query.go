@@ -37,6 +37,8 @@ func ftsPhrase(tokens []string, columns string) string {
 	return "{" + columns + "}: " + body
 }
 
+const worksFTSColumns = "title authors series"
+
 func likePatterns(tokens []string) []string {
 	out := make([]string, len(tokens))
 	for i, t := range tokens {

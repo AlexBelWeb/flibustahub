@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import HighlightText from '@/components/catalog/HighlightText.vue'
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/command'
 import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/i18n/errors'
+import { formatCappedCount } from '@/lib/format'
 import { isBlankTitle } from '@/lib/work'
 import { withWorkQuery } from '@/lib/work-route'
 import { useAppStore } from '@/stores/app'
@@ -37,7 +38,7 @@ import {
   DialogTitle,
 } from 'reka-ui'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const app = useAppStore()
@@ -104,6 +105,24 @@ function openBooks() {
   void router.push({ name: 'books', query: q ? { q } : {} })
 }
 
+function openAllAuthors() {
+  const q = draft.value.trim()
+  if (q) {
+    void search.record(q)
+  }
+  closePalette()
+  void router.push({ name: 'authors', query: q ? { q } : {} })
+}
+
+function openAllSeries() {
+  const q = draft.value.trim()
+  if (q) {
+    void search.record(q)
+  }
+  closePalette()
+  void router.push({ name: 'series', query: q ? { q } : {} })
+}
+
 function openWork(id: number) {
   const q = draft.value.trim()
   if (q) {
@@ -145,6 +164,46 @@ const works = computed(() => search.preview?.works.items ?? [])
 const authors = computed(() => search.preview?.authors ?? [])
 const series = computed(() => search.preview?.series ?? [])
 const idle = computed(() => !draft.value.trim())
+const authorsCount = computed(() => formatCappedCount(search.preview?.authorsTotal, locale.value))
+const seriesCount = computed(() => formatCappedCount(search.preview?.seriesTotal, locale.value))
+const authorsOverflow = computed(() => {
+  const total = search.preview?.authorsTotal
+  if (!total) {
+    return false
+  }
+  return total.capped || total.n > authors.value.length
+})
+const seriesOverflow = computed(() => {
+  const total = search.preview?.seriesTotal
+  if (!total) {
+    return false
+  }
+  return total.capped || total.n > series.value.length
+})
+const firstHit = computed(() => {
+  if (authors.value[0]) {
+    return 'author:' + authors.value[0].id
+  }
+  if (series.value[0]) {
+    return 'series:' + series.value[0].id
+  }
+  if (works.value[0]) {
+    return 'work:' + works.value[0].id
+  }
+  return ''
+})
+const commandRef = ref<{ highlightFirstItem?: () => void } | null>(null)
+
+watch(
+  () => [search.previewStatus, firstHit.value] as const,
+  async ([status, hit]) => {
+    if (status !== 'ready' || !hit) {
+      return
+    }
+    await nextTick()
+    commandRef.value?.highlightFirstItem?.()
+  },
+)
 </script>
 
 <template>
@@ -155,7 +214,7 @@ const idle = computed(() => !draft.value.trim())
         class="fixed top-[12%] left-1/2 z-[80] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-border bg-card p-0 shadow-lg"
       >
         <DialogTitle class="sr-only">{{ t('palette.title') }}</DialogTitle>
-        <Command :ignore-filter="true" :open="true" @update:open="onComboboxOpen">
+        <Command ref="commandRef" :ignore-filter="true" :open="true" @update:open="onComboboxOpen">
           <CommandInput
             :model-value="draft"
             :placeholder="t('palette.placeholder')"
@@ -231,6 +290,13 @@ const idle = computed(() => !draft.value.trim())
                   >
                     <HighlightText :text="item.displayName" :query="draft" />
                   </CommandItem>
+                  <CommandItem
+                    v-if="authorsOverflow"
+                    value="action:all-authors"
+                    @select="openAllAuthors"
+                  >
+                    {{ t('palette.allAuthors', { n: authorsCount }) }}
+                  </CommandItem>
                 </CommandGroup>
                 <CommandGroup v-if="series.length" :heading="t('palette.series')">
                   <CommandItem
@@ -240,6 +306,13 @@ const idle = computed(() => !draft.value.trim())
                     @select="openSeries(item.id)"
                   >
                     <HighlightText :text="item.name" :query="draft" />
+                  </CommandItem>
+                  <CommandItem
+                    v-if="seriesOverflow"
+                    value="action:all-series"
+                    @select="openAllSeries"
+                  >
+                    {{ t('palette.allSeries', { n: seriesCount }) }}
                   </CommandItem>
                 </CommandGroup>
                 <CommandGroup v-if="works.length" :heading="t('palette.books')">
@@ -258,7 +331,7 @@ const idle = computed(() => !draft.value.trim())
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem value="action:open-all" @select="openBooks">
-                    {{ t('palette.openAll') }}
+                    {{ t('palette.openAll', { q: draft.trim() }) }}
                   </CommandItem>
                 </CommandGroup>
               </template>
