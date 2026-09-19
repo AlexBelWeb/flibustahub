@@ -1,11 +1,5 @@
 {
-  "app": {
-    "name": "FlibustaHub",
-    "tagline": "Локальный каталог вашей библиотеки"
-  },
   "home": {
-    "title": "Главная",
-    "lead": "Каталог, поиск и новые поступления — без обращения к папке с архивами.",
     "books": "Книг в каталоге",
     "lastImport": "Последний импорт",
     "lastImportNever": "Импорт ещё не выполнялся",
@@ -157,7 +151,9 @@
     "untitled": "Без названия",
     "unknownAuthor": "Автор неизвестен",
     "authorsMore": "{name} и ещё {n}",
-    "files": "{n} файл | {n} файла | {n} файлов",
+    "filesOne": "{n} файл",
+    "filesFew": "{n} файла",
+    "filesMany": "{n} файлов",
     "ghost": "Файла нет в дампе",
     "seriesNo": "№ {n}",
     "colTitle": "Название",
@@ -186,10 +182,8 @@
     "emptySearch": "Жанры не найдены."
   },
   "book": {
-    "lang": "Язык",
-    "size": "Размер",
-    "series": "Серия",
     "annotation": "Аннотация",
+    "editions": "Издания",
     "annotationEmpty": "Аннотации нет",
     "annotationError": "Не удалось загрузить аннотацию.",
     "readingDisk": "Читаю с диска…",

@@ -1,11 +1,5 @@
 {
-  "app": {
-    "name": "FlibustaHub",
-    "tagline": "A local catalog of your book library"
-  },
   "home": {
-    "title": "Home",
-    "lead": "Catalog, search and new arrivals — without touching the archive folder.",
     "books": "Books in the catalog",
     "lastImport": "Last import",
     "lastImportNever": "No import has been run yet",
@@ -157,7 +151,9 @@
     "untitled": "Untitled",
     "unknownAuthor": "Author unknown",
     "authorsMore": "{name} and {n} more",
-    "files": "{n} file | {n} files",
+    "filesOne": "{n} file",
+    "filesFew": "{n} files",
+    "filesMany": "{n} files",
     "ghost": "File missing from the dump",
     "seriesNo": "No. {n}",
     "colTitle": "Title",
@@ -186,10 +182,8 @@
     "emptySearch": "No genres found."
   },
   "book": {
-    "lang": "Language",
-    "size": "Size",
-    "series": "Series",
     "annotation": "Annotation",
+    "editions": "Editions",
     "annotationEmpty": "No annotation",
     "annotationError": "The annotation could not be loaded.",
     "readingDisk": "Reading from disk…",

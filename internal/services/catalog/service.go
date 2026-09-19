@@ -587,6 +587,31 @@ func (s *Service) GetWorkDetails(ctx context.Context, id int64) (WorkDetails, er
 		t := ann.Text.String
 		out.Annotation = &t
 	}
+	if work.HasFile {
+		ed, err := s.cat.PrimaryEdition(ctx, id)
+		if err == nil {
+			out.FileExt = strings.ToUpper(strings.TrimPrefix(strings.TrimSpace(ed.FileExt), "."))
+		} else if err != sql.ErrNoRows {
+			return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+		}
+		eds, err := s.cat.VisibleEditions(ctx, id)
+		if err != nil {
+			return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+		}
+		out.Editions = make([]WorkEdition, len(eds))
+		for i, e := range eds {
+			item := WorkEdition{
+				ArchiveName: e.ArchiveName,
+				FileName:    e.FileName,
+				FileExt:     strings.ToUpper(strings.TrimPrefix(strings.TrimSpace(e.FileExt), ".")),
+			}
+			if e.Size.Valid {
+				v := e.Size.Int64
+				item.Size = &v
+			}
+			out.Editions[i] = item
+		}
+	}
 	return out, nil
 }
 

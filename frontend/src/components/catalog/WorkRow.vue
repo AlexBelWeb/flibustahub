@@ -32,7 +32,7 @@ const lang = computed(() => languageName(props.work.lang, locale.value))
 <template>
   <RouterLink
     :to="{ query: withWorkQuery(route.query, work.id) }"
-    class="grid grid-cols-[2.5rem_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_4rem_6rem_4rem] items-center gap-3 border-b border-border px-2 py-2 text-sm hover:bg-accent"
+    class="grid grid-cols-[2.5rem_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_7rem_6rem_4rem] items-center gap-3 border-b border-border px-2 py-2 text-sm hover:bg-accent"
   >
     <BookCover :work="work" compact class="size-10 rounded-md" />
     <Tooltip>

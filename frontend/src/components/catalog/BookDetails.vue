@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { X } from '@lucide/vue'
 import BookCover from '@/components/catalog/BookCover.vue'
 import ListState from '@/components/catalog/ListState.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SheetClose } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
-import { formatBytes, languageName } from '@/lib/format'
+import { formatBytes, formatFiles, languageName } from '@/lib/format'
 import { isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import type { ListStatus } from '@/stores/catalog'
-import type { Author, WorkDetails } from '@/types/catalog'
+import type { Author, WorkDetails, WorkEdition } from '@/types/catalog'
 
 const props = defineProps<{
   workId: number
@@ -29,6 +31,7 @@ const annStatus = ref<ListStatus>('idle')
 const annotation = ref('')
 const annError = ref('')
 const annSlow = ref(false)
+const bodyRef = ref<HTMLElement | null>(null)
 let annTimer: ReturnType<typeof setTimeout> | null = null
 let loadGen = 0
 
@@ -39,12 +42,32 @@ const size = computed(() =>
   details.value?.size ? formatBytes(details.value.size, locale.value) : '',
 )
 const lang = computed(() => languageName(details.value?.lang, locale.value))
+const formatLabel = computed(() => {
+  const ext = (details.value?.fileExt || '').replace(/^\./, '').trim()
+  return ext ? ext.toUpperCase() : ''
+})
+const facts = computed(() =>
+  [lang.value, size.value, formatLabel.value].filter(Boolean).join(' · '),
+)
 const namedAuthors = computed(() =>
   (details.value?.authors ?? []).filter((author) => !isUnknownAuthor(author.displayName)),
+)
+const filesLabel = computed(() =>
+  details.value ? formatFiles(details.value.editionCount, locale.value) : '',
 )
 
 function authorHref(author: Author) {
   return { name: 'author' as const, params: { authorId: String(author.id) } }
+}
+
+function editionLine(ed: WorkEdition) {
+  const ext = (ed.fileExt || '').replace(/^\./, '').trim()
+  const parts = [
+    ed.archiveName,
+    ed.size != null ? formatBytes(ed.size, locale.value) : '',
+    ext ? ext.toUpperCase() : '',
+  ]
+  return parts.filter(Boolean).join(' · ')
 }
 
 function clearAnnTimer() {
@@ -137,8 +160,12 @@ onUnmounted(() => {
 
 watch(
   () => props.workId,
-  () => {
-    void load()
+  async () => {
+    await load()
+    await nextTick()
+    if (bodyRef.value) {
+      bodyRef.value.scrollTop = 0
+    }
   },
   { immediate: true },
 )
@@ -149,52 +176,113 @@ watch(
     :status="status"
     :empty-text="t('common.notFound')"
     :error-text="error || t('list.error')"
+    class="flex min-h-0 flex-1 flex-col"
     @retry="load"
   >
     <article
       v-if="details"
-      class="flex min-h-0 flex-1 flex-col gap-6"
+      class="flex min-h-0 flex-1 flex-col"
       :class="
-        drawer ? '' : 'lg:grid lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start'
+        drawer
+          ? ''
+          : 'gap-6 lg:grid lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start lg:content-start'
       "
     >
+      <header
+        v-if="drawer"
+        class="flex shrink-0 items-start gap-4 border-b border-border bg-background px-6 py-4"
+      >
+        <div class="grid min-w-0 flex-1 gap-2">
+          <h1 class="font-display text-2xl font-semibold">{{ title }}</h1>
+          <p v-if="namedAuthors.length === 0" class="text-muted-foreground">
+            {{ t('catalog.unknownAuthor') }}
+          </p>
+          <p v-else class="flex flex-wrap gap-x-3 gap-y-1">
+            <RouterLink
+              v-for="author in namedAuthors"
+              :key="author.id"
+              :to="authorHref(author)"
+              class="underline-offset-4 hover:underline"
+            >
+              {{ author.displayName }}
+            </RouterLink>
+          </p>
+        </div>
+        <SheetClose
+          class="mt-1 shrink-0 rounded-sm opacity-70 hover:opacity-100"
+          :aria-label="t('common.dismiss')"
+        >
+          <X class="size-4" />
+        </SheetClose>
+      </header>
+
       <BookCover
         v-if="!drawer"
         :work="details"
         prio="open"
         :observe="false"
         fit="contain"
-        class="mx-auto aspect-[2/3] h-auto w-full max-h-80 max-w-[320px] lg:mx-0 lg:max-h-none"
+        class="mx-auto aspect-[2/3] h-auto w-full max-h-80 max-w-[320px] rounded-xl lg:mx-0 lg:max-h-none"
       />
 
-      <div class="grid min-w-0 gap-6">
-        <header class="grid gap-2">
+      <div
+        ref="bodyRef"
+        class="min-w-0"
+        :class="
+          drawer
+            ? 'flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4 pb-8'
+            : 'grid gap-6 content-start'
+        "
+      >
+        <header v-if="!drawer" class="grid gap-2">
           <h1 class="font-display text-3xl font-semibold sm:text-4xl">{{ title }}</h1>
           <p v-if="namedAuthors.length === 0" class="text-lg text-muted-foreground">
             {{ t('catalog.unknownAuthor') }}
           </p>
-          <div v-else class="flex flex-wrap gap-2">
+          <p v-else class="flex flex-wrap gap-x-3 gap-y-1 text-lg">
             <RouterLink
               v-for="author in namedAuthors"
               :key="author.id"
               :to="authorHref(author)"
-              class="rounded-full border border-border bg-secondary px-3 py-1 text-sm"
+              class="underline-offset-4 hover:underline"
             >
               {{ author.displayName }}
             </RouterLink>
-          </div>
+          </p>
         </header>
 
-        <BookCover
-          v-if="drawer"
-          :work="details"
-          prio="open"
-          :observe="false"
-          fit="contain"
-          class="h-56 w-full sm:h-72"
-        />
+        <div v-if="drawer" class="mx-auto w-[58%] shrink-0">
+          <BookCover
+            :work="details"
+            prio="open"
+            :observe="false"
+            fit="contain"
+            class="aspect-[2/3] w-full overflow-hidden rounded-xl"
+          />
+        </div>
 
-        <div v-if="details.genres?.length" class="flex flex-wrap gap-2">
+        <p v-if="facts" class="text-sm text-muted-foreground tabular-nums">{{ facts }}</p>
+
+        <div v-if="details.series || details.genres?.length" class="flex flex-wrap gap-2">
+          <RouterLink
+            v-if="details.series && details.seriesId"
+            :to="{ name: 'seriesDetail', params: { seriesId: String(details.seriesId) } }"
+            class="rounded-full border border-border px-3 py-1 text-sm"
+          >
+            {{ details.series }}
+            <span v-if="details.seriesNo">{{
+              t('catalog.seriesNo', { n: details.seriesNo })
+            }}</span>
+          </RouterLink>
+          <span
+            v-else-if="details.series"
+            class="rounded-full border border-border px-3 py-1 text-sm"
+          >
+            {{ details.series }}
+            <span v-if="details.seriesNo">{{
+              t('catalog.seriesNo', { n: details.seriesNo })
+            }}</span>
+          </span>
           <RouterLink
             v-for="genre in details.genres"
             :key="genre.id"
@@ -205,45 +293,27 @@ watch(
           </RouterLink>
         </div>
 
-        <dl class="grid gap-3 text-sm">
-          <div v-if="details.series" class="grid gap-1">
-            <dt class="text-muted-foreground">{{ t('book.series') }}</dt>
-            <dd>
-              <RouterLink
-                v-if="details.seriesId"
-                :to="{ name: 'seriesDetail', params: { seriesId: String(details.seriesId) } }"
-                class="underline-offset-4 hover:underline"
-              >
-                {{ details.series }}
-              </RouterLink>
-              <span v-else>{{ details.series }}</span>
-              <span v-if="details.seriesNo">{{
-                t('catalog.seriesNo', { n: details.seriesNo })
-              }}</span>
-            </dd>
-          </div>
-          <div v-if="lang" class="grid gap-1">
-            <dt class="text-muted-foreground">{{ t('book.lang') }}</dt>
-            <dd>{{ lang }}</dd>
-          </div>
-          <div v-if="size" class="grid gap-1">
-            <dt class="text-muted-foreground">{{ t('book.size') }}</dt>
-            <dd class="tabular-nums">{{ size }}</dd>
-          </div>
-        </dl>
-
-        <div class="flex flex-wrap gap-2">
+        <div v-if="details.editionCount > 1 || !details.hasFile" class="flex flex-wrap gap-2">
           <Badge
             v-if="details.editionCount > 1"
             variant="secondary"
             class="px-3 py-1 text-sm tabular-nums"
           >
-            {{ t('catalog.files', details.editionCount, { n: details.editionCount }) }}
+            {{ filesLabel }}
           </Badge>
           <Badge v-if="!details.hasFile" variant="muted" class="px-3 py-1 text-sm">
             {{ t('catalog.ghost') }}
           </Badge>
         </div>
+
+        <section v-if="!drawer && details.editions?.length" class="grid gap-2">
+          <h2 class="font-display text-lg font-medium">{{ t('book.editions') }}</h2>
+          <ul class="grid gap-1 text-sm text-muted-foreground">
+            <li v-for="(ed, index) in details.editions" :key="`${ed.archiveName}-${index}`">
+              {{ editionLine(ed) }}
+            </li>
+          </ul>
+        </section>
 
         <section class="grid gap-2">
           <h2 class="font-display text-lg font-medium">{{ t('book.annotation') }}</h2>

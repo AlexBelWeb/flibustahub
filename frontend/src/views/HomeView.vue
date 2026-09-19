@@ -138,17 +138,9 @@ watch(
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 py-8">
-    <header class="mb-8 grid gap-2">
-      <p class="font-display text-sm tracking-wide text-muted-foreground uppercase">
-        {{ t('app.name') }}
-      </p>
-      <h1 class="font-display text-4xl font-semibold tracking-tight">{{ t('home.title') }}</h1>
-      <p class="text-muted-foreground">{{ t('app.tagline') }}</p>
-      <p class="max-w-2xl text-muted-foreground">{{ t('home.lead') }}</p>
-    </header>
-
+  <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 pt-8">
     <ListState
+      class="flex-none"
       :status="state.status === 'ready' && emptyCatalog ? 'empty' : state.status"
       :empty-text="t('home.emptyTitle')"
       :error-text="
@@ -163,7 +155,7 @@ watch(
         }}</Button>
       </template>
 
-      <div class="grid gap-8">
+      <div class="grid gap-8 pb-12">
         <section class="grid gap-4 sm:grid-cols-2">
           <Card class="p-6">
             <p class="text-sm text-muted-foreground">{{ t('home.books') }}</p>

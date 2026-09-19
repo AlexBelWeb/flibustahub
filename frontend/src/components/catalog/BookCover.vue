@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Skeleton } from '@/components/ui/skeleton'
-import { authorParts, coverHue, isBlankTitle, isUnknownAuthor } from '@/lib/work'
+import { authorParts, coverHue, isBlankTitle, isUnknownAuthor, titleMonogram } from '@/lib/work'
 import { useAppStore } from '@/stores/app'
 import { useCoversStore } from '@/stores/covers'
 import type { Work } from '@/types/catalog'
@@ -43,6 +43,7 @@ const authors = computed(() => {
   return named.length ? named.join(', ') : t('catalog.unknownAuthor')
 })
 const hue = computed(() => coverHue(props.work.workKey || String(props.work.id)))
+const monogram = computed(() => titleMonogram(title.value))
 const canFetch = computed(() =>
   Boolean(
     app.bootstrap?.mediaBase && app.bootstrap.libraryRoot && props.work.hasFile && props.work.id,
@@ -224,15 +225,19 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="root" class="relative overflow-hidden bg-muted">
+  <div ref="root" class="relative isolate overflow-hidden bg-muted">
     <div
-      class="flex h-full w-full flex-col justify-end text-primary-foreground"
-      :class="compact ? 'p-0' : 'p-3'"
+      class="flex h-full w-full items-center justify-center text-primary-foreground"
       :style="{ background: `hsl(${hue} 32% var(--cover-l, 28%))` }"
     >
-      <slot v-if="!compact" name="plate" :title="title" :authors="authors">
-        <p class="line-clamp-2 font-display text-sm font-semibold">{{ title }}</p>
-        <p v-if="authors" class="mt-1 line-clamp-1 text-xs opacity-90">{{ authors }}</p>
+      <slot v-if="status !== 'image'" name="plate" :title="title" :authors="authors">
+        <span
+          class="font-display font-semibold tracking-wide select-none"
+          :class="compact ? 'text-sm' : 'text-5xl'"
+          aria-hidden="true"
+        >
+          {{ monogram }}
+        </span>
       </slot>
     </div>
     <Skeleton
@@ -246,13 +251,13 @@ onUnmounted(() => {
     >
       {{ t('book.readingDisk') }}
     </p>
-    <img
+    <div
       v-if="src && fit === 'contain'"
-      :src="src"
-      alt=""
-      class="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-50"
+      class="absolute inset-0 overflow-hidden bg-black"
       aria-hidden="true"
-    />
+    >
+      <img :src="src" alt="" class="h-full w-full scale-110 object-cover blur-2xl brightness-50" />
+    </div>
     <img
       v-if="src"
       :src="src"

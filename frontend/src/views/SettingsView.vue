@@ -23,7 +23,7 @@ function onSection(value: string | number) {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-0 flex-1 flex-col gap-8 overflow-auto px-6 py-10">
+  <div class="mx-auto flex min-h-0 flex-1 flex-col gap-8 overflow-auto px-6 pt-10 pb-12">
     <header>
       <p class="text-sm text-muted-foreground">{{ t('settings.title') }}</p>
       <h1 class="font-display text-3xl font-semibold">

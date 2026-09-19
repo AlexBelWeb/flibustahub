@@ -49,6 +49,15 @@ export interface WorkDetails extends Work {
   nextWorkId?: number
   annotation?: string
   annotationChecked?: boolean
+  fileExt?: string
+  editions?: WorkEdition[]
+}
+
+export interface WorkEdition {
+  archiveName: string
+  fileName?: string
+  fileExt?: string
+  size?: number
 }
 
 export interface Annotation {

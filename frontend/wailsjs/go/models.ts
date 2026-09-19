@@ -459,6 +459,24 @@ export namespace catalog {
 	}
 	
 	
+	export class WorkEdition {
+	    archiveName: string;
+	    fileName?: string;
+	    fileExt?: string;
+	    size?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new WorkEdition(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.archiveName = source["archiveName"];
+	        this.fileName = source["fileName"];
+	        this.fileExt = source["fileExt"];
+	        this.size = source["size"];
+	    }
+	}
 	export class WorkDetails {
 	    id: number;
 	    workKey: string;
@@ -481,6 +499,8 @@ export namespace catalog {
 	    nextWorkId?: number;
 	    annotation?: string;
 	    annotationChecked?: boolean;
+	    fileExt?: string;
+	    editions?: WorkEdition[];
 	
 	    static createFrom(source: any = {}) {
 	        return new WorkDetails(source);
@@ -509,6 +529,8 @@ export namespace catalog {
 	        this.nextWorkId = source["nextWorkId"];
 	        this.annotation = source["annotation"];
 	        this.annotationChecked = source["annotationChecked"];
+	        this.fileExt = source["fileExt"];
+	        this.editions = this.convertValues(source["editions"], WorkEdition);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -529,6 +551,7 @@ export namespace catalog {
 		    return a;
 		}
 	}
+	
 
 }
 

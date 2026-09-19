@@ -16,6 +16,14 @@ type EditionFile struct {
 	FileExt     string
 }
 
+// VisibleEdition is one listable file of a work (archive, size, format).
+type VisibleEdition struct {
+	ArchiveName string
+	FileName    string
+	FileExt     string
+	Size        sql.NullInt64
+}
+
 type AnnotationRow struct {
 	Text      sql.NullString
 	CheckedAt sql.NullString
@@ -36,6 +44,27 @@ func (c *Catalog) PrimaryEdition(ctx context.Context, workID int64) (EditionFile
 		 ORDER BY e.added_date DESC, e.id DESC
 		 LIMIT 1`, workID).Scan(&e.ArchiveName, &e.FileName, &e.FileExt)
 	return e, err
+}
+
+func (c *Catalog) VisibleEditions(ctx context.Context, workID int64) ([]VisibleEdition, error) {
+	rows, err := c.read.QueryContext(ctx, `
+		SELECT e.archive_name, e.file_name, e.file_ext, e.size
+		  FROM editions e
+		 WHERE e.work_id = ? AND `+visibility.VisibleEditionSQL+`
+		 ORDER BY e.archive_name, e.id`, workID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []VisibleEdition
+	for rows.Next() {
+		var e VisibleEdition
+		if err := rows.Scan(&e.ArchiveName, &e.FileName, &e.FileExt, &e.Size); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
 }
 
 func (c *Catalog) Annotation(ctx context.Context, workID int64) (AnnotationRow, error) {
@@ -118,8 +147,8 @@ func (c *Catalog) SeriesIDByName(ctx context.Context, name string) (int64, error
 }
 
 type SeriesNeighbor struct {
-	PrevID int64
-	NextID int64
+	PrevID  int64
+	NextID  int64
 	HasPrev bool
 	HasNext bool
 }

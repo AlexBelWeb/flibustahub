@@ -25,6 +25,23 @@ export function authorParts(authorsText: string | undefined): string[] {
     .filter(Boolean)
 }
 
+export function titleMonogram(title: string): string {
+  const words = title
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!words.length) {
+    return '?'
+  }
+  const first = Array.from(words[0])
+  if (words.length === 1) {
+    return first.slice(0, 2).join('').toLocaleUpperCase()
+  }
+  const second = Array.from(words[1])
+  return `${first[0] ?? ''}${second[0] ?? ''}`.toLocaleUpperCase()
+}
+
 export function coverHue(workKey: string): number {
   let hash = 0
   for (let i = 0; i < workKey.length; i += 1) {

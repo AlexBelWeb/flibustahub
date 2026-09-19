@@ -6,6 +6,7 @@ import BookCover from '@/components/catalog/BookCover.vue'
 import HighlightText from '@/components/catalog/HighlightText.vue'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { formatFiles } from '@/lib/format'
 import { authorParts, isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import { withWorkQuery } from '@/lib/work-route'
 import type { Work } from '@/types/catalog'
@@ -15,7 +16,7 @@ const props = defineProps<{
   query?: string
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 
 const title = computed(() =>
@@ -44,27 +45,7 @@ const authorsFull = computed(() =>
     class="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left outline-none"
   >
     <article class="flex h-full flex-col">
-      <BookCover :work="work" class="aspect-[2/3] w-full">
-        <template #plate="{ title: plateTitle, authors: plateAuthors }">
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <p class="line-clamp-2 font-display text-sm font-semibold">
-                <HighlightText :text="plateTitle" :query="query" />
-              </p>
-            </TooltipTrigger>
-            <TooltipContent>{{ title }}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <p class="mt-1 line-clamp-1 text-xs opacity-90">
-                <HighlightText :text="authorsLine" :query="query" />
-              </p>
-            </TooltipTrigger>
-            <TooltipContent>{{ authorsFull }}</TooltipContent>
-          </Tooltip>
-          <span class="sr-only">{{ plateAuthors }}</span>
-        </template>
-      </BookCover>
+      <BookCover :work="work" class="aspect-[2/3] w-full" />
       <div class="grid gap-1 p-3">
         <Tooltip>
           <TooltipTrigger as-child>
@@ -88,7 +69,7 @@ const authorsFull = computed(() =>
         </p>
         <div class="flex flex-wrap gap-1">
           <Badge v-if="work.editionCount > 1" variant="secondary" class="tabular-nums">
-            {{ t('catalog.files', work.editionCount, { n: work.editionCount }) }}
+            {{ formatFiles(work.editionCount, locale) }}
           </Badge>
           <Badge v-if="!work.hasFile" variant="muted">
             {{ t('catalog.ghost') }}

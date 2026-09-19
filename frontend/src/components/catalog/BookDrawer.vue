@@ -30,8 +30,12 @@ watch(
 </script>
 
 <template>
-  <Sheet :open="open" @update:open="onOpen">
-    <SheetContent side="right" class="flex w-full flex-col overflow-y-auto sm:max-w-xl">
+  <Sheet :open="open" modal @update:open="onOpen">
+    <SheetContent
+      side="right"
+      hide-close
+      class="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
+    >
       <SheetTitle class="sr-only">{{ t('book.drawerTitle') }}</SheetTitle>
       <SheetDescription class="sr-only">{{ t('book.drawerLead') }}</SheetDescription>
       <BookDetails v-if="workId" :work-id="workId" drawer />

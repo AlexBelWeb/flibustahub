@@ -23,7 +23,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 py-6">
+  <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 pt-6 pb-12">
     <p class="mb-6">
       <Button variant="outline" @click="router.back()">{{ t('common.back') }}</Button>
     </p>
