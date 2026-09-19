@@ -53,7 +53,7 @@ func WarmUpCatalog(ctx context.Context, e Execer) error {
 		`DELETE FROM series`,
 		`INSERT INTO series(name, sort_name, work_count)
 		 SELECT e.series,
-		        normalize(e.series),
+		        CASE WHEN normalize(e.series) = '' THEN char(65535) ELSE normalize(e.series) END,
 		        count(DISTINCT e.work_id)
 		   FROM editions e
 		  WHERE ` + visibility.VisibleEditionSQL + `

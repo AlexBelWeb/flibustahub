@@ -79,6 +79,27 @@ func TestSortTitleYoAndQuotes(t *testing.T) {
 	}
 }
 
+func TestEmptySortKeysAreSentinel(t *testing.T) {
+	if SortTitle("") != SortSentinel {
+		t.Fatalf("empty title %q", SortTitle(""))
+	}
+	if SortTitle("_") != SortSentinel {
+		t.Fatalf("punctuation title %q", SortTitle("_"))
+	}
+	if SortTitle("...") != SortSentinel {
+		t.Fatalf("ellipsis title %q", SortTitle("..."))
+	}
+	if SortTitle("елка") == SortSentinel {
+		t.Fatal("real title must not be the sentinel")
+	}
+	if (Author{}).SortName() != SortSentinel {
+		t.Fatalf("empty author %q", (Author{}).SortName())
+	}
+	if (Author{Last: "Громов"}).SortName() == SortSentinel {
+		t.Fatal("named author must not be the sentinel")
+	}
+}
+
 func TestAuthorSortName(t *testing.T) {
 	a := Author{Last: "Ёлкин", First: "Ёж", Middle: ""}
 	if a.SortName() != "елкин еж" {

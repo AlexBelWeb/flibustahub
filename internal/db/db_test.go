@@ -95,7 +95,7 @@ func TestMigrateTwiceIsNoop(t *testing.T) {
 	if err := d2.Write.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 4 {
+	if n != 5 {
 		t.Fatalf("schema_migrations rows = %d", n)
 	}
 }
@@ -320,6 +320,81 @@ func TestMigration004ClearsMojibakeWrittenAfter003(t *testing.T) {
 	}
 	if ann.Valid || at.Valid {
 		t.Fatalf("mojibake written after 003 must be cleared, got %v %v", ann, at)
+	}
+}
+
+func TestMigration005MovesEmptySortKeysLast(t *testing.T) {
+	limited := fstest.MapFS{}
+	for _, name := range []string{
+		"001_initial.sql",
+		"002_works_added_date.sql",
+		"003_reset_implausible_annotations.sql",
+		"004_reset_implausible_annotations.sql",
+	} {
+		data, err := migrations.FS.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		limited[name] = &fstest.MapFile{Data: data}
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: limited,
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO works(id, work_key, title, sort_title, authors_text, created_at, updated_at)
+		VALUES (1, 'k1', '_', '', 'A', 't', 't'),
+		       (2, 'k2', 'Ёлка', 'елка', 'A', 't', 't')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO authors(id, author_key, last_name, first_name, middle_name, display_name, sort_name)
+		VALUES (1, 'empty', '', '', '', '', '')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO series(id, name, sort_name, work_count) VALUES (1, '...', '', 0)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       opt.Path,
+		BackupsDir: opt.BackupsDir,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+
+	const sentinel = "\uFFFF"
+	var sortTitle, sortAuthor, sortSeries string
+	if err := d2.Read.QueryRow(`SELECT sort_title FROM works WHERE id = 1`).Scan(&sortTitle); err != nil {
+		t.Fatal(err)
+	}
+	if err := d2.Read.QueryRow(`SELECT sort_name FROM authors WHERE id = 1`).Scan(&sortAuthor); err != nil {
+		t.Fatal(err)
+	}
+	if err := d2.Read.QueryRow(`SELECT sort_name FROM series WHERE id = 1`).Scan(&sortSeries); err != nil {
+		t.Fatal(err)
+	}
+	if sortTitle != sentinel || sortAuthor != sentinel || sortSeries != sentinel {
+		t.Fatalf("sort keys %q %q %q", sortTitle, sortAuthor, sortSeries)
+	}
+	var firstTitle string
+	if err := d2.Read.QueryRow(`SELECT title FROM works ORDER BY sort_title, id LIMIT 1`).Scan(&firstTitle); err != nil {
+		t.Fatal(err)
+	}
+	if firstTitle != "Ёлка" {
+		t.Fatalf("first title %q, empty key still sorts first", firstTitle)
 	}
 }
 
