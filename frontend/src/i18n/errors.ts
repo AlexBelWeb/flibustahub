@@ -40,6 +40,12 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.not_found', params))
     case 'invalid_catalog_view':
       return String(t('errors.invalid_catalog_view', params))
+    case 'library_offline':
+      return String(t('errors.library_offline', params))
+    case 'archive_missing':
+      return String(t('errors.archive_missing', params))
+    case 'fb2_unreadable':
+      return String(t('errors.fb2_unreadable', params))
     default:
       return String(t('errors.internal', params))
   }

@@ -5,7 +5,6 @@ import (
 	"embed"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
@@ -58,6 +57,7 @@ func main() {
 	win := handlers.NewRuntime(svc)
 	ui := handlers.NewApp(svc, win)
 	httpServer := httpapi.New(logger)
+	httpServer.SetCovers(svc)
 
 	releaseInstance, primary, lockErr := platform.AcquireInstance(paths.DataDir)
 	if lockErr != nil {
@@ -101,6 +101,8 @@ func main() {
 			}
 			if startErr := httpServer.Start("127.0.0.1", store.Live().OPDSPort); startErr != nil {
 				logger.Warn("loopback http did not start", "err", startErr)
+			} else if addr := httpServer.Addr(); addr != "" {
+				svc.SetHTTPAddr("http://" + addr)
 			}
 			return shown
 		}
@@ -149,11 +151,11 @@ func main() {
 				return true
 			}
 			win.PersistWindow()
-			shutCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			_ = httpServer.Shutdown(shutCtx)
-			svc.CloseCatalog()
+			svc.Shutdown(httpServer.Shutdown)
 			return false
+		},
+		OnShutdown: func(_ context.Context) {
+			svc.Shutdown(httpServer.Shutdown)
 		},
 		Bind: []interface{}{
 			ui,
@@ -170,6 +172,7 @@ func main() {
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
 		},
 	})
+	svc.Shutdown(httpServer.Shutdown)
 	if err != nil {
 		logger.Error("wails exited", "err", err)
 		os.Exit(1)

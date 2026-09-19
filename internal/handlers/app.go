@@ -9,6 +9,7 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/events"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 	appsvc "github.com/alexbelweb/flibustahub/internal/services/app"
+	"github.com/alexbelweb/flibustahub/internal/services/covers"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -36,6 +37,14 @@ func NewRuntime(svc *appsvc.Service) *Runtime {
 
 func (r *Runtime) SetContext(ctx context.Context) {
 	r.ctx = ctx
+	if r.svc != nil {
+		r.svc.SetCoverEvents(func(p covers.Progress) {
+			if r.ctx == nil {
+				return
+			}
+			runtime.EventsEmit(r.ctx, events.CoversProgress, p)
+		})
+	}
 }
 
 func (r *Runtime) DismissClose() {

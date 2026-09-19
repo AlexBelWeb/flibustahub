@@ -426,3 +426,29 @@ func TestGettersUnknownID(t *testing.T) {
 		t.Fatalf("author %+v %v", author, err)
 	}
 }
+
+func TestWorkDetailsAndViewed(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	det, err := svc.GetWorkDetails(ctx, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if det.SeriesID == 0 || len(det.Authors) == 0 {
+		t.Fatalf("details %+v", det)
+	}
+	if det.PrevWorkID != nil {
+		t.Fatalf("first volume prev=%v", det.PrevWorkID)
+	}
+	if det.NextWorkID == nil || *det.NextWorkID != 6 {
+		t.Fatalf("next=%v", det.NextWorkID)
+	}
+	if err := svc.RecordViewed(ctx, 5); err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	if err := d.Read.QueryRow(`SELECT count(*) FROM recently_viewed WHERE work_id = 5`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("viewed n=%d err=%v", n, err)
+	}
+}

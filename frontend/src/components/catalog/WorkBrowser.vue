@@ -28,6 +28,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { errorMessage } from '@/i18n/errors'
 import { formatCount } from '@/lib/format'
 import { queryId, queryText } from '@/lib/route-query'
+import { withWorkQuery } from '@/lib/work-route'
 import { useAppStore } from '@/stores/app'
 import { useCatalogStore } from '@/stores/catalog'
 import { useSearchStore } from '@/stores/search'
@@ -244,7 +245,7 @@ async function openRandom() {
   try {
     const work = await catalog.randomWork()
     if (work?.id) {
-      void router.push({ name: 'book', params: { workId: String(work.id) } })
+      void router.push({ query: withWorkQuery(route.query, work.id) })
     }
   } catch (err) {
     void err

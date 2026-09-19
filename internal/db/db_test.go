@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -614,5 +615,51 @@ func TestRebuildWorksFTSFillsInBatches(t *testing.T) {
 	}
 	if got != n {
 		t.Fatalf("works_fts rows = %d, want %d", got, n)
+	}
+}
+
+func TestWALCheckpointBusyWithLiveReader(t *testing.T) {
+	d := openTest(t)
+	if _, err := d.Write.Exec(`INSERT INTO app_meta(key, value) VALUES ('k', 'v')`); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := d.Read.Query(`SELECT value FROM app_meta`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	var busy, logFrames, checkpointed int
+	if err := d.Write.QueryRow(`PRAGMA wal_checkpoint(TRUNCATE)`).Scan(&busy, &logFrames, &checkpointed); err != nil {
+		t.Fatal(err)
+	}
+	if busy == 0 {
+		t.Log("checkpoint was not busy with a live reader")
+	}
+}
+
+func TestCloseTruncatesWALAfterReadersClosed(t *testing.T) {
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`INSERT INTO app_meta(key, value) VALUES ('k', 'v')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Close(); err != nil {
+		t.Fatal(err)
+	}
+	wal := d.Path() + "-wal"
+	st, statErr := os.Stat(wal)
+	if statErr == nil && st.Size() > 0 {
+		t.Fatalf("wal still %d bytes after Close", st.Size())
 	}
 }

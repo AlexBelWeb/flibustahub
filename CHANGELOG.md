@@ -26,7 +26,10 @@ Conventions:
 - The home screen shows how many books are in the catalog, when the last import ran, and a grid of recent arrivals.
 - The catalog can be searched and browsed in virtualized lists, with tile or table layout.
 - Authors, series and genres have their own lists with an alphabet index.
-- Opening a book goes to a simple work page and returns to the same place in the list.
+- Opening a book from the catalog, the command palette or a random pick shows a side panel on the current page; Back closes it.
+- Book covers load for cards that are on screen and fall back to the coloured title plate when a cover is missing.
+- The book page and side panel show the annotation and previous/next books in a series.
+- Settings can clear the cover cache and preload covers for rated and recently added books.
 - First-run setup walks through choosing the library folder, the `.inpx` dump and starting the import.
 - A command palette (Ctrl+K) finds books, authors, series and recent searches as you type.
 - While a database schema update is applied at startup, a dedicated screen explains that a backup was made and asks you to wait.
@@ -46,6 +49,11 @@ Conventions:
 - Catalog lists no longer come up blank while a result count is shown.
 - Filter chips show the selected name, not the filter kind.
 - Highlighting a row in a searchable list no longer draws a second, clipped focus ring.
+- Closing the window during an import or cover preload now cancels that work, so a library disk can be ejected afterwards.
+- Closing the window no longer waits tens of seconds for background work.
+- After a successful import, books that previously had no cover are checked again instead of staying blank.
+- Clearing the cover cache is visible without reloading the window.
+- If a cover cannot be loaded right now, the title plate is shown; opening the book again or returning to the list tries once more.
 
 ### Removed
 

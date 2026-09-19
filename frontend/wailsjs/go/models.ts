@@ -16,6 +16,7 @@ export namespace app {
 	    databaseUpdating: boolean;
 	    catalogOpening: boolean;
 	    catalogReady: boolean;
+	    mediaBase?: string;
 	    startupError?: apperr.Public;
 	
 	    static createFrom(source: any = {}) {
@@ -39,6 +40,7 @@ export namespace app {
 	        this.databaseUpdating = source["databaseUpdating"];
 	        this.catalogOpening = source["catalogOpening"];
 	        this.catalogReady = source["catalogReady"];
+	        this.mediaBase = source["mediaBase"];
 	        this.startupError = this.convertValues(source["startupError"], apperr.Public);
 	    }
 	
@@ -457,6 +459,76 @@ export namespace catalog {
 	}
 	
 	
+	export class WorkDetails {
+	    id: number;
+	    workKey: string;
+	    title: string;
+	    sortTitle: string;
+	    authorsText: string;
+	    lang?: string;
+	    rating?: number;
+	    addedDate?: string;
+	    series?: string;
+	    seriesNo?: string;
+	    editionCount: number;
+	    hasFile: boolean;
+	    size?: number;
+	    librate?: number;
+	    authors?: Author[];
+	    genres?: Genre[];
+	    seriesId?: number;
+	    prevWorkId?: number;
+	    nextWorkId?: number;
+	    annotation?: string;
+	    annotationChecked?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new WorkDetails(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.workKey = source["workKey"];
+	        this.title = source["title"];
+	        this.sortTitle = source["sortTitle"];
+	        this.authorsText = source["authorsText"];
+	        this.lang = source["lang"];
+	        this.rating = source["rating"];
+	        this.addedDate = source["addedDate"];
+	        this.series = source["series"];
+	        this.seriesNo = source["seriesNo"];
+	        this.editionCount = source["editionCount"];
+	        this.hasFile = source["hasFile"];
+	        this.size = source["size"];
+	        this.librate = source["librate"];
+	        this.authors = this.convertValues(source["authors"], Author);
+	        this.genres = this.convertValues(source["genres"], Genre);
+	        this.seriesId = source["seriesId"];
+	        this.prevWorkId = source["prevWorkId"];
+	        this.nextWorkId = source["nextWorkId"];
+	        this.annotation = source["annotation"];
+	        this.annotationChecked = source["annotationChecked"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
 }
 
@@ -484,6 +556,41 @@ export namespace config {
 	        this.backupsDir = source["backupsDir"];
 	        this.downloadsDir = source["downloadsDir"];
 	        this.configPath = source["configPath"];
+	    }
+	}
+
+}
+
+export namespace covers {
+	
+	export class Annotation {
+	    text?: string;
+	    checked: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Annotation(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.text = source["text"];
+	        this.checked = source["checked"];
+	    }
+	}
+	export class Progress {
+	    total: number;
+	    done: number;
+	    running: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Progress(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.total = source["total"];
+	        this.done = source["done"];
+	        this.running = source["running"];
 	    }
 	}
 

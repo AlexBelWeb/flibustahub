@@ -56,6 +56,17 @@
     },
     "library": {
       "title": "Library"
+    },
+    "covers": {
+      "title": "Covers",
+      "lead": "Covers are read from the archives and cached on disk. You can delete the cache — the app will rebuild it.",
+      "clear": "Clear cover cache",
+      "clearTitle": "Delete the cover cache?",
+      "clearBody": "Cached cover files will be removed. They will be extracted again as you browse. This cannot be undone.",
+      "warmupStart": "Preload covers",
+      "warmupStop": "Stop",
+      "warmupCount": "{n} book will be processed | {n} books will be processed",
+      "warmupProgress": "Processed {done} of {total}"
     }
   },
   "common": {
@@ -93,7 +104,10 @@
     "library_unreadable": "The chosen folder could not be read. Pick a different one or check access.",
     "open_file_failed": "Could not open the file picker.",
     "not_found": "This record was not found.",
-    "invalid_catalog_view": "Unknown list layout."
+    "invalid_catalog_view": "Unknown list layout.",
+    "library_offline": "The library folder is unavailable. Check that the storage is connected.",
+    "archive_missing": "Archive {archive} was not found in the library folder.",
+    "fb2_unreadable": "The book file could not be read."
   },
   "status": {
     "version": "Version",
@@ -173,7 +187,15 @@
   "book": {
     "lang": "Language",
     "size": "Size",
-    "series": "Series"
+    "series": "Series",
+    "annotation": "Annotation",
+    "annotationEmpty": "No annotation",
+    "annotationError": "The annotation could not be loaded.",
+    "prev": "Previous in series",
+    "next": "Next in series",
+    "fullscreen": "Open full screen",
+    "drawerTitle": "Book",
+    "drawerLead": "Details of the selected book"
   },
   "palette": {
     "title": "Search",

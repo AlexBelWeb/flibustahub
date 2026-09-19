@@ -40,6 +40,17 @@ type Work struct {
 	Librate      *int   `json:"librate,omitempty"`
 }
 
+type WorkDetails struct {
+	Work
+	Authors           []Author `json:"authors,omitempty"`
+	Genres            []Genre  `json:"genres,omitempty"`
+	SeriesID          int64    `json:"seriesId,omitempty"`
+	PrevWorkID        *int64   `json:"prevWorkId,omitempty"`
+	NextWorkID        *int64   `json:"nextWorkId,omitempty"`
+	Annotation        *string  `json:"annotation,omitempty"`
+	AnnotationChecked bool     `json:"annotationChecked,omitempty"`
+}
+
 type Author struct {
 	ID          int64  `json:"id"`
 	DisplayName string `json:"displayName"`

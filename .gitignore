@@ -1,9 +1,10 @@
 # Build output
-build/bin/
+/build/bin/
 *.exe
 *.syso
 
 # Frontend build
+/dist/
 frontend/dist/*
 !frontend/dist/.gitkeep
 frontend/node_modules/
@@ -13,15 +14,15 @@ frontend/package.json.md5
 node_modules/
 
 # Local configuration and user data — never commit
-config.json
-config.local.json
+/config.json
+/config.local.json
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
 *.sqlite*
-covers/
-logs/
-backups/
+/covers/
+/logs/
+/backups/
 
 # Library dump data — never commit under any circumstances
 *.inpx

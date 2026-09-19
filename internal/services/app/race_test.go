@@ -193,3 +193,61 @@ func seedPendingCatalog(t *testing.T, svc *Service) {
 		t.Fatal(err)
 	}
 }
+
+func TestShutdownDuringOpenClosesHandle(t *testing.T) {
+	svc := newTestService(t)
+	hold := make(chan struct{})
+	svc.openHold = hold
+
+	errc := make(chan error, 1)
+	go func() {
+		errc <- svc.OpenCatalog()
+	}()
+
+	deadline := time.Now().Add(15 * time.Second)
+	for !svc.Bootstrap().CatalogOpening {
+		if time.Now().After(deadline) {
+			t.Fatal("open never claimed the slot")
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	shutDone := make(chan struct{})
+	go func() {
+		svc.Shutdown(nil)
+		close(shutDone)
+	}()
+	close(hold)
+
+	if err := <-errc; err != nil {
+		t.Fatal(err)
+	}
+	<-shutDone
+	if svc.Catalog() != nil {
+		t.Fatal("catalog leaked after shutdown during open")
+	}
+}
+
+func TestShutdownPreventsNewOpen(t *testing.T) {
+	svc := newTestService(t)
+	svc.Shutdown(nil)
+	if err := svc.OpenCatalog(); err != nil {
+		t.Fatal(err)
+	}
+	if svc.Catalog() != nil {
+		t.Fatal("must not open a catalog after shutdown")
+	}
+}
+
+func TestShutdownIsIdempotent(t *testing.T) {
+	svc := newTestService(t)
+	t.Cleanup(svc.CloseCatalog)
+	if err := svc.OpenCatalog(); err != nil {
+		t.Fatal(err)
+	}
+	svc.Shutdown(nil)
+	svc.Shutdown(nil)
+	if svc.Catalog() != nil {
+		t.Fatal("catalog still open after shutdown")
+	}
+}

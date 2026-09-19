@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ListState from '@/components/catalog/ListState.vue'
 import WorkCard from '@/components/catalog/WorkCard.vue'
@@ -97,20 +97,34 @@ watch(emptyCatalog, (empty) => {
   }
 })
 
+let ro: ResizeObserver | null = null
+
+function attachGridObserver(el: HTMLElement | null) {
+  ro?.disconnect()
+  ro = null
+  if (!el) {
+    return
+  }
+  gridWidth.value = el.clientWidth
+  ro = new ResizeObserver(() => {
+    gridWidth.value = el.clientWidth
+  })
+  ro.observe(el)
+}
+
 onMounted(() => {
   if (state.value.status === 'idle' || state.value.status === 'error') {
     void load()
   } else if (emptyCatalog.value && !ui.onboardingDismissed) {
     ui.openOnboarding()
   }
-  const el = gridRef.value
-  if (el) {
-    gridWidth.value = el.clientWidth
-    const ro = new ResizeObserver(() => {
-      gridWidth.value = el.clientWidth
-    })
-    ro.observe(el)
-  }
+})
+
+watch(gridRef, (el) => attachGridObserver(el))
+
+onUnmounted(() => {
+  ro?.disconnect()
+  ro = null
 })
 
 watch(

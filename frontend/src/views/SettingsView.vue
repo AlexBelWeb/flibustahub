@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ImportHomeCard from '@/components/import/ImportHomeCard.vue'
+import CoversSettings from '@/components/catalog/CoversSettings.vue'
 import InterfaceControls from '@/components/InterfaceControls.vue'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -43,6 +44,7 @@ function onSection(value: string | number) {
     </Card>
     <section v-else-if="section === 'library'">
       <ImportHomeCard />
+      <CoversSettings />
     </section>
     <Card v-else class="bg-card/80 p-6 backdrop-panel">
       <InterfaceControls />

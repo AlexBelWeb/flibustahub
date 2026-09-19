@@ -28,6 +28,9 @@ const (
 	CodeOpenFileFailed     = "open_file_failed"
 	CodeNotFound           = "not_found"
 	CodeInvalidCatalogView = "invalid_catalog_view"
+	CodeLibraryOffline     = "library_offline"
+	CodeArchiveMissing     = "archive_missing"
+	CodeFB2Unreadable      = "fb2_unreadable"
 )
 
 // Error is a typed application error safe to send to the frontend.

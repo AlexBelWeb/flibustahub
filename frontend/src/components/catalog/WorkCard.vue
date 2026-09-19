@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import BookCover from '@/components/catalog/BookCover.vue'
 import HighlightText from '@/components/catalog/HighlightText.vue'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { authorParts, coverHue, isBlankTitle } from '@/lib/work'
+import { authorParts, isBlankTitle } from '@/lib/work'
+import { withWorkQuery } from '@/lib/work-route'
 import type { Work } from '@/types/catalog'
 
 const props = defineProps<{
@@ -14,6 +16,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const route = useRoute()
 
 const title = computed(() =>
   isBlankTitle(props.work.title) ? t('catalog.untitled') : props.work.title,
@@ -26,39 +29,35 @@ const authorsLine = computed(() => {
   return t('catalog.authorsMore', { name: authors.value[0], n: authors.value.length - 1 })
 })
 const authorsFull = computed(() => authors.value.join(', '))
-const hue = computed(() => coverHue(props.work.workKey || String(props.work.id)))
 </script>
 
 <template>
   <RouterLink
-    :to="{ name: 'book', params: { workId: String(work.id) } }"
+    :to="{ query: withWorkQuery(route.query, work.id) }"
     class="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left outline-none"
-    :style="{ '--cover-h': String(hue) }"
   >
     <article class="flex h-full flex-col">
-      <div
-        class="flex aspect-[2/3] w-full flex-col justify-end p-3 text-primary-foreground"
-        :style="{
-          background: `hsl(${hue} 32% var(--cover-l, 28%))`,
-        }"
-      >
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <p class="line-clamp-2 font-display text-sm font-semibold">
-              <HighlightText :text="title" :query="query" />
-            </p>
-          </TooltipTrigger>
-          <TooltipContent>{{ title }}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <p class="mt-1 line-clamp-1 text-xs opacity-90">
-              <HighlightText :text="authorsLine" :query="query" />
-            </p>
-          </TooltipTrigger>
-          <TooltipContent>{{ authorsFull }}</TooltipContent>
-        </Tooltip>
-      </div>
+      <BookCover :work="work" class="aspect-[2/3] w-full">
+        <template #plate="{ title: plateTitle, authors: plateAuthors }">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <p class="line-clamp-2 font-display text-sm font-semibold">
+                <HighlightText :text="plateTitle" :query="query" />
+              </p>
+            </TooltipTrigger>
+            <TooltipContent>{{ title }}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <p class="mt-1 line-clamp-1 text-xs opacity-90">
+                <HighlightText :text="authorsLine" :query="query" />
+              </p>
+            </TooltipTrigger>
+            <TooltipContent>{{ authorsFull }}</TooltipContent>
+          </Tooltip>
+          <span class="sr-only">{{ plateAuthors }}</span>
+        </template>
+      </BookCover>
       <div class="grid gap-1 p-3">
         <p v-if="work.series" class="line-clamp-1 text-xs text-muted-foreground">
           {{ work.series }}

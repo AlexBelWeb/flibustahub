@@ -19,7 +19,18 @@ import (
 const (
 	readMaxOpen  = 4
 	writeMaxOpen = 1
+
+	waitIndexRecovery = 3 * time.Second
+	waitPoolClose     = 3 * time.Second
 )
+
+func remaining(deadline time.Time) time.Duration {
+	d := time.Until(deadline)
+	if d < 0 {
+		return 0
+	}
+	return d
+}
 
 // DB holds the reader and writer pools for one catalog file.
 type DB struct {
@@ -33,10 +44,12 @@ type DB struct {
 	source     fs.FS
 
 	mu            sync.Mutex
+	closed        bool
 	recovering    bool
 	recoverErr    error
 	recoverCancel context.CancelFunc
 	recoverDone   chan struct{}
+	recoverWaited bool
 }
 
 // Options control Open.
@@ -164,29 +177,81 @@ func readPragma(ctx context.Context, pool *sql.DB, name string) (string, error) 
 	}
 }
 
-// Close checkpoints WAL on the writer and closes both pools.
+// Close closes the read pool, checkpoints WAL on the writer, then closes the write pool.
 func (d *DB) Close() error {
+	return d.CloseWithin(waitIndexRecovery + waitPoolClose)
+}
+
+// CloseWithin is Close with a shared wait budget for shutdown.
+func (d *DB) CloseWithin(budget time.Duration) error {
 	if d == nil {
 		return nil
 	}
-	d.stopIndexRecovery()
-	var first error
-	if d.Write != nil {
-		if _, err := d.Write.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil && first == nil {
-			first = err
-		}
-		if err := d.Write.Close(); err != nil && first == nil {
-			first = err
-		}
-		d.Write = nil
+	d.mu.Lock()
+	if d.closed {
+		d.mu.Unlock()
+		return nil
 	}
-	if d.Read != nil {
-		if err := d.Read.Close(); err != nil && first == nil {
+	d.closed = true
+	d.mu.Unlock()
+
+	deadline := time.Now().Add(budget)
+	d.stopIndexRecoveryUntil(deadline)
+
+	d.mu.Lock()
+	read, write := d.Read, d.Write
+	d.Read, d.Write = nil, nil
+	d.mu.Unlock()
+
+	var first error
+	if err := closePoolUntil(read, d.log, "db-read", deadline); err != nil {
+		first = err
+	}
+	if write != nil {
+		checkpointWAL(write, d.log)
+		if err := closePoolUntil(write, d.log, "db-write", deadline); err != nil && first == nil {
 			first = err
 		}
-		d.Read = nil
 	}
 	return first
+}
+
+func checkpointWAL(write *sql.DB, log *slog.Logger) {
+	var busy, logFrames, checkpointed int
+	err := write.QueryRow("PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &logFrames, &checkpointed)
+	if err != nil {
+		if log != nil {
+			log.Warn("wal checkpoint failed", "err", err)
+		}
+		return
+	}
+	if busy != 0 && log != nil {
+		log.Warn("could not truncate WAL", "busy", busy, "log", logFrames, "checkpointed", checkpointed)
+	}
+}
+
+func closePoolUntil(pool *sql.DB, log *slog.Logger, task string, deadline time.Time) error {
+	if pool == nil {
+		return nil
+	}
+	done := make(chan error, 1)
+	go func() { done <- pool.Close() }()
+	timer := time.NewTimer(remaining(deadline))
+	defer timer.Stop()
+	select {
+	case err := <-done:
+		return err
+	case <-timer.C:
+		select {
+		case err := <-done:
+			return err
+		default:
+			if log != nil {
+				log.Warn("shutdown timed out", "task", task)
+			}
+			return nil
+		}
+	}
 }
 
 // Path is the catalog file path.

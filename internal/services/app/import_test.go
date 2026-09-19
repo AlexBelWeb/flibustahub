@@ -98,6 +98,50 @@ func TestPreviewImportAndLastReport(t *testing.T) {
 	}
 }
 
+func TestImportClearsNoneMarkers(t *testing.T) {
+	svc := newTestService(t)
+	lib := t.TempDir()
+	if err := testdata.WriteLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := db.Open(context.Background(), db.Options{
+		Path:       filepath.Join(t.TempDir(), "catalog.sqlite"),
+		BackupsDir: filepath.Join(t.TempDir(), "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = catalog.Close() })
+	svc.AttachCatalog(catalog, nil)
+	if err := svc.SetLibraryRoot(lib); err != nil {
+		t.Fatal(err)
+	}
+
+	dir := svc.cfg.Paths().CoversDir
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	jpg := filepath.Join(dir, "7.jpg")
+	none := filepath.Join(dir, "7.none")
+	if err := os.WriteFile(jpg, []byte{0xff, 0xd8, 0xff, 0xe0}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(none, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := svc.StartImport(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(none); !os.IsNotExist(err) {
+		t.Fatal(".none must be removed after a successful import")
+	}
+	if _, err := os.Stat(jpg); err != nil {
+		t.Fatal("cached image must stay")
+	}
+}
+
 func TestPreviewImportEmptyFolder(t *testing.T) {
 	svc := newTestService(t)
 	dir := t.TempDir()

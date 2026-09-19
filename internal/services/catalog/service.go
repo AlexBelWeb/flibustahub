@@ -536,6 +536,73 @@ func (s *Service) GetWork(ctx context.Context, id int64) (Work, error) {
 	return items[0], nil
 }
 
+func (s *Service) GetWorkDetails(ctx context.Context, id int64) (WorkDetails, error) {
+	work, err := s.GetWork(ctx, id)
+	if err != nil {
+		return WorkDetails{}, err
+	}
+	out := WorkDetails{Work: work}
+	authors, err := s.cat.WorkAuthors(ctx, id)
+	if err != nil {
+		return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+	}
+	out.Authors = make([]Author, len(authors))
+	for i, a := range authors {
+		out.Authors[i] = Author{ID: a.ID, DisplayName: a.DisplayName, SortName: a.SortName, WorkCount: a.WorkCount}
+	}
+	genres, err := s.cat.WorkGenres(ctx, id)
+	if err != nil {
+		return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+	}
+	out.Genres = make([]Genre, len(genres))
+	for i, g := range genres {
+		out.Genres[i] = Genre{ID: g.ID, Code: g.Code, NameRU: g.NameRU, WorkCount: g.WorkCount}
+	}
+	if work.Series != "" {
+		sid, err := s.cat.SeriesIDByName(ctx, work.Series)
+		if err == nil {
+			out.SeriesID = sid
+			nb, nerr := s.cat.SeriesNeighbors(ctx, id, work.Series)
+			if nerr != nil {
+				return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, nerr, nil)
+			}
+			if nb.HasPrev {
+				v := nb.PrevID
+				out.PrevWorkID = &v
+			}
+			if nb.HasNext {
+				v := nb.NextID
+				out.NextWorkID = &v
+			}
+		} else if err != sql.ErrNoRows {
+			return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+		}
+	}
+	ann, err := s.cat.Annotation(ctx, id)
+	if err != nil && err != sql.ErrNoRows {
+		return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
+	}
+	out.AnnotationChecked = ann.CheckedAt.Valid
+	if ann.Text.Valid {
+		t := ann.Text.String
+		out.Annotation = &t
+	}
+	return out, nil
+}
+
+func (s *Service) RecordViewed(ctx context.Context, id int64) error {
+	if err := s.ready(); err != nil {
+		return err
+	}
+	if id <= 0 {
+		return notFound("work")
+	}
+	if err := s.cat.RecordViewed(ctx, id, s.now()); err != nil {
+		return apperr.Wrap(apperr.CodeInternal, err, nil)
+	}
+	return nil
+}
+
 func (s *Service) GetAuthor(ctx context.Context, id int64) (Author, error) {
 	if err := s.ready(); err != nil {
 		return Author{}, err

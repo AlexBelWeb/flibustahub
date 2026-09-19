@@ -7,35 +7,43 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
 	"github.com/alexbelweb/flibustahub/internal/data"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
+	"github.com/alexbelweb/flibustahub/internal/services/covers"
 	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
 )
 
 // Service owns bootstrap state that is not tied to a UI toolkit.
 type Service struct {
-	cfg      *config.Store
-	log      *slog.Logger
-	version  string
-	commit   string
-	built    string
-	catalog  *db.DB
-	importer *inpximport.Service
-	startErr error
+	cfg       *config.Store
+	log       *slog.Logger
+	version   string
+	commit    string
+	built     string
+	catalog   *db.DB
+	importer  *inpximport.Service
+	covers    *covers.Service
+	coverEmit func(covers.Progress)
+	httpAddr  string
+	startErr  error
 
 	importMu     sync.Mutex
 	importing    bool
 	importCancel context.CancelFunc
 	lastProgress inpximport.Progress
 
-	updating  atomic.Bool
-	openMu    sync.Mutex
-	opening   bool
-	openPause <-chan struct{}
+	updating     atomic.Bool
+	openMu       sync.Mutex
+	opening      bool
+	stopping     bool
+	shutdownOnce sync.Once
+	openPause    <-chan struct{}
+	openHold     <-chan struct{}
 }
 
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
@@ -70,12 +78,17 @@ func (s *Service) Catalog() *db.DB {
 func (s *Service) CloseCatalog() {
 	s.openMu.Lock()
 	defer s.openMu.Unlock()
-	s.closeCatalogLocked()
+	s.closeCatalogLocked(shutdownBudget)
 }
 
-func (s *Service) closeCatalogLocked() {
+func (s *Service) closeCatalogLocked(budget time.Duration) {
+	if s.covers != nil {
+		s.covers.Stop()
+		s.covers.Wait(budget)
+		s.covers = nil
+	}
 	if s.catalog != nil {
-		_ = s.catalog.Close()
+		_ = s.catalog.CloseWithin(budget)
 		s.catalog = nil
 	}
 	s.importer = nil
@@ -98,6 +111,7 @@ type Bootstrap struct {
 	DatabaseUpdating  bool                  `json:"databaseUpdating"`
 	CatalogOpening    bool                  `json:"catalogOpening"`
 	CatalogReady      bool                  `json:"catalogReady"`
+	MediaBase         string                `json:"mediaBase,omitempty"`
 	StartupError      *apperr.Public        `json:"startupError,omitempty"`
 }
 
@@ -114,6 +128,7 @@ type startSnap struct {
 	startErr error
 	updating bool
 	opening  bool
+	httpAddr string
 }
 
 func (s *Service) snap() startSnap {
@@ -126,6 +141,7 @@ func (s *Service) snap() startSnap {
 		startErr: s.startErr,
 		updating: s.updating.Load(),
 		opening:  s.opening,
+		httpAddr: s.httpAddr,
 	}
 }
 
@@ -155,6 +171,7 @@ func (s *Service) Bootstrap() Bootstrap {
 		DatabaseUpdating:  st.updating,
 		CatalogOpening:    st.opening,
 		CatalogReady:      st.catalog != nil,
+		MediaBase:         st.httpAddr,
 	}
 	if st.startErr != nil {
 		p := apperr.As(st.startErr).Public()
@@ -234,7 +251,7 @@ func (s *Service) SetDatabaseUpdating(v bool) {
 func (s *Service) tryBeginOpening() bool {
 	s.openMu.Lock()
 	defer s.openMu.Unlock()
-	if s.opening {
+	if s.opening || s.stopping {
 		return false
 	}
 	s.opening = true
@@ -281,14 +298,22 @@ func (s *Service) openCatalogWork() error {
 	}
 
 	s.openMu.Lock()
-	s.closeCatalogLocked()
+	s.closeCatalogLocked(shutdownBudget)
+	stopping := s.stopping
 	s.openMu.Unlock()
+	if stopping {
+		return s.peekStartErr()
+	}
 
 	catalog, dbErr := db.Open(context.Background(), db.Options{
 		Path:       paths.DBPath,
 		BackupsDir: paths.BackupsDir,
 		Log:        s.Logger(),
 	})
+	if hold := s.openHold; hold != nil {
+		<-hold
+	}
+
 	importer := (*inpximport.Service)(nil)
 	if catalog != nil {
 		data.Load(paths.DataDir, s.Logger())
@@ -299,9 +324,19 @@ func (s *Service) openCatalogWork() error {
 	}
 
 	s.openMu.Lock()
+	if s.stopping {
+		s.openMu.Unlock()
+		if catalog != nil {
+			_ = catalog.Close()
+		}
+		return dbErr
+	}
 	s.catalog = catalog
 	s.importer = importer
 	s.startErr = dbErr
+	if catalog != nil {
+		s.covers = s.newCoversLocked()
+	}
 	s.openMu.Unlock()
 	return dbErr
 }
@@ -313,6 +348,8 @@ func (s *Service) RetryStartup() Bootstrap {
 	if !s.tryBeginOpening() {
 		return s.Bootstrap()
 	}
+	// The returned snapshot is evaluated before deferred functions run, so
+	// endOpening must run first; otherwise catalogOpening stays true.
 	defer s.endOpening()
 
 	s.openMu.Lock()
@@ -327,7 +364,7 @@ func (s *Service) RetryStartup() Bootstrap {
 
 	if cfgErr != nil {
 		s.openMu.Lock()
-		s.closeCatalogLocked()
+		s.closeCatalogLocked(shutdownBudget)
 		s.startErr = cfgErr
 		s.openMu.Unlock()
 		s.endOpening()

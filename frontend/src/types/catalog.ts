@@ -41,6 +41,27 @@ export interface Genre {
   workCount: number
 }
 
+export interface WorkDetails extends Work {
+  authors?: Author[]
+  genres?: Genre[]
+  seriesId?: number
+  prevWorkId?: number
+  nextWorkId?: number
+  annotation?: string
+  annotationChecked?: boolean
+}
+
+export interface Annotation {
+  text?: string
+  checked: boolean
+}
+
+export interface CoverProgress {
+  total: number
+  done: number
+  running: boolean
+}
+
 export interface WorkPage {
   items: Work[]
   nextCursor?: string

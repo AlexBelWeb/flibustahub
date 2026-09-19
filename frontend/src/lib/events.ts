@@ -5,6 +5,7 @@ export const Events = {
   ImportCloseRequested: 'import:closeRequested',
   DBUpdated: 'db:updated',
   SearchIndexReady: 'search:indexReady',
+  CoversProgress: 'covers:progress',
 } as const
 
 export type EventName = (typeof Events)[keyof typeof Events]

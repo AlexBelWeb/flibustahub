@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import HighlightText from '@/components/catalog/HighlightText.vue'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/i18n/errors'
 import { isBlankTitle } from '@/lib/work'
+import { withWorkQuery } from '@/lib/work-route'
 import { useAppStore } from '@/stores/app'
 import { useCatalogStore } from '@/stores/catalog'
 import { useSearchStore } from '@/stores/search'
@@ -38,6 +39,7 @@ import {
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const app = useAppStore()
 const ui = useUiStore()
 const search = useSearchStore()
@@ -108,7 +110,7 @@ function openWork(id: number) {
     void search.record(q)
   }
   closePalette()
-  void router.push({ name: 'book', params: { workId: String(id) } })
+  void router.push({ query: withWorkQuery(route.query, id) })
 }
 
 function openAuthor(id: number) {
@@ -135,7 +137,7 @@ async function openRandom() {
   closePalette()
   const work = await catalog.randomWork()
   if (work?.id) {
-    void router.push({ name: 'book', params: { workId: String(work.id) } })
+    void router.push({ query: withWorkQuery(route.query, work.id) })
   }
 }
 

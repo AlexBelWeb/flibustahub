@@ -36,5 +36,6 @@ export interface Bootstrap {
   databaseUpdating: boolean
   catalogOpening: boolean
   catalogReady: boolean
+  mediaBase?: string
   startupError?: StartupError | null
 }
