@@ -148,10 +148,6 @@ func (d *DB) startIndexRecovery(ctx context.Context) error {
 	return nil
 }
 
-func (d *DB) stopIndexRecovery() {
-	d.stopIndexRecoveryUntil(time.Now().Add(waitIndexRecovery))
-}
-
 func (d *DB) stopIndexRecoveryUntil(deadline time.Time) {
 	d.mu.Lock()
 	if d.recoverWaited {
