@@ -215,6 +215,34 @@ func TestImplausibleAnnotationDropped(t *testing.T) {
 	}
 }
 
+func TestUTF8DeclaredNotStolenByCP866(t *testing.T) {
+	raw := []byte(`<?xml version="1.0" encoding="utf-8"?><FictionBook><description><title-info>` +
+		`<annotation><p>Он говорил, что я его пара, его Истинная.</p></annotation>` +
+		`</title-info></description></FictionBook>`)
+	got, err := Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Encoding != "utf-8" {
+		t.Fatalf("encoding = %s", got.Encoding)
+	}
+	if got.Annotation != "Он говорил, что я его пара, его Истинная." {
+		t.Fatalf("annotation = %q", got.Annotation)
+	}
+}
+
+func TestCP866MojibakeOfUTF8Rejected(t *testing.T) {
+	utf := []byte("Он говорил, что я его пара, его Истинная. Повесть, основанная на реальных событиях.")
+	mojibake, err := charmap.CodePage866.NewDecoder().Bytes(utf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(mojibake)
+	if PlausibleText(s) {
+		t.Fatalf("cp866-of-utf8 must fail the gate, score=%.4f text=%q", TextScore(s), s)
+	}
+}
+
 func TestUTF8BeatsDeclared1251(t *testing.T) {
 	raw := []byte(`<?xml version="1.0" encoding="windows-1251"?><FictionBook><description><title-info>` +
 		`<annotation><p>Привет, мир. Это настоящий текст.</p></annotation>` +

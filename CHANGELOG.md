@@ -60,6 +60,7 @@ Conventions:
 - Clearing the cover cache is visible without reloading the window.
 - If a cover cannot be loaded right now, the title plate is shown; opening the book again or returning to the list tries once more.
 - Annotations are no longer stored as mojibake; already stored garbage is cleared so the book is read again (database migration).
+- Garbled annotations saved after that first cleanup are cleared again (database migration).
 - Annotation paragraphs stay as separate lines.
 - The tile/table switch no longer uses the accent colour that marks a primary action.
 

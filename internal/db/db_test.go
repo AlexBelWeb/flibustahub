@@ -15,6 +15,7 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/textnorm"
 	"github.com/alexbelweb/flibustahub/migrations"
+	"golang.org/x/text/encoding/charmap"
 )
 
 func openTest(t *testing.T, opts ...func(*Options)) *DB {
@@ -94,7 +95,7 @@ func TestMigrateTwiceIsNoop(t *testing.T) {
 	if err := d2.Write.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 3 {
+	if n != 4 {
 		t.Fatalf("schema_migrations rows = %d", n)
 	}
 }
@@ -260,6 +261,65 @@ func TestMigration003ClearsImplausibleAnnotations(t *testing.T) {
 	}
 	if bad.Valid || badAt.Valid {
 		t.Fatalf("implausible annotation must be cleared, got %v %v", bad, badAt)
+	}
+}
+
+func TestMigration004ClearsMojibakeWrittenAfter003(t *testing.T) {
+	m1, err := migrations.FS.ReadFile("001_initial.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, err := migrations.FS.ReadFile("002_works_added_date.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m3, err := migrations.FS.ReadFile("003_reset_implausible_annotations.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: fstest.MapFS{
+			"001_initial.sql":                       &fstest.MapFile{Data: m1},
+			"002_works_added_date.sql":              &fstest.MapFile{Data: m2},
+			"003_reset_implausible_annotations.sql": &fstest.MapFile{Data: m3},
+		},
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	utf := []byte("Он говорил, что я его пара, его Истинная.")
+	mojibake, err := charmap.CodePage866.NewDecoder().Bytes(utf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO works(id, work_key, title, sort_title, authors_text, created_at, updated_at, annotation, annotation_checked_at)
+		VALUES (1, 'k1', 'T', 't', 'A', 't', 't', ?, '2026-09-19T09:10:00Z')`, string(mojibake))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       opt.Path,
+		BackupsDir: opt.BackupsDir,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+	var ann sql.NullString
+	var at sql.NullString
+	if err := d2.Read.QueryRow(`SELECT annotation, annotation_checked_at FROM works WHERE id = 1`).Scan(&ann, &at); err != nil {
+		t.Fatal(err)
+	}
+	if ann.Valid || at.Valid {
+		t.Fatalf("mojibake written after 003 must be cleared, got %v %v", ann, at)
 	}
 }
 

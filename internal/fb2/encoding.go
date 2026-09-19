@@ -41,6 +41,11 @@ func DecodeBody(raw []byte) ([]byte, string) {
 			return out, declared.name
 		}
 	}
+	// A file that says utf-8 and is valid utf-8 must not be offered to
+	// one-byte encodings: they map every byte and win on ASCII XML/base64.
+	if declared.name == "utf-8" && utf8.Valid(raw) {
+		return raw, "utf-8"
+	}
 	if u16, ok := utf16WithoutBOM(raw); ok {
 		out, err := decodeAll(u16, raw)
 		if err == nil {
