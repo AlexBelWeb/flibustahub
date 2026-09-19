@@ -6,15 +6,19 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import CommandPalette from '@/components/search/CommandPalette.vue'
 import BookDrawer from '@/components/catalog/BookDrawer.vue'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard.vue'
+import StorageAlert from '@/components/storage/StorageAlert.vue'
+import DumpOfferBanner from '@/components/storage/DumpOfferBanner.vue'
 import { Button } from '@/components/ui/button'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useAppStore } from '@/stores/app'
 import { useImportStore } from '@/stores/import'
+import { useStorageStore } from '@/stores/storage'
 import { useUiStore } from '@/stores/ui'
 
 const { t } = useI18n()
 const app = useAppStore()
 const imp = useImportStore()
+const storage = useStorageStore()
 const ui = useUiStore()
 const router = useRouter()
 
@@ -61,10 +65,20 @@ function onKey(event: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
+  window.addEventListener('focus', onFocus)
+  storage.listen()
+  storage.hydrateFromBootstrap()
+  void storage.check(false)
+  void storage.loadReaderPath()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
+  window.removeEventListener('focus', onFocus)
 })
+
+function onFocus() {
+  void storage.check(false)
+}
 </script>
 
 <template>
@@ -75,7 +89,26 @@ onUnmounted(() => {
         <Button variant="outline" size="sm" @click="ui.openPalette()">
           {{ t('nav.search') }}
         </Button>
+        <div
+          v-if="storage.offline && storage.alertDismissed"
+          class="ml-auto flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <span>{{
+            storage.unreachable ? t('storage.unreachableShort') : t('storage.offlineShort')
+          }}</span>
+          <Button size="sm" variant="outline" @click="storage.check(true)">{{
+            t('storage.checkAgain')
+          }}</Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            @click="storage.chooseFolder(t('onboarding.chooseFolder'))"
+            >{{ t('storage.repoint') }}</Button
+          >
+        </div>
       </header>
+      <StorageAlert />
+      <DumpOfferBanner />
       <div class="relative min-h-0 flex-1">
         <div class="absolute inset-0 flex min-h-0 flex-col overflow-hidden">
           <RouterView />

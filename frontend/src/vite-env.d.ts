@@ -18,6 +18,7 @@ import type {
   CoverProgress,
 } from './types/catalog'
 import type { ImportPreview, ImportReport } from './types/import'
+import type { FileResult, StorageSnapshot } from './types/storage'
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -38,11 +39,22 @@ interface Window {
         RetryStartup: () => Promise<Bootstrap>
         OpenLogsDir: () => Promise<void>
         OpenDataDir: () => Promise<void>
+        OpenDownloadsDir: () => Promise<void>
         SetLocale: (code: string) => Promise<void>
         SetTheme: (theme: string) => Promise<void>
         SetVisualEffects: (mode: string) => Promise<void>
         SetSidebarCollapsed: (collapsed: boolean) => Promise<void>
         SetCatalogView: (view: string) => Promise<void>
+        CheckStorage: (force: boolean) => Promise<StorageSnapshot>
+        DismissDumpOffer: () => Promise<void>
+        DownloadEdition: (id: number) => Promise<FileResult>
+        ReadEdition: (id: number) => Promise<FileResult>
+        CancelFileOp: (id: number, kind: string) => Promise<void>
+        ShowInFolder: (path: string) => Promise<void>
+        SelectDownloadsDir: (title: string) => Promise<string>
+        SelectReaderPath: (title: string) => Promise<string>
+        ClearReaderPath: () => Promise<void>
+        ReaderPath: () => Promise<string>
         SelectLibraryRoot: (title: string) => Promise<string>
         SelectINPXFile: (title: string) => Promise<string>
         SetINPXPath: (path: string) => Promise<void>

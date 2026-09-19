@@ -10,6 +10,7 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/platform"
 	appsvc "github.com/alexbelweb/flibustahub/internal/services/app"
 	"github.com/alexbelweb/flibustahub/internal/services/covers"
+	"github.com/alexbelweb/flibustahub/internal/services/storage"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -43,6 +44,12 @@ func (r *Runtime) SetContext(ctx context.Context) {
 				return
 			}
 			runtime.EventsEmit(r.ctx, events.CoversProgress, p)
+		})
+		r.svc.SetStorageEvents(func(snap storage.Snapshot) {
+			if r.ctx == nil {
+				return
+			}
+			runtime.EventsEmit(r.ctx, events.StorageChanged, snap)
 		})
 	}
 }
@@ -156,6 +163,10 @@ func (a *App) RetryStartup() appsvc.Bootstrap {
 		}()
 	}
 	return out
+}
+
+func (a *App) OpenDownloadsDir() error {
+	return a.svc.OpenDownloadsDir()
 }
 
 func (a *App) OpenLogsDir() error {

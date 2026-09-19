@@ -9,4 +9,5 @@ const (
 	DBUpdated            = "db:updated"
 	SearchIndexReady     = "search:indexReady"
 	CoversProgress       = "covers:progress"
+	StorageChanged       = "storage:changed"
 )

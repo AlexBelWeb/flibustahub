@@ -52,6 +52,7 @@ type Service struct {
 	store       Store
 	coversDir   func() string
 	libraryRoot func() string
+	ready       func() error
 	log         *slog.Logger
 	now         func() time.Time
 	onProgress  func(Progress)
@@ -74,6 +75,7 @@ func New(
 	store Store,
 	coversDir func() string,
 	libraryRoot func() string,
+	ready func() error,
 	log *slog.Logger,
 	now func() time.Time,
 	onProgress func(Progress),
@@ -95,6 +97,7 @@ func New(
 		store:       store,
 		coversDir:   coversDir,
 		libraryRoot: libraryRoot,
+		ready:       ready,
 		log:         log,
 		now:         now,
 		onProgress:  throttleProgress(onProgress),
@@ -147,6 +150,17 @@ func (s *Service) ForgetSessionFails() {
 	s.failMu.Lock()
 	s.fails = make(map[int64]sessionFail)
 	s.failMu.Unlock()
+}
+
+func (s *Service) ForgetOfflineFails() {
+	s.failMu.Lock()
+	defer s.failMu.Unlock()
+	for id, f := range s.fails {
+		code := apperr.As(f.err).Code
+		if code == apperr.CodeLibraryOffline || code == apperr.CodeLibraryUnreachable {
+			delete(s.fails, id)
+		}
+	}
 }
 
 func (s *Service) worker() {
@@ -344,6 +358,9 @@ func (s *Service) run(ctx context.Context, workID int64, need Need) error {
 }
 
 func (s *Service) libraryReady() error {
+	if s.ready != nil {
+		return s.ready()
+	}
 	root := strings.TrimSpace(s.libraryRoot())
 	if root == "" {
 		return apperr.New(apperr.CodeLibraryOffline, nil)

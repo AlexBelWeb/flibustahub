@@ -547,8 +547,11 @@ func TestWorkDetailsAndViewed(t *testing.T) {
 	if len(det.Editions) != 1 || det.Editions[0].ArchiveName != "a.zip" {
 		t.Fatalf("editions %+v", det.Editions)
 	}
-	if _, err := d.Write.Exec(`INSERT INTO editions(libid, work_id, archive_name, file_name, file_ext, size, is_deleted, is_active)
-		VALUES ('5b', 5, 'b.zip', 'g', 'fb2', 366000, 0, 1)`); err != nil {
+	if _, err := d.Write.Exec(`UPDATE editions SET file_name = 'alpha.fb2', file_ext = 'fb2', size = 2800000 WHERE id = 5`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`INSERT INTO editions(libid, work_id, archive_name, file_name, file_ext, size, added_date, is_deleted, is_active)
+		VALUES ('5b', 5, 'a.zip', 'beta.fb2', 'fb2', 3100000, '2016-01-01', 0, 1)`); err != nil {
 		t.Fatal(err)
 	}
 	det, err = svc.GetWorkDetails(ctx, 5)
@@ -558,8 +561,17 @@ func TestWorkDetailsAndViewed(t *testing.T) {
 	if det.EditionCount != 2 || len(det.Editions) != 2 {
 		t.Fatalf("two editions count=%d list=%d", det.EditionCount, len(det.Editions))
 	}
-	if det.Editions[1].ArchiveName != "b.zip" || det.Editions[1].Size == nil || *det.Editions[1].Size != 366000 {
-		t.Fatalf("second edition %+v", det.Editions)
+	if det.Editions[0].FileName != "alpha.fb2" || det.Editions[0].AddedDate != "2017-01-01" {
+		t.Fatalf("first edition %+v", det.Editions[0])
+	}
+	if det.Editions[1].ArchiveName != "a.zip" || det.Editions[1].FileName != "beta.fb2" || det.Editions[1].Size == nil || *det.Editions[1].Size != 3100000 {
+		t.Fatalf("second edition %+v", det.Editions[1])
+	}
+	if det.PreferredEditionID == 0 {
+		t.Fatalf("preferred edition missing: %+v", det.Editions)
+	}
+	if det.Size == nil || *det.Size != 2800000 {
+		t.Fatalf("details size want preferred 2800000 got %+v", det.Size)
 	}
 	if err := svc.RecordViewed(ctx, 5); err != nil {
 		t.Fatal(err)

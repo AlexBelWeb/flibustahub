@@ -31,7 +31,12 @@ Conventions:
 - The book page and side panel show the annotation and previous/next books in a series.
 - Settings can clear the cover cache and preload covers for rated and recently added books.
 - First-run setup walks through choosing the library folder, the `.inpx` dump and starting the import.
-- A command palette (Ctrl+K) finds books, authors, series and recent searches as you type.
+- Books can be opened in an external reader or saved to the system downloads folder; a missing archive or disconnected library is explained instead of failing silently.
+- Unavailable Read and Download controls show why they are disabled.
+- A layout banner reports when the library disk is offline or unreadable, with Check again and Choose folder again; a compact reminder stays after the banner is dismissed.
+- Covers of visible cards reload when the library disk comes back, without restarting the app.
+- A quieter notice offers to update the catalog when a newer dump is in the library folder; import never starts by itself.
+- Settings for the downloads folder and an optional reader application are on the Library tab.
 - While a database schema update is applied at startup, a dedicated screen explains that a backup was made and asks you to wait.
 - While an import is running the window is blocked and shows the current stage, the number of records processed and a progress bar based on the size of the dump; the import can be cancelled until the data is written to the database.
 - An import report is shown afterwards: how many works and editions were added or changed, which archives are missing from disk, which genres have no name, the file encodings that were detected and how long each stage took.
@@ -54,6 +59,7 @@ Conventions:
 - A tile that has several files only shows the labelled count, not a bare number next to it.
 - Search looks up books by title, author name and series together, so typing an author opens their books instead of an empty list.
 - Search results show matching authors and series above the book list; the command palette highlights the first match and offers “all authors” / “all series” when there are more.
+- The book page has one primary Read button; edition rows use quiet Read/Download controls, show the file name inside the archive and the added date, and mark the header’s edition as the default. The summary line uses that edition’s size. The files count stays on the card and panel, not next to the edition list.
 
 ### Fixed
 
@@ -74,6 +80,7 @@ Conventions:
 - Empty space around a cover in the panel no longer shows the monogram through the blur.
 - The files badge uses the correct plural (1 file, 2 files / 1 файл, 2 файла, 5 файлов).
 - A cover in the book panel no longer paints over the text below it.
+- Show in folder and Open downloads folder no longer open Documents when the path has spaces or the file is gone; the app reports the error instead.
 
 ### Removed
 

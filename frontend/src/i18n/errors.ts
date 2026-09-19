@@ -46,6 +46,16 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.archive_missing', params))
     case 'fb2_unreadable':
       return String(t('errors.fb2_unreadable', params))
+    case 'library_unreachable':
+      return String(t('errors.library_unreachable', params))
+    case 'reader_unavailable':
+      return String(t('errors.reader_unavailable', params))
+    case 'reader_missing':
+      return String(t('errors.reader_missing', params))
+    case 'downloads_dir_unusable':
+      return String(t('errors.downloads_dir_unusable', params))
+    case 'cancelled':
+      return String(t('errors.cancelled', params))
     default:
       return String(t('errors.internal', params))
   }

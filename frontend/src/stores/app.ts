@@ -7,6 +7,7 @@ import { parseBackendError } from '@/lib/backend-error'
 import { Events } from '@/lib/events'
 import { eventsOn } from '@/lib/wails-runtime'
 import { useToastStore } from '@/stores/toast'
+import { useStorageStore } from '@/stores/storage'
 import type { Bootstrap, StartupError } from '@/types/bootstrap'
 import type { CatalogView } from '@/types/catalog'
 
@@ -132,6 +133,9 @@ export const useAppStore = defineStore('app', () => {
     const next: LocaleCode = isLocaleCode(data.locale) ? data.locale : 'en'
     void setI18nLocale(next)
     applyDocumentTheme(data.theme as Theme)
+    if (data.storage) {
+      useStorageStore().hydrateFromBootstrap()
+    }
   }
 
   async function wrap<T>(fn: () => Promise<T>): Promise<T> {

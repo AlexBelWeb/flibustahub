@@ -129,6 +129,7 @@ func main() {
 			win.SetContext(ctx)
 			win.RestoreWindow()
 			win.ApplyWindowTheme(store.Live().Theme)
+			svc.AfterWindow()
 			if startCatalog != nil {
 				go func() {
 					err := startCatalog()

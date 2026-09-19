@@ -2,10 +2,14 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -44,6 +48,9 @@ func New(log *slog.Logger) *Server {
 	})
 	mux.HandleFunc("OPTIONS /media/cover/{workId}", s.handleCoverOptions)
 	mux.HandleFunc("GET /media/cover/{workId}", s.handleCover)
+	if os.Getenv("FLIBUSTAHUB_MEMSTATS") == "1" {
+		mux.HandleFunc("GET /debug/memstats", handleMemStats)
+	}
 	s.http = &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
@@ -85,6 +92,29 @@ func (s *Server) handleCover(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", hit.MIME)
 	}
 	http.ServeFile(w, r, hit.Path)
+}
+
+func handleMemStats(w http.ResponseWriter, r *http.Request) {
+	setCoverCORS(w)
+	freed := r.URL.Query().Get("free") == "1"
+	if freed {
+		debug.FreeOSMemory()
+	}
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	out := map[string]any{
+		"alloc":        m.Alloc,
+		"heapAlloc":    m.HeapAlloc,
+		"heapInuse":    m.HeapInuse,
+		"heapIdle":     m.HeapIdle,
+		"heapReleased": m.HeapReleased,
+		"heapSys":      m.HeapSys,
+		"sys":          m.Sys,
+		"numGC":        m.NumGC,
+		"free":         freed,
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(out)
 }
 
 func setCoverCORS(w http.ResponseWriter) {
