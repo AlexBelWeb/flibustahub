@@ -9,15 +9,18 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useAppStore } from '@/stores/app'
+import { useCoversStore } from '@/stores/covers'
 import { useImportStore } from '@/stores/import'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const app = useAppStore()
 const imp = useImportStore()
+const covers = useCoversStore()
 
 onMounted(() => {
   imp.listen()
+  covers.listen()
 })
 </script>
 

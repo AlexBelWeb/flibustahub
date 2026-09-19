@@ -1,11 +1,5 @@
 {
-  "app": {
-    "name": "FlibustaHub",
-    "tagline": "A local catalog of your book library"
-  },
   "home": {
-    "title": "Home",
-    "lead": "Catalog, search and new arrivals — without touching the archive folder.",
     "books": "Books in the catalog",
     "lastImport": "Last import",
     "lastImportNever": "No import has been run yet",
@@ -56,6 +50,17 @@
     },
     "library": {
       "title": "Library"
+    },
+    "covers": {
+      "title": "Covers",
+      "lead": "Covers are read from the archives and cached on disk. You can delete the cache — the app will rebuild it.",
+      "clear": "Clear cover cache",
+      "clearTitle": "Delete the cover cache?",
+      "clearBody": "Cached cover files will be removed. They will be extracted again as you browse. This cannot be undone.",
+      "warmupStart": "Preload covers",
+      "warmupStop": "Stop",
+      "warmupCount": "{n} book will be processed | {n} books will be processed",
+      "warmupProgress": "Processed {done} of {total}"
     }
   },
   "common": {
@@ -93,7 +98,10 @@
     "library_unreadable": "The chosen folder could not be read. Pick a different one or check access.",
     "open_file_failed": "Could not open the file picker.",
     "not_found": "This record was not found.",
-    "invalid_catalog_view": "Unknown list layout."
+    "invalid_catalog_view": "Unknown list layout.",
+    "library_offline": "The library folder is unavailable. Check that the storage is connected.",
+    "archive_missing": "Archive {archive} was not found in the library folder.",
+    "fb2_unreadable": "The book file could not be read."
   },
   "status": {
     "version": "Version",
@@ -141,8 +149,11 @@
     "indexRebuilding": "The search index is being rebuilt",
     "submitToSearch": "Press Enter to search while the index is not ready.",
     "untitled": "Untitled",
+    "unknownAuthor": "Author unknown",
     "authorsMore": "{name} and {n} more",
-    "files": "{n} file | {n} files",
+    "filesOne": "{n} file",
+    "filesFew": "{n} files",
+    "filesMany": "{n} files",
     "ghost": "File missing from the dump",
     "seriesNo": "No. {n}",
     "colTitle": "Title",
@@ -171,9 +182,16 @@
     "emptySearch": "No genres found."
   },
   "book": {
-    "lang": "Language",
-    "size": "Size",
-    "series": "Series"
+    "annotation": "Annotation",
+    "editions": "Editions",
+    "annotationEmpty": "No annotation",
+    "annotationError": "The annotation could not be loaded.",
+    "readingDisk": "Reading from disk…",
+    "prev": "Previous in series",
+    "next": "Next in series",
+    "fullscreen": "Open full screen",
+    "drawerTitle": "Book",
+    "drawerLead": "Details of the selected book"
   },
   "palette": {
     "title": "Search",
@@ -186,7 +204,9 @@
     "books": "Books",
     "authors": "Authors",
     "series": "Series",
-    "openAll": "All results",
+    "openAll": "All results for “{q}”",
+    "allAuthors": "All authors ({n})",
+    "allSeries": "All series ({n})",
     "noResults": "Nothing found"
   },
   "onboarding": {

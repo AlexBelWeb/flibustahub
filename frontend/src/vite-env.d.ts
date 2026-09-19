@@ -12,7 +12,10 @@ import type {
   Series,
   SeriesPage,
   Work,
+  WorkDetails,
   WorkPage,
+  Annotation,
+  CoverProgress,
 } from './types/catalog'
 import type { ImportPreview, ImportReport } from './types/import'
 
@@ -54,6 +57,14 @@ interface Window {
         ListSeries: (query: ListPeopleQuery) => Promise<SeriesPage>
         ListGenres: (query: string) => Promise<Genre[]>
         GetWork: (id: number) => Promise<Work>
+        GetWorkDetails: (id: number) => Promise<WorkDetails>
+        RecordViewed: (id: number) => Promise<void>
+        GetAnnotation: (id: number) => Promise<Annotation>
+        ClearCoverCache: () => Promise<void>
+        CoverWarmupPreview: () => Promise<number>
+        StartCoverWarmup: () => Promise<void>
+        StopCoverWarmup: () => void
+        CoverWarmupProgress: () => Promise<CoverProgress>
         GetAuthor: (id: number) => Promise<Author>
         GetGenre: (id: number) => Promise<Genre>
         GetSeries: (id: number) => Promise<Series>

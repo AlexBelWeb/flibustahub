@@ -8,4 +8,5 @@ const (
 	ImportCloseRequested = "import:closeRequested"
 	DBUpdated            = "db:updated"
 	SearchIndexReady     = "search:indexReady"
+	CoversProgress       = "covers:progress"
 )

@@ -107,7 +107,7 @@ func TestRetryStartupOpensCatalog(t *testing.T) {
 		t.Fatal("retry must report catalogReady")
 	}
 	if got.CatalogOpening {
-		t.Fatal("finished retry must not report catalogOpening")
+		t.Fatal("finished retry must not report catalogOpening: the returned snapshot is evaluated before deferred endOpening")
 	}
 	if got.DatabaseUpdating {
 		t.Fatal("finished retry must not report databaseUpdating")

@@ -507,3 +507,70 @@ func measureThresholdCurve(t *testing.T, repo *repositories.Catalog, d *db.DB) {
 		t.Logf("threshold curve count=%d wide=%s narrow=%s", p.n, wide, narrow)
 	}
 }
+
+func TestSnapshotSearchWeights(t *testing.T) {
+	svc, d := openSnapshot(t)
+	ctx := context.Background()
+	before := "bm25(works_fts), w.id"
+	after := fmt.Sprintf("bm25(works_fts, %g, %g, %g), w.id",
+		repositories.WorksFTSTitleWeight, repositories.WorksFTSAuthorsWeight, repositories.WorksFTSSeriesWeight)
+	for _, q := range []string{"тед чан", "толстой", "война", "чан"} {
+		t.Logf("query %q weights title=%g authors=%g series=%g", q,
+			repositories.WorksFTSTitleWeight, repositories.WorksFTSAuthorsWeight, repositories.WorksFTSSeriesWeight)
+		t.Logf("  before %v", snapshotTopWorks(t, d, q, before))
+		t.Logf("  after  %v", snapshotTopWorks(t, d, q, after))
+	}
+
+	res, err := svc.Search(ctx, SearchQuery{Q: "толстой война", Limit: 50})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, w := range res.Works.Items {
+		if strings.Contains(strings.ToLower(w.Title), "война и мир") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("толстой война missed Война и мир: %v", titles(res.Works))
+	}
+
+	named, err := svc.Search(ctx, SearchQuery{Q: "тед чан", Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(named.Works.Items) == 0 {
+		t.Fatal("тед чан: no books")
+	}
+	t.Logf("тед чан service %v authors=%d", titles(named.Works), len(named.Authors))
+}
+
+func snapshotTopWorks(t *testing.T, d *db.DB, q, order string) []string {
+	t.Helper()
+	tokens := Tokens(q)
+	if len(tokens) == 0 {
+		t.Fatalf("empty tokens for %q", q)
+	}
+	match := ftsPhrase(tokens, worksFTSColumns)
+	rows, err := d.Read.Query(`SELECT w.title, w.authors_text FROM works_fts f
+		JOIN works w ON w.id = f.rowid
+		WHERE works_fts MATCH ? AND `+visibility.ListableWorkSQL+`
+		ORDER BY `+order+` LIMIT 10`, match)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []string
+	for rows.Next() {
+		var title, authors string
+		if err := rows.Scan(&title, &authors); err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, title+" — "+authors)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}

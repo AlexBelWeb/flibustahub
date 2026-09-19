@@ -14,6 +14,8 @@ const (
 	SearchDepth   = 500
 	HistoryKeep   = 200
 	HistoryRecent = 10
+
+	SearchPeoplePreview = 3
 )
 
 // Total is a cheap or capped count. Nil on a page means the UI must not show N.
@@ -38,6 +40,26 @@ type Work struct {
 	HasFile      bool   `json:"hasFile"`
 	Size         *int64 `json:"size,omitempty"`
 	Librate      *int   `json:"librate,omitempty"`
+}
+
+type WorkDetails struct {
+	Work
+	Authors           []Author      `json:"authors,omitempty"`
+	Genres            []Genre       `json:"genres,omitempty"`
+	SeriesID          int64         `json:"seriesId,omitempty"`
+	PrevWorkID        *int64        `json:"prevWorkId,omitempty"`
+	NextWorkID        *int64        `json:"nextWorkId,omitempty"`
+	Annotation        *string       `json:"annotation,omitempty"`
+	AnnotationChecked bool          `json:"annotationChecked,omitempty"`
+	FileExt           string        `json:"fileExt,omitempty"`
+	Editions          []WorkEdition `json:"editions,omitempty"`
+}
+
+type WorkEdition struct {
+	ArchiveName string `json:"archiveName"`
+	FileName    string `json:"fileName,omitempty"`
+	FileExt     string `json:"fileExt,omitempty"`
+	Size        *int64 `json:"size,omitempty"`
 }
 
 type Author struct {
@@ -107,10 +129,12 @@ type SearchQuery struct {
 }
 
 type SearchResult struct {
-	Authors  []Author `json:"authors,omitempty"`
-	Series   []Series `json:"series,omitempty"`
-	Works    WorkPage `json:"works"`
-	Fallback bool     `json:"fallback,omitempty"`
+	Authors      []Author `json:"authors,omitempty"`
+	Series       []Series `json:"series,omitempty"`
+	AuthorsTotal *Total   `json:"authorsTotal,omitempty"`
+	SeriesTotal  *Total   `json:"seriesTotal,omitempty"`
+	Works        WorkPage `json:"works"`
+	Fallback     bool     `json:"fallback,omitempty"`
 }
 
 func normalizeSort(s string) string {

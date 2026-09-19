@@ -49,7 +49,7 @@ export const useSearchStore = defineStore('search', () => {
     const token = ++seq
     previewStatus.value = 'loading'
     try {
-      const result = asSearchResult(await window.go.handlers.App.SearchCatalog({ q, limit: 8 }))
+      const result = asSearchResult(await window.go.handlers.App.SearchCatalog({ q, limit: 7 }))
       if (token !== seq) {
         return
       }

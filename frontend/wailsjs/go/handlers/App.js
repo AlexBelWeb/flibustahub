@@ -14,12 +14,28 @@ export function CatalogAlphabet() {
   return window['go']['handlers']['App']['CatalogAlphabet']();
 }
 
+export function ClearCoverCache() {
+  return window['go']['handlers']['App']['ClearCoverCache']();
+}
+
 export function ClearSearchHistory() {
   return window['go']['handlers']['App']['ClearSearchHistory']();
 }
 
+export function CoverWarmupPreview() {
+  return window['go']['handlers']['App']['CoverWarmupPreview']();
+}
+
+export function CoverWarmupProgress() {
+  return window['go']['handlers']['App']['CoverWarmupProgress']();
+}
+
 export function DismissWindowClose() {
   return window['go']['handlers']['App']['DismissWindowClose']();
+}
+
+export function GetAnnotation(arg1) {
+  return window['go']['handlers']['App']['GetAnnotation'](arg1);
 }
 
 export function GetAuthor(arg1) {
@@ -36,6 +52,10 @@ export function GetSeries(arg1) {
 
 export function GetWork(arg1) {
   return window['go']['handlers']['App']['GetWork'](arg1);
+}
+
+export function GetWorkDetails(arg1) {
+  return window['go']['handlers']['App']['GetWorkDetails'](arg1);
 }
 
 export function LastImportReport() {
@@ -76,6 +96,10 @@ export function RandomWork() {
 
 export function RecordSearch(arg1) {
   return window['go']['handlers']['App']['RecordSearch'](arg1);
+}
+
+export function RecordViewed(arg1) {
+  return window['go']['handlers']['App']['RecordViewed'](arg1);
 }
 
 export function RetryStartup() {
@@ -122,6 +146,14 @@ export function SetVisualEffects(arg1) {
   return window['go']['handlers']['App']['SetVisualEffects'](arg1);
 }
 
+export function StartCoverWarmup() {
+  return window['go']['handlers']['App']['StartCoverWarmup']();
+}
+
 export function StartImport() {
   return window['go']['handlers']['App']['StartImport']();
+}
+
+export function StopCoverWarmup() {
+  return window['go']['handlers']['App']['StopCoverWarmup']();
 }

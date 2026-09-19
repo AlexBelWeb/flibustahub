@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useI18n } from 'vue-i18n'
+import { SCROLL_END_PAD } from '@/lib/scroll'
 
 const props = defineProps<{
   items: T[]
@@ -74,7 +75,10 @@ watch(
 <template>
   <div class="relative min-h-0 flex-1">
     <div ref="parentRef" class="absolute inset-0 overflow-auto" @scroll.passive="onScroll">
-      <div class="relative w-full" :style="{ height: `${virtualizer.getTotalSize()}px` }">
+      <div
+        class="relative w-full"
+        :style="{ height: `${virtualizer.getTotalSize() + SCROLL_END_PAD}px` }"
+      >
         <div
           v-for="row in virtualizer.getVirtualItems()"
           :key="row.key"

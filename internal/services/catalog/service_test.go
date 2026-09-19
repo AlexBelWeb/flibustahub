@@ -80,12 +80,18 @@ func seed(t *testing.T, d *db.DB) {
 	if err := db.WarmUpCatalog(context.Background(), d.Write); err != nil {
 		t.Fatal(err)
 	}
+	fillWorksFTS(t, d)
+}
+
+func fillWorksFTS(t *testing.T, d *db.DB) {
+	t.Helper()
 	if _, err := d.Write.Exec(`INSERT INTO works_fts(rowid, title, authors, series)
 		SELECT w.id, normalize(w.title), normalize(w.authors_text),
 		       (SELECT normalize(group_concat(DISTINCT e.series)) FROM editions e
 		         WHERE e.work_id = w.id AND e.is_active = 1 AND e.is_deleted = 0
 		           AND e.series IS NOT NULL AND trim(e.series) != '')
-		  FROM works w`); err != nil {
+		  FROM works w
+		 WHERE w.id NOT IN (SELECT rowid FROM works_fts)`); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -342,6 +348,100 @@ func TestLikeMatchesWordStart(t *testing.T) {
 	}
 }
 
+func seedAuthorScope(t *testing.T, d *db.DB) {
+	t.Helper()
+	execAll(t, d,
+		`INSERT INTO authors(id, author_key, last_name, first_name, middle_name, display_name, sort_name) VALUES
+		 (5, 'толстой,лев,николаевич', 'Толстой', 'Лев', 'Николаевич', 'Толстой Лев Николаевич', 'толстой лев николаевич'),
+		 (6, 'чан,тед,', 'Чан', 'Тед', '', 'Тед Чан', 'чан тед')`,
+		`INSERT INTO works(id, work_key, title, sort_title, authors_text, lang, created_at, updated_at) VALUES
+		 (20, 'k-war', 'Война и мир', 'война и мир', 'Толстой Лев Николаевич', 'ru', 't', 't'),
+		 (21, 'k-story', 'История твоей жизни', 'история твоей жизни', 'Тед Чан', 'ru', 't', 't'),
+		 (22, 'k-chan-title', 'Чан', 'чан', 'Громов Александр Николаевич', 'ru', 't', 't')`,
+		`INSERT INTO work_authors(work_id, author_id, position) VALUES (20,5,0),(21,6,0),(22,1,0)`,
+		`INSERT INTO editions(id, libid, work_id, archive_name, file_name, lang, added_date, is_deleted, is_active) VALUES
+		 (20,'20',20,'a.zip','f','ru','2014-01-01',0,1),
+		 (21,'21',21,'a.zip','f','ru','2014-01-02',0,1),
+		 (22,'22',22,'a.zip','f','ru','2014-01-03',0,1)`,
+		`INSERT INTO edition_genres(edition_id, genre_id) VALUES (20,1),(21,1),(22,1)`,
+	)
+	if err := db.WarmUpCatalog(context.Background(), d.Write); err != nil {
+		t.Fatal(err)
+	}
+	fillWorksFTS(t, d)
+}
+
+func TestSearchAuthorNameFindsBooks(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	seedAuthorScope(t, d)
+	ctx := context.Background()
+
+	byAuthor, err := svc.Search(ctx, SearchQuery{Q: "тед чан"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsWorkTitle(byAuthor.Works, "История твоей жизни") {
+		t.Fatalf("author name should find the author's books, got %v", titles(byAuthor.Works))
+	}
+	if containsWorkTitle(byAuthor.Works, "Чан") {
+		t.Fatalf("AND across tokens must not return a title-only чан hit: %v", titles(byAuthor.Works))
+	}
+	if len(byAuthor.Authors) == 0 || byAuthor.Authors[0].ID != 6 {
+		t.Fatalf("authors block %+v", byAuthor.Authors)
+	}
+
+	cross, err := svc.Search(ctx, SearchQuery{Q: "толстой война"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsWorkTitle(cross.Works, "Война и мир") {
+		t.Fatalf("author+title AND should find Война и мир, got %v", titles(cross.Works))
+	}
+
+	surname, err := svc.Search(ctx, SearchQuery{Q: "чан"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(surname.Works.Items) < 2 {
+		t.Fatalf("expected title and author hits, got %v", titles(surname.Works))
+	}
+	if surname.Works.Items[0].Title != "Чан" {
+		t.Fatalf("title weight should rank «Чан» first, got %v", titles(surname.Works))
+	}
+}
+
+func TestSearchLikeFallbackTitleOnly(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	seedAuthorScope(t, d)
+	if _, err := d.Write.Exec(`DROP TABLE works_fts`); err != nil {
+		t.Fatal(err)
+	}
+	res, err := svc.Search(context.Background(), SearchQuery{Q: "громов"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Fallback {
+		t.Fatal("expected fallback")
+	}
+	if len(res.Works.Items) != 0 {
+		t.Fatalf("LIKE fallback must stay title-only, got %v", titles(res.Works))
+	}
+	if len(res.Authors) == 0 || res.Authors[0].ID != 1 {
+		t.Fatalf("author block still finds the name, got %+v", res.Authors)
+	}
+}
+
+func containsWorkTitle(page WorkPage, title string) bool {
+	for _, w := range page.Items {
+		if w.Title == title {
+			return true
+		}
+	}
+	return false
+}
+
 func TestAddedDateSortUsesColumn(t *testing.T) {
 	svc, d := openSvc(t)
 	seed(t, d)
@@ -424,5 +524,48 @@ func TestGettersUnknownID(t *testing.T) {
 	author, err := svc.GetAuthor(ctx, 1)
 	if err != nil || author.DisplayName == "" {
 		t.Fatalf("author %+v %v", author, err)
+	}
+}
+
+func TestWorkDetailsAndViewed(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	det, err := svc.GetWorkDetails(ctx, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if det.SeriesID == 0 || len(det.Authors) == 0 {
+		t.Fatalf("details %+v", det)
+	}
+	if det.PrevWorkID != nil {
+		t.Fatalf("first volume prev=%v", det.PrevWorkID)
+	}
+	if det.NextWorkID == nil || *det.NextWorkID != 6 {
+		t.Fatalf("next=%v", det.NextWorkID)
+	}
+	if len(det.Editions) != 1 || det.Editions[0].ArchiveName != "a.zip" {
+		t.Fatalf("editions %+v", det.Editions)
+	}
+	if _, err := d.Write.Exec(`INSERT INTO editions(libid, work_id, archive_name, file_name, file_ext, size, is_deleted, is_active)
+		VALUES ('5b', 5, 'b.zip', 'g', 'fb2', 366000, 0, 1)`); err != nil {
+		t.Fatal(err)
+	}
+	det, err = svc.GetWorkDetails(ctx, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if det.EditionCount != 2 || len(det.Editions) != 2 {
+		t.Fatalf("two editions count=%d list=%d", det.EditionCount, len(det.Editions))
+	}
+	if det.Editions[1].ArchiveName != "b.zip" || det.Editions[1].Size == nil || *det.Editions[1].Size != 366000 {
+		t.Fatalf("second edition %+v", det.Editions)
+	}
+	if err := svc.RecordViewed(ctx, 5); err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	if err := d.Read.QueryRow(`SELECT count(*) FROM recently_viewed WHERE work_id = 5`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("viewed n=%d err=%v", n, err)
 	}
 }

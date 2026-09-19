@@ -6,6 +6,7 @@ import {
   asWorkPage,
   type Author,
   type AuthorPage,
+  type CatalogTotal,
   type Genre,
   type ListPeopleQuery,
   type ListWorksQuery,
@@ -33,6 +34,10 @@ export interface WorkListState {
   status: ListStatus
   error: BackendError | null
   scrollTop: number
+  authors: Author[]
+  series: Series[]
+  authorsTotal?: CatalogTotal
+  seriesTotal?: CatalogTotal
 }
 
 function emptyWorks(): WorkListState {
@@ -46,6 +51,8 @@ function emptyWorks(): WorkListState {
     status: 'idle',
     error: null,
     scrollTop: 0,
+    authors: [],
+    series: [],
   }
 }
 
@@ -199,6 +206,10 @@ export const useCatalogStore = defineStore('catalog', () => {
       state.status = 'loading'
       state.error = null
       state.fallback = false
+      state.authors = []
+      state.series = []
+      state.authorsTotal = undefined
+      state.seriesTotal = undefined
     } else if (state.loadingMore || state.status === 'loading' || state.exhausted) {
       return { works: { items: state.items }, fallback: state.fallback }
     } else {
@@ -222,7 +233,14 @@ export const useCatalogStore = defineStore('catalog', () => {
       state.totalN = page.total?.n
       state.capped = Boolean(page.total?.capped) || state.items.length >= 500
       state.fallback = Boolean(result.fallback)
-      state.status = state.items.length === 0 ? 'empty' : 'ready'
+      if (resetPage) {
+        state.authors = result.authors ?? []
+        state.series = result.series ?? []
+        state.authorsTotal = result.authorsTotal
+        state.seriesTotal = result.seriesTotal
+      }
+      const hasPeople = state.authors.length > 0 || state.series.length > 0
+      state.status = state.items.length === 0 && !hasPeople ? 'empty' : 'ready'
       return result
     } catch (err) {
       if (tokens[key] !== token) {

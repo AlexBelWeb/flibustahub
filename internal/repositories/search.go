@@ -2,10 +2,26 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/alexbelweb/flibustahub/internal/visibility"
 )
+
+// BM25 column weights for works_fts(title, authors, series). Title outranks
+// author so a title hit is not buried under a common surname; series sits
+// between them. Numbers are from the snapshot top-10 for «тед чан»,
+// «толстой» and «война».
+const (
+	WorksFTSTitleWeight   = 10.0
+	WorksFTSAuthorsWeight = 1.0
+	WorksFTSSeriesWeight  = 3.0
+)
+
+func worksFTSRankSQL() string {
+	return fmt.Sprintf("bm25(works_fts, %g, %g, %g), w.id",
+		WorksFTSTitleWeight, WorksFTSAuthorsWeight, WorksFTSSeriesWeight)
+}
 
 type WorkSearchParams struct {
 	FTS        string
@@ -25,7 +41,7 @@ func (c *Catalog) SearchWorkIDsFTS(ctx context.Context, p WorkSearchParams) ([]i
 	 WHERE works_fts MATCH ? AND ` + workPresenceSQL("w", p.Visible)
 	args := []any{p.FTS}
 	q, args = appendWorkFilters(q, args, p)
-	q += ` ORDER BY bm25(works_fts), w.id LIMIT ? OFFSET ?`
+	q += ` ORDER BY ` + worksFTSRankSQL() + ` LIMIT ? OFFSET ?`
 	args = append(args, p.Limit, p.Offset)
 	return c.scanIDs(ctx, q, args...)
 }
@@ -141,6 +157,22 @@ func (c *Catalog) SearchSeriesIDsFTS(ctx context.Context, match string, limit in
 		JOIN series s ON s.id = f.rowid
 		WHERE series_fts MATCH ? AND s.work_count > 0
 		ORDER BY bm25(series_fts) LIMIT ?`, match, limit)
+}
+
+func (c *Catalog) CountAuthorsCappedFTS(ctx context.Context, match string, capN int) (int, error) {
+	return c.scanCount(ctx, `SELECT count(*) FROM (
+		SELECT a.id FROM authors_fts f
+		JOIN authors a ON a.id = f.rowid
+		WHERE authors_fts MATCH ? AND a.work_count > 0
+		LIMIT ?)`, match, capN)
+}
+
+func (c *Catalog) CountSeriesCappedFTS(ctx context.Context, match string, capN int) (int, error) {
+	return c.scanCount(ctx, `SELECT count(*) FROM (
+		SELECT s.id FROM series_fts f
+		JOIN series s ON s.id = f.rowid
+		WHERE series_fts MATCH ? AND s.work_count > 0
+		LIMIT ?)`, match, capN)
 }
 
 func (c *Catalog) SearchSeriesIDsLIKE(ctx context.Context, patterns []string, limit int) ([]int64, error) {

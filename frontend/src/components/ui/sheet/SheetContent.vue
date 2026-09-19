@@ -17,25 +17,30 @@ defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
   defineProps<
-    DialogContentProps & { class?: HTMLAttributes['class']; side?: SheetVariants['side'] }
+    DialogContentProps & {
+      class?: HTMLAttributes['class']
+      side?: SheetVariants['side']
+      hideClose?: boolean
+    }
   >(),
-  { side: 'right' },
+  { side: 'right', hideClose: false },
 )
 const emits = defineEmits<DialogContentEmits>()
 const { t } = useI18n()
-const delegatedProps = reactiveOmit(props as Record<string, unknown>, 'class', 'side')
+const delegatedProps = reactiveOmit(props as Record<string, unknown>, 'class', 'side', 'hideClose')
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
   <DialogPortal>
-    <DialogOverlay class="fixed inset-0 z-50 bg-black/50" />
+    <DialogOverlay class="fixed inset-0 z-50 bg-black/80" />
     <DialogContent
       v-bind="{ ...forwarded, ...$attrs }"
       :class="cn(sheetVariants({ side: props.side }), props.class)"
     >
       <slot />
       <DialogClose
+        v-if="!props.hideClose"
         class="absolute top-4 right-4 rounded-sm opacity-70 hover:opacity-100"
         :aria-label="t('common.dismiss')"
       >

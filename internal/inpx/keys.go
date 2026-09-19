@@ -28,19 +28,32 @@ func (a Author) Key() string {
 	return textnorm.Normalize(a.Last) + "," + textnorm.Normalize(a.First) + "," + textnorm.Normalize(a.Middle)
 }
 
+// SortSentinel is stored when normalize() yields an empty sort key.
+// Binary collation puts it after any real title or name, so untitled
+// rows do not occupy the first catalog page, and the keyset predicate
+// on (sort_title, id) stays a range on idx_works_sort_title.
+const SortSentinel = "\uFFFF"
+
+func sortKey(s string) string {
+	if s == "" {
+		return SortSentinel
+	}
+	return s
+}
+
 // SortName is the denormalized author ordering key.
 // An empty last name uses the first non-empty remaining part so the
 // author does not sort as nameless.
 func (a Author) SortName() string {
 	if strings.TrimSpace(a.Last) != "" {
-		return strings.TrimSpace(textnorm.Normalize(a.Last) + " " + textnorm.Normalize(a.First) + " " + textnorm.Normalize(a.Middle))
+		return sortKey(strings.TrimSpace(textnorm.Normalize(a.Last) + " " + textnorm.Normalize(a.First) + " " + textnorm.Normalize(a.Middle)))
 	}
 	for _, p := range []string{a.First, a.Middle} {
 		if strings.TrimSpace(p) != "" {
-			return textnorm.Normalize(p)
+			return sortKey(textnorm.Normalize(p))
 		}
 	}
-	return ""
+	return SortSentinel
 }
 
 // AuthorsText joins display names in AUTHOR-field order.
@@ -52,9 +65,9 @@ func AuthorsText(authors []Author) string {
 	return strings.Join(names, ", ")
 }
 
-// SortTitle is normalize(title).
+// SortTitle is normalize(title), or SortSentinel when that is empty.
 func SortTitle(title string) string {
-	return textnorm.Normalize(title)
+	return sortKey(textnorm.Normalize(title))
 }
 
 // WorkKey returns hex(sha256(preimage)) and the preimage (for tests/debug only).

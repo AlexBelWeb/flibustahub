@@ -11,6 +11,7 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/inpx"
 	"github.com/alexbelweb/flibustahub/internal/repositories"
+	"github.com/alexbelweb/flibustahub/internal/services/covers"
 	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
 )
 
@@ -156,6 +157,16 @@ func (s *Service) StartImport(ctx context.Context, progress func(inpximport.Prog
 	if err != nil {
 		return inpximport.ReportDTO{}, err
 	}
+	coversDir := s.config().Paths().CoversDir
+	if err := covers.ClearNoneMarkers(coversDir); err != nil {
+		s.Logger().Warn("cover none markers not cleared", "err", err)
+	}
+	s.openMu.Lock()
+	c := s.covers
+	s.openMu.Unlock()
+	if c != nil {
+		c.ForgetSessionFails()
+	}
 	return rep.ToDTO(), nil
 }
 
@@ -164,6 +175,7 @@ func (s *Service) CancelImport() {
 	cancel := s.importCancel
 	s.importMu.Unlock()
 	if cancel != nil {
+		s.Logger().Info("import cancelled")
 		cancel()
 	}
 }

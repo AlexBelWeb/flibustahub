@@ -7,6 +7,14 @@ export function isBlankTitle(title: string | undefined): boolean {
   return title.replace(/[\p{P}\p{S}\s]/gu, '') === ''
 }
 
+export function isUnknownAuthor(name: string | undefined): boolean {
+  if (!name) {
+    return true
+  }
+  const n = name.replace(/,/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
+  return n === '' || n === 'неизвестен автор'
+}
+
 export function authorParts(authorsText: string | undefined): string[] {
   if (!authorsText) {
     return []
@@ -15,6 +23,23 @@ export function authorParts(authorsText: string | undefined): string[] {
     .split(',')
     .map((part) => part.trim())
     .filter(Boolean)
+}
+
+export function titleMonogram(title: string): string {
+  const words = title
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!words.length) {
+    return '?'
+  }
+  const first = Array.from(words[0])
+  if (words.length === 1) {
+    return first.slice(0, 2).join('').toLocaleUpperCase()
+  }
+  const second = Array.from(words[1])
+  return `${first[0] ?? ''}${second[0] ?? ''}`.toLocaleUpperCase()
 }
 
 export function coverHue(workKey: string): number {

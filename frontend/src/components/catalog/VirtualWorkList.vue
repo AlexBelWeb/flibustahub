@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useI18n } from 'vue-i18n'
 import WorkCard from '@/components/catalog/WorkCard.vue'
 import WorkRow from '@/components/catalog/WorkRow.vue'
+import { SCROLL_END_PAD } from '@/lib/scroll'
 import { gridKeyHandled, nextGridIndex } from '@/lib/grid-nav'
 import type { CatalogView, Work } from '@/types/catalog'
 
@@ -44,7 +45,7 @@ const lanes = computed(() => {
   return 5
 })
 
-const estimate = computed(() => (props.view === 'tile' ? 420 : 48))
+const estimate = computed(() => (props.view === 'tile' ? 500 : 48))
 
 const virtualizer = useVirtualizer(
   computed(() => ({
@@ -151,7 +152,7 @@ watch(
   <div class="flex min-h-0 flex-1 flex-col">
     <div
       v-if="view === 'table'"
-      class="grid grid-cols-[2.5rem_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_4rem_6rem_4rem] gap-3 border-b border-border px-2 py-2 text-xs text-muted-foreground"
+      class="grid grid-cols-[2.5rem_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_7rem_6rem_4rem] gap-3 border-b border-border px-2 py-2 text-xs text-muted-foreground"
     >
       <span />
       <span>{{ t('catalog.colTitle') }}</span>
@@ -169,7 +170,10 @@ watch(
         @scroll.passive="onScroll"
         @keydown="onKeydown"
       >
-        <div class="relative w-full" :style="{ height: `${virtualizer.getTotalSize()}px` }">
+        <div
+          class="relative w-full"
+          :style="{ height: `${virtualizer.getTotalSize() + SCROLL_END_PAD}px` }"
+        >
           <div
             v-for="row in virtualizer.getVirtualItems()"
             :key="row.key"

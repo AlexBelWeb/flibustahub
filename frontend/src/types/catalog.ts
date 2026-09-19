@@ -41,6 +41,36 @@ export interface Genre {
   workCount: number
 }
 
+export interface WorkDetails extends Work {
+  authors?: Author[]
+  genres?: Genre[]
+  seriesId?: number
+  prevWorkId?: number
+  nextWorkId?: number
+  annotation?: string
+  annotationChecked?: boolean
+  fileExt?: string
+  editions?: WorkEdition[]
+}
+
+export interface WorkEdition {
+  archiveName: string
+  fileName?: string
+  fileExt?: string
+  size?: number
+}
+
+export interface Annotation {
+  text?: string
+  checked: boolean
+}
+
+export interface CoverProgress {
+  total: number
+  done: number
+  running: boolean
+}
+
 export interface WorkPage {
   items: Work[]
   nextCursor?: string
@@ -89,6 +119,8 @@ export interface SearchQuery {
 export interface SearchResult {
   authors?: Author[]
   series?: Series[]
+  authorsTotal?: CatalogTotal
+  seriesTotal?: CatalogTotal
   works: WorkPage
   fallback?: boolean
 }
@@ -111,6 +143,8 @@ export function asSearchResult(value: SearchResult | null | undefined): SearchRe
   return {
     authors: value?.authors ?? [],
     series: value?.series ?? [],
+    authorsTotal: value?.authorsTotal,
+    seriesTotal: value?.seriesTotal,
     works: asWorkPage(value?.works),
     fallback: Boolean(value?.fallback),
   }

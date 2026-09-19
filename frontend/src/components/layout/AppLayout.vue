@@ -4,6 +4,7 @@ import { RouterView, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import CommandPalette from '@/components/search/CommandPalette.vue'
+import BookDrawer from '@/components/catalog/BookDrawer.vue'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard.vue'
 import { Button } from '@/components/ui/button'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -82,6 +83,7 @@ onUnmounted(() => {
       </div>
     </SidebarInset>
     <CommandPalette />
+    <BookDrawer />
     <OnboardingWizard />
   </SidebarProvider>
 </template>

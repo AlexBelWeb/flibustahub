@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/textnorm"
 	"github.com/alexbelweb/flibustahub/migrations"
+	"golang.org/x/text/encoding/charmap"
 )
 
 func openTest(t *testing.T, opts ...func(*Options)) *DB {
@@ -93,7 +95,7 @@ func TestMigrateTwiceIsNoop(t *testing.T) {
 	if err := d2.Write.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 2 {
+	if n != 5 {
 		t.Fatalf("schema_migrations rows = %d", n)
 	}
 }
@@ -200,6 +202,199 @@ func TestMigration002FillsAddedDateAndCounts(t *testing.T) {
 	}
 	if total != "2" || listable != "2" {
 		t.Fatalf("counters total=%s listable=%s", total, listable)
+	}
+}
+
+func TestMigration003ClearsImplausibleAnnotations(t *testing.T) {
+	m1, err := migrations.FS.ReadFile("001_initial.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, err := migrations.FS.ReadFile("002_works_added_date.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: fstest.MapFS{
+			"001_initial.sql":          &fstest.MapFile{Data: m1},
+			"002_works_added_date.sql": &fstest.MapFile{Data: m2},
+		},
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO works(id, work_key, title, sort_title, authors_text, created_at, updated_at, annotation, annotation_checked_at)
+		VALUES (1, 'k1', 'Good', 'good', 'A', 't', 't', 'Обычный текст аннотации.', '2026-01-01T00:00:00Z'),
+		       (2, 'k2', 'Bad', 'bad', 'B', 't', 't', '╔══╗ © ¤ ░▒▓│┤', '2026-01-01T00:00:00Z')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       opt.Path,
+		BackupsDir: opt.BackupsDir,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+
+	var good sql.NullString
+	var goodAt sql.NullString
+	if err := d2.Read.QueryRow(`SELECT annotation, annotation_checked_at FROM works WHERE id = 1`).Scan(&good, &goodAt); err != nil {
+		t.Fatal(err)
+	}
+	if !good.Valid || good.String != "Обычный текст аннотации." || !goodAt.Valid {
+		t.Fatalf("good annotation lost: %v %v", good, goodAt)
+	}
+	var bad sql.NullString
+	var badAt sql.NullString
+	if err := d2.Read.QueryRow(`SELECT annotation, annotation_checked_at FROM works WHERE id = 2`).Scan(&bad, &badAt); err != nil {
+		t.Fatal(err)
+	}
+	if bad.Valid || badAt.Valid {
+		t.Fatalf("implausible annotation must be cleared, got %v %v", bad, badAt)
+	}
+}
+
+func TestMigration004ClearsMojibakeWrittenAfter003(t *testing.T) {
+	m1, err := migrations.FS.ReadFile("001_initial.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, err := migrations.FS.ReadFile("002_works_added_date.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m3, err := migrations.FS.ReadFile("003_reset_implausible_annotations.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: fstest.MapFS{
+			"001_initial.sql":                       &fstest.MapFile{Data: m1},
+			"002_works_added_date.sql":              &fstest.MapFile{Data: m2},
+			"003_reset_implausible_annotations.sql": &fstest.MapFile{Data: m3},
+		},
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	utf := []byte("Он говорил, что я его пара, его Истинная.")
+	mojibake, err := charmap.CodePage866.NewDecoder().Bytes(utf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO works(id, work_key, title, sort_title, authors_text, created_at, updated_at, annotation, annotation_checked_at)
+		VALUES (1, 'k1', 'T', 't', 'A', 't', 't', ?, '2026-09-19T09:10:00Z')`, string(mojibake))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       opt.Path,
+		BackupsDir: opt.BackupsDir,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+	var ann sql.NullString
+	var at sql.NullString
+	if err := d2.Read.QueryRow(`SELECT annotation, annotation_checked_at FROM works WHERE id = 1`).Scan(&ann, &at); err != nil {
+		t.Fatal(err)
+	}
+	if ann.Valid || at.Valid {
+		t.Fatalf("mojibake written after 003 must be cleared, got %v %v", ann, at)
+	}
+}
+
+func TestMigration005MovesEmptySortKeysLast(t *testing.T) {
+	limited := fstest.MapFS{}
+	for _, name := range []string{
+		"001_initial.sql",
+		"002_works_added_date.sql",
+		"003_reset_implausible_annotations.sql",
+		"004_reset_implausible_annotations.sql",
+	} {
+		data, err := migrations.FS.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		limited[name] = &fstest.MapFile{Data: data}
+	}
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+		Migrations: limited,
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO works(id, work_key, title, sort_title, authors_text, created_at, updated_at)
+		VALUES (1, 'k1', '_', '', 'A', 't', 't'),
+		       (2, 'k2', 'Ёлка', 'елка', 'A', 't', 't')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO authors(id, author_key, last_name, first_name, middle_name, display_name, sort_name)
+		VALUES (1, 'empty', '', '', '', '', '')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Write.Exec(`INSERT INTO series(id, name, sort_name, work_count) VALUES (1, '...', '', 0)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = d.Close()
+
+	d2, err := Open(context.Background(), Options{
+		Path:       opt.Path,
+		BackupsDir: opt.BackupsDir,
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d2.Close() })
+
+	const sentinel = "\uFFFF"
+	var sortTitle, sortAuthor, sortSeries string
+	if err := d2.Read.QueryRow(`SELECT sort_title FROM works WHERE id = 1`).Scan(&sortTitle); err != nil {
+		t.Fatal(err)
+	}
+	if err := d2.Read.QueryRow(`SELECT sort_name FROM authors WHERE id = 1`).Scan(&sortAuthor); err != nil {
+		t.Fatal(err)
+	}
+	if err := d2.Read.QueryRow(`SELECT sort_name FROM series WHERE id = 1`).Scan(&sortSeries); err != nil {
+		t.Fatal(err)
+	}
+	if sortTitle != sentinel || sortAuthor != sentinel || sortSeries != sentinel {
+		t.Fatalf("sort keys %q %q %q", sortTitle, sortAuthor, sortSeries)
+	}
+	var firstTitle string
+	if err := d2.Read.QueryRow(`SELECT title FROM works ORDER BY sort_title, id LIMIT 1`).Scan(&firstTitle); err != nil {
+		t.Fatal(err)
+	}
+	if firstTitle != "Ёлка" {
+		t.Fatalf("first title %q, empty key still sorts first", firstTitle)
 	}
 }
 
@@ -394,6 +589,19 @@ func TestSQLFunctions(t *testing.T) {
 	}
 	if got != " елка " {
 		t.Fatalf("search_norm = %q", got)
+	}
+	var ok int64
+	if err := d.Read.QueryRow(`SELECT text_plausible('Обычный текст аннотации.')`).Scan(&ok); err != nil {
+		t.Fatal(err)
+	}
+	if ok != 1 {
+		t.Fatalf("plausible = %d", ok)
+	}
+	if err := d.Read.QueryRow(`SELECT text_plausible('╔══╗ © ¤ ░▒▓│┤')`).Scan(&ok); err != nil {
+		t.Fatal(err)
+	}
+	if ok != 0 {
+		t.Fatalf("implausible = %d", ok)
 	}
 	var n sql.NullString
 	if err := d.Read.QueryRow(`SELECT normalize(NULL)`).Scan(&n); err != nil {
@@ -614,5 +822,51 @@ func TestRebuildWorksFTSFillsInBatches(t *testing.T) {
 	}
 	if got != n {
 		t.Fatalf("works_fts rows = %d, want %d", got, n)
+	}
+}
+
+func TestWALCheckpointBusyWithLiveReader(t *testing.T) {
+	d := openTest(t)
+	if _, err := d.Write.Exec(`INSERT INTO app_meta(key, value) VALUES ('k', 'v')`); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := d.Read.Query(`SELECT value FROM app_meta`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	var busy, logFrames, checkpointed int
+	if err := d.Write.QueryRow(`PRAGMA wal_checkpoint(TRUNCATE)`).Scan(&busy, &logFrames, &checkpointed); err != nil {
+		t.Fatal(err)
+	}
+	if busy == 0 {
+		t.Log("checkpoint was not busy with a live reader")
+	}
+}
+
+func TestCloseTruncatesWALAfterReadersClosed(t *testing.T) {
+	dir := t.TempDir()
+	opt := Options{
+		Path:       filepath.Join(dir, "catalog.sqlite"),
+		BackupsDir: filepath.Join(dir, "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+	}
+	d, err := Open(context.Background(), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`INSERT INTO app_meta(key, value) VALUES ('k', 'v')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Close(); err != nil {
+		t.Fatal(err)
+	}
+	wal := d.Path() + "-wal"
+	st, statErr := os.Stat(wal)
+	if statErr == nil && st.Size() > 0 {
+		t.Fatalf("wal still %d bytes after Close", st.Size())
 	}
 }
