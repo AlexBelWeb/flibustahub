@@ -46,7 +46,14 @@ func (s *Service) SetLibraryRoot(path string) error {
 	if !info.IsDir() {
 		return apperr.New(apperr.CodeINPXNotFound, nil)
 	}
-	return s.config().Update(func(f *config.File) { f.LibraryRoot = path })
+	if err := s.config().Update(func(f *config.File) { f.LibraryRoot = path }); err != nil {
+		return err
+	}
+	if s.storage != nil {
+		s.storage.PersistVolume(context.Background(), path)
+		go s.CheckStorage(context.Background(), true)
+	}
+	return nil
 }
 
 func (s *Service) SetINPXPath(path string) error {
@@ -167,6 +174,7 @@ func (s *Service) StartImport(ctx context.Context, progress func(inpximport.Prog
 	if c != nil {
 		c.ForgetSessionFails()
 	}
+	go s.CheckStorage(context.Background(), true)
 	return rep.ToDTO(), nil
 }
 

@@ -359,6 +359,10 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
 		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
 	}
+	if err := db.SetMeta(postCtx, conn, db.MetaINPXImportedAt, opt.Now().UTC().Format(time.RFC3339)); err != nil {
+		_ = finishBatch(postCtx, conn, batchID, StatusFailed, rep, notes, opt.Now)
+		return Report{}, apperr.Wrap(apperr.CodeImportFailed, err, nil)
+	}
 
 	notes.PhasesMS = phases
 	rep.Notes = notes

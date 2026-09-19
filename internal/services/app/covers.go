@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
-	"github.com/alexbelweb/flibustahub/internal/repositories"
 	"github.com/alexbelweb/flibustahub/internal/services/catalog"
 	"github.com/alexbelweb/flibustahub/internal/services/covers"
 )
@@ -124,17 +123,4 @@ func (s *Service) RecordViewed(ctx context.Context, id int64) error {
 		return err
 	}
 	return c.RecordViewed(ctx, id)
-}
-
-func (s *Service) newCoversLocked() *covers.Service {
-	if s.catalog == nil {
-		return nil
-	}
-	cfg := s.cfg
-	cat := repositories.NewCatalog(s.catalog)
-	return covers.New(cat, func() string {
-		return cfg.Paths().CoversDir
-	}, func() string {
-		return cfg.Live().LibraryRoot
-	}, s.log, nil, s.emitCoverProgress)
 }

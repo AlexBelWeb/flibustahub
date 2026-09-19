@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,6 +49,68 @@ func TestHealthz(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatalf("healthz never answered: %v", last)
+}
+
+func TestMemStatsHiddenByDefault(t *testing.T) {
+	t.Setenv("FLIBUSTAHUB_MEMSTATS", "")
+	_, addr := startTestServer(t)
+	resp, err := http.Get("http://" + addr + "/debug/memstats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
+func TestMemStatsWhenEnabled(t *testing.T) {
+	t.Setenv("FLIBUSTAHUB_MEMSTATS", "1")
+	_, addr := startTestServer(t)
+	resp, err := http.Get("http://" + addr + "/debug/memstats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d body=%s", resp.StatusCode, body)
+	}
+	if !strings.Contains(string(body), `"heapAlloc"`) {
+		t.Fatalf("body %s", body)
+	}
+	freeResp, err := http.Get("http://" + addr + "/debug/memstats?free=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	freeBody, _ := io.ReadAll(freeResp.Body)
+	_ = freeResp.Body.Close()
+	if freeResp.StatusCode != http.StatusOK {
+		t.Fatalf("free status %d", freeResp.StatusCode)
+	}
+	if !strings.Contains(string(freeBody), `"free":true`) {
+		t.Fatalf("free body %s", freeBody)
+	}
+}
+
+func startTestServer(t *testing.T) (*Server, string) {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	_ = ln.Close()
+	srv := New(slog.New(slog.DiscardHandler))
+	if err := srv.Start("127.0.0.1", port); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_ = srv.Shutdown(ctx)
+	})
+	return srv, srv.Addr()
 }
 
 func TestPortInUse(t *testing.T) {

@@ -51,6 +51,20 @@
     "library": {
       "title": "Library"
     },
+    "downloads": {
+      "title": "Downloads",
+      "lead": "Downloaded books are saved to this folder. There is no Save As dialog — change the folder here.",
+      "choose": "Choose downloads folder",
+      "open": "Open downloads folder",
+      "empty": "No downloads folder selected yet"
+    },
+    "reader": {
+      "title": "Reader",
+      "lead": "If no path is set, the book opens with the application the system associates with this file type.",
+      "choose": "Choose application",
+      "clear": "Use the system default",
+      "osDefault": "System default application"
+    },
     "covers": {
       "title": "Covers",
       "lead": "Covers are read from the archives and cached on disk. You can delete the cache — the app will rebuild it.",
@@ -91,7 +105,7 @@
     "db_migrate_failed": "Could not update the catalog schema. A migration file may have been edited after it was applied.",
     "db_incompatible": "This data folder already contains a catalog from another application. It will not be opened or converted. Rename catalog.sqlite in the data folder and retry to create a new empty catalog.",
     "db_backup_failed": "Could not create a catalog backup.",
-    "open_dir_failed": "Could not open the folder.",
+    "open_dir_failed": "Could not open this in the file manager. It may have been moved or deleted.",
     "import_cancelled": "Import was cancelled. The catalog is unchanged.",
     "import_failed": "Could not import the catalog. Details were written to the log.",
     "inpx_not_found": "No .inpx catalog file was found in this folder. Choose the library root that contains the dump.",
@@ -100,8 +114,27 @@
     "not_found": "This record was not found.",
     "invalid_catalog_view": "Unknown list layout.",
     "library_offline": "The library folder is unavailable. Check that the storage is connected.",
+    "library_unreachable": "The library folder cannot be read. Check the connection and try again.",
     "archive_missing": "Archive {archive} was not found in the library folder.",
-    "fb2_unreadable": "The book file could not be read."
+    "fb2_unreadable": "The book file could not be read.",
+    "reader_unavailable": "No application is associated with this file type. Choose a reader or show the file in its folder.",
+    "reader_missing": "Could not start “{path}”. Pick another program or go back to the system default.",
+    "downloads_dir_unusable": "The downloads folder cannot be used. Choose another folder.",
+    "cancelled": "The action was cancelled."
+  },
+  "storage": {
+    "offlineTitle": "Storage unavailable",
+    "offlineBody": "The catalog, search and ratings still work. Reading, downloading and cover extraction from archives are paused.",
+    "unreachableTitle": "Storage is not responding",
+    "unreachableBody": "The path is there, but it could not be read. Check the connection — this is often a sleeping disk or a network share.",
+    "offlineShort": "No storage",
+    "unreachableShort": "Storage unreadable",
+    "checkAgain": "Check again",
+    "repoint": "Choose folder again",
+    "noLibrary": "Choose the library folder in settings first.",
+    "remapped": "The library folder was found on another drive; the path has been updated.",
+    "dumpNewer": "A newer dump {name} is in the folder. Import is never started automatically.",
+    "dumpUpdate": "Update catalog"
   },
   "status": {
     "version": "Version",
@@ -184,6 +217,17 @@
   "book": {
     "annotation": "Annotation",
     "editions": "Editions",
+    "default": "Default",
+    "editionActions": "Actions for this edition",
+    "read": "Read",
+    "download": "Download",
+    "showInFolder": "Show in folder",
+    "downloaded": "Saved: {name}",
+    "readerTitle": "No application for this file",
+    "readerMissingTitle": "The reader could not be opened",
+    "readerChoose": "Choose application",
+    "readerFix": "Choose another path",
+    "readerUseOs": "Use system default",
     "annotationEmpty": "No annotation",
     "annotationError": "The annotation could not be loaded.",
     "readingDisk": "Reading from disk…",

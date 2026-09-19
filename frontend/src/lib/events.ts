@@ -6,6 +6,7 @@ export const Events = {
   DBUpdated: 'db:updated',
   SearchIndexReady: 'search:indexReady',
   CoversProgress: 'covers:progress',
+  StorageChanged: 'storage:changed',
 } as const
 
 export type EventName = (typeof Events)[keyof typeof Events]

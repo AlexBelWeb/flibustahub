@@ -9,19 +9,28 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/visibility"
 )
 
-// EditionFile is the archive member used to extract a cover or annotation.
-type EditionFile struct {
-	ArchiveName string
-	FileName    string
-	FileExt     string
-}
-
 // VisibleEdition is one listable file of a work (archive, size, format).
 type VisibleEdition struct {
+	ID          int64
 	ArchiveName string
 	FileName    string
 	FileExt     string
 	Size        sql.NullInt64
+	AddedDate   string
+}
+
+// EditionFile is a physical file used for covers, download or reading.
+type EditionFile struct {
+	ID          int64
+	WorkID      int64
+	Title       string
+	AuthorsText string
+	ArchiveName string
+	FileName    string
+	FileExt     string
+	Size        sql.NullInt64
+	AddedDate   string
+	Active      bool
 }
 
 type AnnotationRow struct {
@@ -48,7 +57,7 @@ func (c *Catalog) PrimaryEdition(ctx context.Context, workID int64) (EditionFile
 
 func (c *Catalog) VisibleEditions(ctx context.Context, workID int64) ([]VisibleEdition, error) {
 	rows, err := c.read.QueryContext(ctx, `
-		SELECT e.archive_name, e.file_name, e.file_ext, e.size
+		SELECT e.id, e.archive_name, e.file_name, e.file_ext, e.size, COALESCE(e.added_date, '')
 		  FROM editions e
 		 WHERE e.work_id = ? AND `+visibility.VisibleEditionSQL+`
 		 ORDER BY e.archive_name, e.id`, workID)
@@ -59,12 +68,28 @@ func (c *Catalog) VisibleEditions(ctx context.Context, workID int64) ([]VisibleE
 	var out []VisibleEdition
 	for rows.Next() {
 		var e VisibleEdition
-		if err := rows.Scan(&e.ArchiveName, &e.FileName, &e.FileExt, &e.Size); err != nil {
+		if err := rows.Scan(&e.ID, &e.ArchiveName, &e.FileName, &e.FileExt, &e.Size, &e.AddedDate); err != nil {
 			return nil, err
 		}
 		out = append(out, e)
 	}
 	return out, rows.Err()
+}
+
+// Edition returns one edition joined with its work, including inactive rows.
+func (c *Catalog) Edition(ctx context.Context, id int64) (EditionFile, error) {
+	var e EditionFile
+	var active int
+	err := c.read.QueryRowContext(ctx, `
+		SELECT e.id, e.work_id, w.title, w.authors_text, e.archive_name, e.file_name, e.file_ext,
+		       e.size, COALESCE(e.added_date, ''), e.is_active
+		  FROM editions e JOIN works w ON w.id = e.work_id
+		 WHERE e.id = ?`, id).Scan(
+		&e.ID, &e.WorkID, &e.Title, &e.AuthorsText, &e.ArchiveName, &e.FileName, &e.FileExt,
+		&e.Size, &e.AddedDate, &active,
+	)
+	e.Active = active != 0
+	return e, err
 }
 
 func (c *Catalog) Annotation(ctx context.Context, workID int64) (AnnotationRow, error) {

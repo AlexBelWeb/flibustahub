@@ -11,6 +11,7 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/catalog/alphabet"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/repositories"
+	"github.com/alexbelweb/flibustahub/internal/services/downloads"
 	"github.com/alexbelweb/flibustahub/internal/textnorm"
 )
 
@@ -632,18 +633,37 @@ func (s *Service) GetWorkDetails(ctx context.Context, id int64) (WorkDetails, er
 		if err != nil {
 			return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
 		}
+		candidates := make([]downloads.Edition, 0, len(eds))
 		out.Editions = make([]WorkEdition, len(eds))
 		for i, e := range eds {
 			item := WorkEdition{
+				ID:          e.ID,
 				ArchiveName: e.ArchiveName,
 				FileName:    e.FileName,
 				FileExt:     strings.ToUpper(strings.TrimPrefix(strings.TrimSpace(e.FileExt), ".")),
+				AddedDate:   e.AddedDate,
 			}
 			if e.Size.Valid {
 				v := e.Size.Int64
 				item.Size = &v
 			}
 			out.Editions[i] = item
+			candidates = append(candidates, downloads.Edition{
+				ID: e.ID, FileExt: e.FileExt, AddedDate: e.AddedDate,
+			})
+		}
+		if pref := downloads.Preferred(candidates); pref.ID != 0 {
+			out.PreferredEditionID = pref.ID
+			for i := range out.Editions {
+				if out.Editions[i].ID == pref.ID {
+					out.Editions[i].Preferred = true
+					out.FileExt = out.Editions[i].FileExt
+					if out.Editions[i].Size != nil {
+						out.Size = out.Editions[i].Size
+					}
+					break
+				}
+			}
 		}
 	}
 	return out, nil

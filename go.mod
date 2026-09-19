@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/wailsapp/wails/v2 v2.16.0
+	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.39.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	modernc.org/sqlite v1.59.0
@@ -39,7 +40,6 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
 	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect

@@ -6,6 +6,10 @@ export function Bootstrap() {
   return window['go']['handlers']['App']['Bootstrap']();
 }
 
+export function CancelFileOp(arg1, arg2) {
+  return window['go']['handlers']['App']['CancelFileOp'](arg1, arg2);
+}
+
 export function CancelImport() {
   return window['go']['handlers']['App']['CancelImport']();
 }
@@ -14,8 +18,16 @@ export function CatalogAlphabet() {
   return window['go']['handlers']['App']['CatalogAlphabet']();
 }
 
+export function CheckStorage(arg1) {
+  return window['go']['handlers']['App']['CheckStorage'](arg1);
+}
+
 export function ClearCoverCache() {
   return window['go']['handlers']['App']['ClearCoverCache']();
+}
+
+export function ClearReaderPath() {
+  return window['go']['handlers']['App']['ClearReaderPath']();
 }
 
 export function ClearSearchHistory() {
@@ -30,8 +42,16 @@ export function CoverWarmupProgress() {
   return window['go']['handlers']['App']['CoverWarmupProgress']();
 }
 
+export function DismissDumpOffer() {
+  return window['go']['handlers']['App']['DismissDumpOffer']();
+}
+
 export function DismissWindowClose() {
   return window['go']['handlers']['App']['DismissWindowClose']();
+}
+
+export function DownloadEdition(arg1) {
+  return window['go']['handlers']['App']['DownloadEdition'](arg1);
 }
 
 export function GetAnnotation(arg1) {
@@ -82,6 +102,10 @@ export function OpenDataDir() {
   return window['go']['handlers']['App']['OpenDataDir']();
 }
 
+export function OpenDownloadsDir() {
+  return window['go']['handlers']['App']['OpenDownloadsDir']();
+}
+
 export function OpenLogsDir() {
   return window['go']['handlers']['App']['OpenLogsDir']();
 }
@@ -92,6 +116,14 @@ export function PreviewImport() {
 
 export function RandomWork() {
   return window['go']['handlers']['App']['RandomWork']();
+}
+
+export function ReadEdition(arg1) {
+  return window['go']['handlers']['App']['ReadEdition'](arg1);
+}
+
+export function ReaderPath() {
+  return window['go']['handlers']['App']['ReaderPath']();
 }
 
 export function RecordSearch(arg1) {
@@ -114,12 +146,20 @@ export function SearchHistory() {
   return window['go']['handlers']['App']['SearchHistory']();
 }
 
+export function SelectDownloadsDir(arg1) {
+  return window['go']['handlers']['App']['SelectDownloadsDir'](arg1);
+}
+
 export function SelectINPXFile(arg1) {
   return window['go']['handlers']['App']['SelectINPXFile'](arg1);
 }
 
 export function SelectLibraryRoot(arg1) {
   return window['go']['handlers']['App']['SelectLibraryRoot'](arg1);
+}
+
+export function SelectReaderPath(arg1) {
+  return window['go']['handlers']['App']['SelectReaderPath'](arg1);
 }
 
 export function SetCatalogView(arg1) {
@@ -144,6 +184,10 @@ export function SetTheme(arg1) {
 
 export function SetVisualEffects(arg1) {
   return window['go']['handlers']['App']['SetVisualEffects'](arg1);
+}
+
+export function ShowInFolder(arg1) {
+  return window['go']['handlers']['App']['ShowInFolder'](arg1);
 }
 
 export function StartCoverWarmup() {

@@ -24,6 +24,8 @@ func (s *Service) Shutdown(stopHTTP func(context.Context) error) {
 		s.beginShutdown()
 		s.CancelImport()
 		s.stopCovers()
+		s.stopDownloads()
+		s.CleanupReading()
 		s.waitNamedUntil(deadline, "import", func() bool { return !s.IsImporting() })
 		s.waitCoversUntil(deadline)
 		s.waitNamedUntil(deadline, "catalog-open", func() bool { return !s.isOpening() })
@@ -44,6 +46,16 @@ func (s *Service) beginShutdown() {
 	s.stopping = true
 	s.openMu.Unlock()
 	s.Logger().Info("shutting down")
+}
+
+func (s *Service) stopDownloads() {
+	s.openMu.Lock()
+	d := s.downloads
+	s.openMu.Unlock()
+	if d == nil {
+		return
+	}
+	d.Stop()
 }
 
 func (s *Service) stopCovers() {

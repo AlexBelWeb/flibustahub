@@ -144,9 +144,7 @@ func storeCatalogCounts(ctx context.Context, e Execer) error {
 }
 
 func putMeta(ctx context.Context, e Execer, key, value string) error {
-	_, err := e.ExecContext(ctx, `INSERT INTO app_meta(key, value) VALUES (?, ?)
-ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value)
-	return err
+	return SetMeta(ctx, e, key, value)
 }
 
 // Analyze runs ANALYZE on the connection.

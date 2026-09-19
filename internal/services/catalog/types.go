@@ -44,22 +44,26 @@ type Work struct {
 
 type WorkDetails struct {
 	Work
-	Authors           []Author      `json:"authors,omitempty"`
-	Genres            []Genre       `json:"genres,omitempty"`
-	SeriesID          int64         `json:"seriesId,omitempty"`
-	PrevWorkID        *int64        `json:"prevWorkId,omitempty"`
-	NextWorkID        *int64        `json:"nextWorkId,omitempty"`
-	Annotation        *string       `json:"annotation,omitempty"`
-	AnnotationChecked bool          `json:"annotationChecked,omitempty"`
-	FileExt           string        `json:"fileExt,omitempty"`
-	Editions          []WorkEdition `json:"editions,omitempty"`
+	Authors            []Author      `json:"authors,omitempty"`
+	Genres             []Genre       `json:"genres,omitempty"`
+	SeriesID           int64         `json:"seriesId,omitempty"`
+	PrevWorkID         *int64        `json:"prevWorkId,omitempty"`
+	NextWorkID         *int64        `json:"nextWorkId,omitempty"`
+	Annotation         *string       `json:"annotation,omitempty"`
+	AnnotationChecked  bool          `json:"annotationChecked,omitempty"`
+	FileExt            string        `json:"fileExt,omitempty"`
+	PreferredEditionID int64         `json:"preferredEditionId,omitempty"`
+	Editions           []WorkEdition `json:"editions,omitempty"`
 }
 
 type WorkEdition struct {
+	ID          int64  `json:"id"`
 	ArchiveName string `json:"archiveName"`
 	FileName    string `json:"fileName,omitempty"`
 	FileExt     string `json:"fileExt,omitempty"`
 	Size        *int64 `json:"size,omitempty"`
+	AddedDate   string `json:"addedDate,omitempty"`
+	Preferred   bool   `json:"preferred,omitempty"`
 }
 
 type Author struct {

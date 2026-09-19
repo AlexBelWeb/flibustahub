@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { X } from '@lucide/vue'
 import BookCover from '@/components/catalog/BookCover.vue'
+import BookActions from '@/components/catalog/BookActions.vue'
 import ListState from '@/components/catalog/ListState.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import { SheetClose } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
-import { formatBytes, formatFiles, languageName } from '@/lib/format'
+import { formatBytes, formatDate, formatFiles, languageName } from '@/lib/format'
 import { isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import type { ListStatus } from '@/stores/catalog'
 import type { Author, WorkDetails, WorkEdition } from '@/types/catalog'
@@ -38,12 +39,34 @@ let loadGen = 0
 const title = computed(() =>
   details.value && !isBlankTitle(details.value.title) ? details.value.title : t('catalog.untitled'),
 )
-const size = computed(() =>
-  details.value?.size ? formatBytes(details.value.size, locale.value) : '',
-)
+const preferredId = computed(() => {
+  const work = details.value
+  if (!work?.hasFile) {
+    return 0
+  }
+  if (work.preferredEditionId) {
+    return work.preferredEditionId
+  }
+  const preferred = (work.editions ?? []).find((ed) => ed.preferred)
+  return preferred?.id || work.editions?.[0]?.id || 0
+})
+const preferredEdition = computed(() => {
+  const work = details.value
+  if (!work) {
+    return null
+  }
+  const eds = work.editions ?? []
+  return eds.find((ed) => ed.id === preferredId.value) || eds.find((ed) => ed.preferred) || null
+})
+const size = computed(() => {
+  const n = preferredEdition.value?.size ?? details.value?.size
+  return n ? formatBytes(n, locale.value) : ''
+})
 const lang = computed(() => languageName(details.value?.lang, locale.value))
 const formatLabel = computed(() => {
-  const ext = (details.value?.fileExt || '').replace(/^\./, '').trim()
+  const ext = (preferredEdition.value?.fileExt || details.value?.fileExt || '')
+    .replace(/^\./, '')
+    .trim()
   return ext ? ext.toUpperCase() : ''
 })
 const facts = computed(() =>
@@ -61,13 +84,18 @@ function authorHref(author: Author) {
 }
 
 function editionLine(ed: WorkEdition) {
-  const ext = (ed.fileExt || '').replace(/^\./, '').trim()
   const parts = [
+    ed.fileName,
     ed.archiveName,
     ed.size != null ? formatBytes(ed.size, locale.value) : '',
-    ext ? ext.toUpperCase() : '',
+    ed.addedDate ? formatDate(ed.addedDate, locale.value) : '',
   ]
   return parts.filter(Boolean).join(' · ')
+}
+
+function editionExt(ed: WorkEdition) {
+  const ext = (ed.fileExt || '').replace(/^\./, '').trim()
+  return ext ? ext.toUpperCase() : ''
 }
 
 function clearAnnTimer() {
@@ -293,9 +321,12 @@ watch(
           </RouterLink>
         </div>
 
-        <div v-if="details.editionCount > 1 || !details.hasFile" class="flex flex-wrap gap-2">
+        <div
+          v-if="(drawer && details.editionCount > 1) || !details.hasFile"
+          class="flex flex-wrap gap-2"
+        >
           <Badge
-            v-if="details.editionCount > 1"
+            v-if="drawer && details.editionCount > 1"
             variant="secondary"
             class="px-3 py-1 text-sm tabular-nums"
           >
@@ -306,11 +337,26 @@ watch(
           </Badge>
         </div>
 
-        <section v-if="!drawer && details.editions?.length" class="grid gap-2">
+        <BookActions class="mt-1" :edition-id="preferredId" :has-file="details.hasFile" />
+
+        <section v-if="!drawer && (details.editions?.length ?? 0) > 1" class="grid gap-2">
           <h2 class="font-display text-lg font-medium">{{ t('book.editions') }}</h2>
-          <ul class="grid gap-1 text-sm text-muted-foreground">
-            <li v-for="(ed, index) in details.editions" :key="`${ed.archiveName}-${index}`">
-              {{ editionLine(ed) }}
+          <ul class="grid gap-2 text-sm text-muted-foreground">
+            <li
+              v-for="ed in details.editions"
+              :key="ed.id"
+              :aria-current="ed.preferred ? 'true' : undefined"
+              class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 rounded-lg px-3 py-2"
+              :class="ed.preferred ? 'bg-muted/60 text-foreground' : ''"
+            >
+              <div class="grid min-w-0 gap-1">
+                <p v-if="editionExt(ed)" class="text-foreground">{{ editionExt(ed) }}</p>
+                <p>{{ editionLine(ed) }}</p>
+                <Badge v-if="ed.preferred" variant="secondary" class="w-fit">{{
+                  t('book.default')
+                }}</Badge>
+              </div>
+              <BookActions quiet class="shrink-0" :edition-id="ed.id" :has-file="details.hasFile" />
             </li>
           </ul>
         </section>

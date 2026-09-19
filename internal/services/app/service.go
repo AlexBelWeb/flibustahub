@@ -15,7 +15,9 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 	"github.com/alexbelweb/flibustahub/internal/services/covers"
+	"github.com/alexbelweb/flibustahub/internal/services/downloads"
 	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
+	"github.com/alexbelweb/flibustahub/internal/services/storage"
 )
 
 // Service owns bootstrap state that is not tied to a UI toolkit.
@@ -28,7 +30,10 @@ type Service struct {
 	catalog   *db.DB
 	importer  *inpximport.Service
 	covers    *covers.Service
+	downloads *downloads.Service
+	storage   *storage.Service
 	coverEmit func(covers.Progress)
+	storeEmit func(storage.Snapshot)
 	httpAddr  string
 	startErr  error
 
@@ -47,7 +52,9 @@ type Service struct {
 }
 
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
-	return &Service{cfg: cfg, log: log, version: version, commit: commit, built: built}
+	s := &Service{cfg: cfg, log: log, version: version, commit: commit, built: built}
+	s.storage = storage.New(cfg, s.Catalog, s.Logger(), s.emitStorage)
+	return s
 }
 
 // AttachCatalog stores the catalog handle and a startup error from config or DB.
@@ -82,6 +89,10 @@ func (s *Service) CloseCatalog() {
 }
 
 func (s *Service) closeCatalogLocked(budget time.Duration) {
+	if s.downloads != nil {
+		s.downloads.Stop()
+		s.downloads = nil
+	}
 	if s.covers != nil {
 		s.covers.Stop()
 		s.covers.Wait(budget)
@@ -112,6 +123,7 @@ type Bootstrap struct {
 	CatalogOpening    bool                  `json:"catalogOpening"`
 	CatalogReady      bool                  `json:"catalogReady"`
 	MediaBase         string                `json:"mediaBase,omitempty"`
+	Storage           storage.Snapshot      `json:"storage"`
 	StartupError      *apperr.Public        `json:"startupError,omitempty"`
 }
 
@@ -172,6 +184,7 @@ func (s *Service) Bootstrap() Bootstrap {
 		CatalogOpening:    st.opening,
 		CatalogReady:      st.catalog != nil,
 		MediaBase:         st.httpAddr,
+		Storage:           s.storageSnapshot(),
 	}
 	if st.startErr != nil {
 		p := apperr.As(st.startErr).Public()
@@ -336,8 +349,14 @@ func (s *Service) openCatalogWork() error {
 	s.startErr = dbErr
 	if catalog != nil {
 		s.covers = s.newCoversLocked()
+		s.downloads = s.newDownloadsLocked()
 	}
 	s.openMu.Unlock()
+	if catalog != nil && s.storage != nil {
+		root := cfg.Live().LibraryRoot
+		s.storage.PersistVolume(context.Background(), root)
+		go s.CheckStorage(context.Background(), true)
+	}
 	return dbErr
 }
 
@@ -373,6 +392,17 @@ func (s *Service) RetryStartup() Bootstrap {
 	_ = s.openCatalogWork()
 	s.endOpening()
 	return s.Bootstrap()
+}
+
+func (s *Service) OpenDownloadsDir() error {
+	dir := s.config().Paths().DownloadsDir
+	if dir == "" {
+		return apperr.New(apperr.CodeDownloadsDirUnusable, nil)
+	}
+	if err := platform.OpenDir(dir); err != nil {
+		return apperr.Wrap(apperr.CodeOpenDirFailed, err, nil)
+	}
+	return nil
 }
 
 func (s *Service) OpenLogsDir() error {

@@ -127,6 +127,7 @@ export const useImportStore = defineStore('import', () => {
       if (app.bootstrap) {
         app.bootstrap = { ...app.bootstrap, libraryRoot: path }
       }
+      await window.go.handlers.App.CheckStorage(true)
       await loadCard()
     } catch (err) {
       previewError.value = parseBackendError(err)

@@ -50,14 +50,18 @@ export interface WorkDetails extends Work {
   annotation?: string
   annotationChecked?: boolean
   fileExt?: string
+  preferredEditionId?: number
   editions?: WorkEdition[]
 }
 
 export interface WorkEdition {
+  id: number
   archiveName: string
   fileName?: string
   fileExt?: string
   size?: number
+  addedDate?: string
+  preferred?: boolean
 }
 
 export interface Annotation {

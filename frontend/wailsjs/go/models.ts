@@ -17,6 +17,7 @@ export namespace app {
 	    catalogOpening: boolean;
 	    catalogReady: boolean;
 	    mediaBase?: string;
+	    storage: storage.Snapshot;
 	    startupError?: apperr.Public;
 	
 	    static createFrom(source: any = {}) {
@@ -41,6 +42,7 @@ export namespace app {
 	        this.catalogOpening = source["catalogOpening"];
 	        this.catalogReady = source["catalogReady"];
 	        this.mediaBase = source["mediaBase"];
+	        this.storage = this.convertValues(source["storage"], storage.Snapshot);
 	        this.startupError = this.convertValues(source["startupError"], apperr.Public);
 	    }
 	
@@ -464,10 +466,13 @@ export namespace catalog {
 	
 	
 	export class WorkEdition {
+	    id: number;
 	    archiveName: string;
 	    fileName?: string;
 	    fileExt?: string;
 	    size?: number;
+	    addedDate?: string;
+	    preferred?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new WorkEdition(source);
@@ -475,10 +480,13 @@ export namespace catalog {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
 	        this.archiveName = source["archiveName"];
 	        this.fileName = source["fileName"];
 	        this.fileExt = source["fileExt"];
 	        this.size = source["size"];
+	        this.addedDate = source["addedDate"];
+	        this.preferred = source["preferred"];
 	    }
 	}
 	export class WorkDetails {
@@ -504,6 +512,7 @@ export namespace catalog {
 	    annotation?: string;
 	    annotationChecked?: boolean;
 	    fileExt?: string;
+	    preferredEditionId?: number;
 	    editions?: WorkEdition[];
 	
 	    static createFrom(source: any = {}) {
@@ -534,6 +543,7 @@ export namespace catalog {
 	        this.annotation = source["annotation"];
 	        this.annotationChecked = source["annotationChecked"];
 	        this.fileExt = source["fileExt"];
+	        this.preferredEditionId = source["preferredEditionId"];
 	        this.editions = this.convertValues(source["editions"], WorkEdition);
 	    }
 	
@@ -618,6 +628,25 @@ export namespace covers {
 	        this.total = source["total"];
 	        this.done = source["done"];
 	        this.running = source["running"];
+	    }
+	}
+
+}
+
+export namespace downloads {
+	
+	export class Result {
+	    path: string;
+	    fileName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Result(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.fileName = source["fileName"];
 	    }
 	}
 
@@ -763,6 +792,69 @@ export namespace platform {
 	        this.framelessOk = source["framelessOk"];
 	        this.effectiveEffects = source["effectiveEffects"];
 	    }
+	}
+
+}
+
+export namespace storage {
+	
+	export class DumpOffer {
+	    path: string;
+	    name: string;
+	    fileVersion?: string;
+	    catalogVersion?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DumpOffer(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.name = source["name"];
+	        this.fileVersion = source["fileVersion"];
+	        this.catalogVersion = source["catalogVersion"];
+	    }
+	}
+	export class Snapshot {
+	    configured: boolean;
+	    available: boolean;
+	    unreachable: boolean;
+	    libraryRoot?: string;
+	    remapped?: boolean;
+	    dumpOffer?: DumpOffer;
+	
+	    static createFrom(source: any = {}) {
+	        return new Snapshot(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.configured = source["configured"];
+	        this.available = source["available"];
+	        this.unreachable = source["unreachable"];
+	        this.libraryRoot = source["libraryRoot"];
+	        this.remapped = source["remapped"];
+	        this.dumpOffer = this.convertValues(source["dumpOffer"], DumpOffer);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

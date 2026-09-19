@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { authorParts, coverHue, isBlankTitle, isUnknownAuthor, titleMonogram } from '@/lib/work'
 import { useAppStore } from '@/stores/app'
 import { useCoversStore } from '@/stores/covers'
+import { useStorageStore } from '@/stores/storage'
 import type { Work } from '@/types/catalog'
 
 const COVER_PRIORITY_HEADER = 'X-Cover-Priority'
@@ -23,6 +24,7 @@ const props = withDefaults(
 const { t } = useI18n()
 const app = useAppStore()
 const covers = useCoversStore()
+const storage = useStorageStore()
 const root = ref<HTMLElement | null>(null)
 const status = ref<'plate' | 'loading' | 'image'>('plate')
 const slow = ref(false)
@@ -45,9 +47,7 @@ const authors = computed(() => {
 const hue = computed(() => coverHue(props.work.workKey || String(props.work.id)))
 const monogram = computed(() => titleMonogram(title.value))
 const canFetch = computed(() =>
-  Boolean(
-    app.bootstrap?.mediaBase && app.bootstrap.libraryRoot && props.work.hasFile && props.work.id,
-  ),
+  Boolean(app.bootstrap?.mediaBase && storage.available && props.work.hasFile && props.work.id),
 )
 
 function coverURL() {

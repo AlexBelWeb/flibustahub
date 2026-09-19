@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
+	"github.com/alexbelweb/flibustahub/internal/platform"
 )
 
 const (
@@ -31,24 +32,26 @@ const (
 
 // File is the on-disk config.json document.
 type File struct {
-	DataDir          string      `json:"dataDir,omitempty"`
-	DBPath           string      `json:"dbPath,omitempty"`
-	CoversDir        string      `json:"coversDir,omitempty"`
-	LogsDir          string      `json:"logsDir,omitempty"`
-	BackupsDir       string      `json:"backupsDir,omitempty"`
-	DownloadsDir     string      `json:"downloadsDir,omitempty"`
-	LibraryRoot      string      `json:"libraryRoot"`
-	INPXPath         string      `json:"inpxPath"`
-	OPDSEnabled      bool        `json:"opdsEnabled"`
-	OPDSPort         int         `json:"opdsPort"`
-	OPDSBindAddress  string      `json:"opdsBindAddress"`
-	Theme            string      `json:"theme"`
-	Locale           string      `json:"locale"`
-	VisualEffects    string      `json:"visualEffects"`
-	Window           WindowState `json:"window"`
-	SidebarCollapsed bool        `json:"sidebarCollapsed"`
-	CatalogView      string      `json:"catalogView"`
-	AIProvider       string      `json:"aiProvider"`
+	DataDir              string      `json:"dataDir,omitempty"`
+	DBPath               string      `json:"dbPath,omitempty"`
+	CoversDir            string      `json:"coversDir,omitempty"`
+	LogsDir              string      `json:"logsDir,omitempty"`
+	BackupsDir           string      `json:"backupsDir,omitempty"`
+	DownloadsDir         string      `json:"downloadsDir,omitempty"`
+	LibraryRoot          string      `json:"libraryRoot"`
+	INPXPath             string      `json:"inpxPath"`
+	OPDSEnabled          bool        `json:"opdsEnabled"`
+	OPDSPort             int         `json:"opdsPort"`
+	OPDSBindAddress      string      `json:"opdsBindAddress"`
+	Theme                string      `json:"theme"`
+	Locale               string      `json:"locale"`
+	VisualEffects        string      `json:"visualEffects"`
+	Window               WindowState `json:"window"`
+	SidebarCollapsed     bool        `json:"sidebarCollapsed"`
+	CatalogView          string      `json:"catalogView"`
+	AIProvider           string      `json:"aiProvider"`
+	ReaderPath           string      `json:"readerPath"`
+	DismissedINPXVersion string      `json:"dismissedInpxVersion,omitempty"`
 }
 
 // WindowState is restored on startup after checking it still fits a monitor.
@@ -96,11 +99,7 @@ func defaultDataDir() string {
 }
 
 func defaultDownloadsDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, "Downloads")
+	return platform.DownloadsDir()
 }
 
 // Defaults returns a config document with spec defaults filled in.
@@ -109,22 +108,24 @@ func Defaults(dataDir string) File {
 		dataDir = defaultDataDir()
 	}
 	return File{
-		DataDir:         dataDir,
-		DBPath:          filepath.Join(dataDir, "catalog.sqlite"),
-		CoversDir:       filepath.Join(dataDir, "covers"),
-		LogsDir:         filepath.Join(dataDir, "logs"),
-		BackupsDir:      filepath.Join(dataDir, "backups"),
-		DownloadsDir:    defaultDownloadsDir(),
-		LibraryRoot:     "",
-		INPXPath:        "",
-		OPDSEnabled:     false,
-		OPDSPort:        DefaultOPDSPort,
-		OPDSBindAddress: DefaultOPDSBind,
-		Theme:           ThemeSystem,
-		Locale:          "",
-		VisualEffects:   EffectsAuto,
-		CatalogView:     CatalogViewTable,
-		AIProvider:      "",
+		DataDir:              dataDir,
+		DBPath:               filepath.Join(dataDir, "catalog.sqlite"),
+		CoversDir:            filepath.Join(dataDir, "covers"),
+		LogsDir:              filepath.Join(dataDir, "logs"),
+		BackupsDir:           filepath.Join(dataDir, "backups"),
+		DownloadsDir:         defaultDownloadsDir(),
+		LibraryRoot:          "",
+		INPXPath:             "",
+		OPDSEnabled:          false,
+		OPDSPort:             DefaultOPDSPort,
+		OPDSBindAddress:      DefaultOPDSBind,
+		Theme:                ThemeSystem,
+		Locale:               "",
+		VisualEffects:        EffectsAuto,
+		CatalogView:          CatalogViewTable,
+		AIProvider:           "",
+		ReaderPath:           "",
+		DismissedINPXVersion: "",
 	}
 }
 
@@ -317,6 +318,8 @@ func mergeDefaults(parsed File, dataDir string) File {
 		base.CatalogView = parsed.CatalogView
 	}
 	base.AIProvider = parsed.AIProvider
+	base.ReaderPath = parsed.ReaderPath
+	base.DismissedINPXVersion = parsed.DismissedINPXVersion
 	return base.withDerivedPaths()
 }
 

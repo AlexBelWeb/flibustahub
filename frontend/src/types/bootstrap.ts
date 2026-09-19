@@ -1,3 +1,5 @@
+import type { StorageSnapshot } from '@/types/storage'
+
 export interface Capabilities {
   os: string
   backdropFilter: boolean
@@ -37,5 +39,6 @@ export interface Bootstrap {
   catalogOpening: boolean
   catalogReady: boolean
   mediaBase?: string
+  storage?: StorageSnapshot
   startupError?: StartupError | null
 }

@@ -31,7 +31,7 @@ func openCoverSvc(t *testing.T, lib, covers string) (*Service, *db.DB) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = d.Close() })
-	svc := New(repositories.NewCatalog(d), func() string { return covers }, func() string { return lib }, slog.New(slog.DiscardHandler), time.Now, nil)
+	svc := New(repositories.NewCatalog(d), func() string { return covers }, func() string { return lib }, nil, slog.New(slog.DiscardHandler), time.Now, nil)
 	t.Cleanup(svc.Stop)
 	return svc, d
 }

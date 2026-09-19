@@ -166,6 +166,7 @@ watch(
       <div
         ref="parentRef"
         class="absolute inset-0 overflow-auto"
+        data-catalog-scroll
         tabindex="0"
         @scroll.passive="onScroll"
         @keydown="onKeydown"
