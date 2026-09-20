@@ -9,6 +9,7 @@ export namespace app {
 	    visualEffectsPref: string;
 	    sidebarCollapsed: boolean;
 	    catalogView: string;
+	    aiProvider: string;
 	    capabilities: platform.Capabilities;
 	    libraryRoot: string;
 	    paths: config.Paths;
@@ -34,6 +35,7 @@ export namespace app {
 	        this.visualEffectsPref = source["visualEffectsPref"];
 	        this.sidebarCollapsed = source["sidebarCollapsed"];
 	        this.catalogView = source["catalogView"];
+	        this.aiProvider = source["aiProvider"];
 	        this.capabilities = this.convertValues(source["capabilities"], platform.Capabilities);
 	        this.libraryRoot = source["libraryRoot"];
 	        this.paths = this.convertValues(source["paths"], config.Paths);
@@ -699,6 +701,101 @@ export namespace covers {
 
 }
 
+export namespace diagnostics {
+	
+	export class ArchiveResult {
+	    path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ArchiveResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	    }
+	}
+	export class IssueReport {
+	    kind: string;
+	    title: string;
+	    body: string;
+	    githubUrl: string;
+	    urlFits: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new IssueReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.title = source["title"];
+	        this.body = source["body"];
+	        this.githubUrl = source["githubUrl"];
+	        this.urlFits = source["urlFits"];
+	    }
+	}
+	export class Snapshot {
+	    version: string;
+	    commit: string;
+	    buildDate: string;
+	    os: string;
+	    arch: string;
+	    webView: string;
+	    inpxVersion: string;
+	    works: number;
+	    authors: number;
+	    importedAt: string;
+	    unnamedGenres: number;
+	    aiProvider: string;
+	    opdsEnabled: boolean;
+	    paths: config.Paths;
+	    recentLogLines: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Snapshot(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.commit = source["commit"];
+	        this.buildDate = source["buildDate"];
+	        this.os = source["os"];
+	        this.arch = source["arch"];
+	        this.webView = source["webView"];
+	        this.inpxVersion = source["inpxVersion"];
+	        this.works = source["works"];
+	        this.authors = source["authors"];
+	        this.importedAt = source["importedAt"];
+	        this.unnamedGenres = source["unnamedGenres"];
+	        this.aiProvider = source["aiProvider"];
+	        this.opdsEnabled = source["opdsEnabled"];
+	        this.paths = this.convertValues(source["paths"], config.Paths);
+	        this.recentLogLines = source["recentLogLines"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+}
+
 export namespace downloads {
 	
 	export class Result {
@@ -839,6 +936,39 @@ export namespace inpximport {
 
 }
 
+export namespace maintenance {
+	
+	export class BackupResult {
+	    path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new BackupResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	    }
+	}
+	export class OptimizeResult {
+	    bytesBefore: number;
+	    bytesAfter: number;
+	    bytesFreed: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new OptimizeResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.bytesBefore = source["bytesBefore"];
+	        this.bytesAfter = source["bytesAfter"];
+	        this.bytesFreed = source["bytesFreed"];
+	    }
+	}
+
+}
+
 export namespace personal {
 	
 	export class ExportResult {
@@ -948,6 +1078,27 @@ export namespace platform {
 	        this.backdropFilter = source["backdropFilter"];
 	        this.framelessOk = source["framelessOk"];
 	        this.effectiveEffects = source["effectiveEffects"];
+	    }
+	}
+
+}
+
+export namespace secrets {
+	
+	export class Status {
+	    kind: string;
+	    machineIdMissing: boolean;
+	    hasSecret: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Status(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.machineIdMissing = source["machineIdMissing"];
+	        this.hasSecret = source["hasSecret"];
 	    }
 	}
 

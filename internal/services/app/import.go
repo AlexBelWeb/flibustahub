@@ -135,6 +135,10 @@ func (s *Service) StartImport(ctx context.Context, progress func(inpximport.Prog
 		s.importMu.Unlock()
 		return inpximport.ReportDTO{}, apperr.New(apperr.CodeImportFailed, nil)
 	}
+	if s.DatabaseMaintenanceRunning() {
+		s.importMu.Unlock()
+		return inpximport.ReportDTO{}, apperr.New(apperr.CodeDBMaintenanceBusy, nil)
+	}
 	runCtx, cancel := context.WithCancel(ctx)
 	s.importing = true
 	s.importCancel = cancel

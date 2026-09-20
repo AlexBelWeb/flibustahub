@@ -172,7 +172,20 @@
     "cancelled": "The action was cancelled.",
     "invalid_rating": "A rating must be between half a star and five stars.",
     "personal_export_failed": "Could not export personal data.",
-    "personal_import_failed": "Could not import personal data."
+    "personal_import_failed": "Could not import personal data.",
+    "secret_invalid_id": "Unknown AI provider.",
+    "secret_empty": "The key cannot be empty.",
+    "secret_too_large": "The key is too long for the OS credential store (maximum {max} bytes).",
+    "secret_store_failed": "Could not save the key. Details were written to the log.",
+    "secret_store_unreadable": "The key cannot be read. Enter it again, or delete it.",
+    "invalid_ai_provider": "Unknown AI provider.",
+    "db_no_space": "Not enough free space to optimize the catalog: {need} bytes needed, {have} free.",
+    "db_maintenance_busy": "Optimization or a backup is already running.",
+    "import_in_progress": "Wait for the catalog import to finish.",
+    "cover_warmup_in_progress": "Wait for cover preload to finish.",
+    "db_optimize_failed": "Could not optimize the catalog. Details were written to the log.",
+    "diag_failed": "Could not collect diagnostics.",
+    "diag_archive_failed": "Could not save the diagnostics archive."
   },
   "storage": {
     "offlineTitle": "Storage unavailable",

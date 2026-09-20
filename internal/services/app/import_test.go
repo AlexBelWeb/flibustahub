@@ -6,12 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/inpx/testdata"
 	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
+	"github.com/alexbelweb/flibustahub/internal/services/maintenance"
 )
 
 func TestSetLibraryRootPersists(t *testing.T) {
@@ -178,4 +180,86 @@ func TestSetLibraryRootRejectsFile(t *testing.T) {
 	if err := svc.SetLibraryRoot(f); err == nil {
 		t.Fatal("expected error")
 	}
+}
+
+func TestStartImportRejectsDuringMaintenance(t *testing.T) {
+	svc := newTestService(t)
+	catalog, err := db.Open(context.Background(), db.Options{
+		Path:       filepath.Join(t.TempDir(), "catalog.sqlite"),
+		BackupsDir: filepath.Join(t.TempDir(), "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = catalog.Close() })
+	svc.AttachCatalog(catalog, nil)
+	hold := make(chan struct{})
+	holdMaintenance(svc, hold)
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := svc.OptimizeDatabase(context.Background())
+		errCh <- err
+	}()
+	waitUntil(t, 2*time.Second, svc.DatabaseMaintenanceRunning)
+	_, err = svc.StartImport(context.Background(), nil)
+	if apperr.As(err).Code != apperr.CodeDBMaintenanceBusy {
+		t.Fatalf("start import = %v", err)
+	}
+	close(hold)
+	if err := <-errCh; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestStartCoverWarmupRejectsDuringMaintenance(t *testing.T) {
+	svc := newTestService(t)
+	catalog, err := db.Open(context.Background(), db.Options{
+		Path:       filepath.Join(t.TempDir(), "catalog.sqlite"),
+		BackupsDir: filepath.Join(t.TempDir(), "backups"),
+		Log:        slog.New(slog.DiscardHandler),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = catalog.Close() })
+	svc.AttachCatalog(catalog, nil)
+	hold := make(chan struct{})
+	holdMaintenance(svc, hold)
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := svc.OptimizeDatabase(context.Background())
+		errCh <- err
+	}()
+	waitUntil(t, 2*time.Second, svc.DatabaseMaintenanceRunning)
+	if err := svc.StartCoverWarmup(context.Background()); apperr.As(err).Code != apperr.CodeDBMaintenanceBusy {
+		t.Fatalf("warmup = %v", err)
+	}
+	close(hold)
+	if err := <-errCh; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func holdMaintenance(svc *Service, hold <-chan struct{}) {
+	svc.maint = maintenance.New(maintenance.Options{
+		Catalog:   svc.Catalog,
+		Importing: svc.IsImporting,
+		Warming:   func() bool { return svc.CoverWarmupProgress().Running },
+		Hold:      hold,
+		DiskFree:  func(string) (uint64, error) { return 1 << 40, nil },
+		Log:       slog.New(slog.DiscardHandler),
+	})
+}
+
+func waitUntil(t *testing.T, timeout time.Duration, ok func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if ok() {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatal("timed out waiting for flag")
 }

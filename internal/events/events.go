@@ -4,10 +4,11 @@
 package events
 
 const (
-	ImportProgress       = "import:progress"
-	ImportCloseRequested = "import:closeRequested"
-	DBUpdated            = "db:updated"
-	SearchIndexReady     = "search:indexReady"
-	CoversProgress       = "covers:progress"
-	StorageChanged       = "storage:changed"
+	ImportProgress            = "import:progress"
+	ImportCloseRequested      = "import:closeRequested"
+	MaintenanceCloseRequested = "maintenance:closeRequested"
+	DBUpdated                 = "db:updated"
+	SearchIndexReady          = "search:indexReady"
+	CoversProgress            = "covers:progress"
+	StorageChanged            = "storage:changed"
 )

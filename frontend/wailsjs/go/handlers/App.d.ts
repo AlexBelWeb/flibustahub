@@ -3,10 +3,13 @@
 import {app} from '../models';
 import {storage} from '../models';
 import {covers} from '../models';
+import {maintenance} from '../models';
+import {diagnostics} from '../models';
 import {downloads} from '../models';
 import {personal} from '../models';
 import {catalog} from '../models';
 import {inpximport} from '../models';
+import {secrets} from '../models';
 
 export function Bootstrap():Promise<app.Bootstrap>;
 
@@ -27,6 +30,14 @@ export function ClearSearchHistory():Promise<void>;
 export function CoverWarmupPreview():Promise<number>;
 
 export function CoverWarmupProgress():Promise<covers.Progress>;
+
+export function CreateCatalogBackup():Promise<maintenance.BackupResult>;
+
+export function DatabaseMaintenanceRunning():Promise<boolean>;
+
+export function DeleteSecret(arg1:string):Promise<void>;
+
+export function Diagnostics():Promise<diagnostics.Snapshot>;
 
 export function DismissDumpOffer():Promise<void>;
 
@@ -68,9 +79,13 @@ export function OpenDownloadsDir():Promise<void>;
 
 export function OpenLogsDir():Promise<void>;
 
+export function OptimizeDatabase():Promise<maintenance.OptimizeResult>;
+
 export function PersonalSnapshot():Promise<personal.Snapshot>;
 
 export function PreviewImport():Promise<app.ImportPreview>;
+
+export function PreviewIssue(arg1:string,arg2:string):Promise<diagnostics.IssueReport>;
 
 export function PreviewPersonalImport(arg1:string):Promise<personal.ImportReport>;
 
@@ -86,9 +101,13 @@ export function RecordViewed(arg1:number):Promise<void>;
 
 export function RetryStartup():Promise<app.Bootstrap>;
 
+export function SaveDiagnosticArchive(arg1:string):Promise<diagnostics.ArchiveResult>;
+
 export function SearchCatalog(arg1:catalog.SearchQuery):Promise<catalog.SearchResult>;
 
 export function SearchHistory():Promise<Array<string>>;
+
+export function SecretStatus(arg1:string):Promise<secrets.Status>;
 
 export function SelectDownloadsDir(arg1:string):Promise<string>;
 
@@ -102,11 +121,15 @@ export function SelectPersonalImportPath(arg1:string):Promise<string>;
 
 export function SelectReaderPath(arg1:string):Promise<string>;
 
+export function SetAIProvider(arg1:string):Promise<void>;
+
 export function SetCatalogView(arg1:string):Promise<void>;
 
 export function SetINPXPath(arg1:string):Promise<void>;
 
 export function SetLocale(arg1:string):Promise<void>;
+
+export function SetSecret(arg1:string,arg2:string):Promise<void>;
 
 export function SetSidebarCollapsed(arg1:boolean):Promise<void>;
 

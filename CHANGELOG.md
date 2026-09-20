@@ -45,6 +45,7 @@ Conventions:
 - An import report is shown afterwards: how many works and editions were added or changed, which archives are missing from disk, which genres have no name, the file encodings that were detected and how long each stage took.
 - The catalog can be optimized after several incremental imports; this refreshes planner statistics and does not always free disk space.
 - A manual copy of the catalog can be saved into the backup folder.
+- A diagnostics archive can be saved without the catalog or stored keys, and a GitHub issue report can be prepared from it.
 
 ### Changed
 

@@ -86,6 +86,9 @@ func (s *Service) CoverWarmupPreview(ctx context.Context) (int, error) {
 }
 
 func (s *Service) StartCoverWarmup(ctx context.Context) error {
+	if s.DatabaseMaintenanceRunning() {
+		return apperr.New(apperr.CodeDBMaintenanceBusy, nil)
+	}
 	c, err := s.coversSvc()
 	if err != nil {
 		return err

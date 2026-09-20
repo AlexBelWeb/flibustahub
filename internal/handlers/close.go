@@ -7,7 +7,7 @@ import (
 
 const closeAckTimeout = 2 * time.Second
 
-// closeGuard decides whether a window-close during import should be blocked.
+// closeGuard decides whether a window-close during a long operation should be blocked.
 // First close: prevent and wait for the UI (or timeout). Second close: allow.
 type closeGuard struct {
 	mu        sync.Mutex

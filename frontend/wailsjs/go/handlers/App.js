@@ -42,6 +42,22 @@ export function CoverWarmupProgress() {
   return window['go']['handlers']['App']['CoverWarmupProgress']();
 }
 
+export function CreateCatalogBackup() {
+  return window['go']['handlers']['App']['CreateCatalogBackup']();
+}
+
+export function DatabaseMaintenanceRunning() {
+  return window['go']['handlers']['App']['DatabaseMaintenanceRunning']();
+}
+
+export function DeleteSecret(arg1) {
+  return window['go']['handlers']['App']['DeleteSecret'](arg1);
+}
+
+export function Diagnostics() {
+  return window['go']['handlers']['App']['Diagnostics']();
+}
+
 export function DismissDumpOffer() {
   return window['go']['handlers']['App']['DismissDumpOffer']();
 }
@@ -122,12 +138,20 @@ export function OpenLogsDir() {
   return window['go']['handlers']['App']['OpenLogsDir']();
 }
 
+export function OptimizeDatabase() {
+  return window['go']['handlers']['App']['OptimizeDatabase']();
+}
+
 export function PersonalSnapshot() {
   return window['go']['handlers']['App']['PersonalSnapshot']();
 }
 
 export function PreviewImport() {
   return window['go']['handlers']['App']['PreviewImport']();
+}
+
+export function PreviewIssue(arg1, arg2) {
+  return window['go']['handlers']['App']['PreviewIssue'](arg1, arg2);
 }
 
 export function PreviewPersonalImport(arg1) {
@@ -158,12 +182,20 @@ export function RetryStartup() {
   return window['go']['handlers']['App']['RetryStartup']();
 }
 
+export function SaveDiagnosticArchive(arg1) {
+  return window['go']['handlers']['App']['SaveDiagnosticArchive'](arg1);
+}
+
 export function SearchCatalog(arg1) {
   return window['go']['handlers']['App']['SearchCatalog'](arg1);
 }
 
 export function SearchHistory() {
   return window['go']['handlers']['App']['SearchHistory']();
+}
+
+export function SecretStatus(arg1) {
+  return window['go']['handlers']['App']['SecretStatus'](arg1);
 }
 
 export function SelectDownloadsDir(arg1) {
@@ -190,6 +222,10 @@ export function SelectReaderPath(arg1) {
   return window['go']['handlers']['App']['SelectReaderPath'](arg1);
 }
 
+export function SetAIProvider(arg1) {
+  return window['go']['handlers']['App']['SetAIProvider'](arg1);
+}
+
 export function SetCatalogView(arg1) {
   return window['go']['handlers']['App']['SetCatalogView'](arg1);
 }
@@ -200,6 +236,10 @@ export function SetINPXPath(arg1) {
 
 export function SetLocale(arg1) {
   return window['go']['handlers']['App']['SetLocale'](arg1);
+}
+
+export function SetSecret(arg1, arg2) {
+  return window['go']['handlers']['App']['SetSecret'](arg1, arg2);
 }
 
 export function SetSidebarCollapsed(arg1) {

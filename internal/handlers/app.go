@@ -60,16 +60,40 @@ func (r *Runtime) DismissClose() {
 
 // BeforeClose is called from OnBeforeClose. true means keep the window open.
 func (r *Runtime) BeforeClose() bool {
-	if r.guard.shouldForce() || !r.svc.IsImporting() {
+	if r.guard.shouldForce() {
+		return false
+	}
+	importing := r.svc.IsImporting()
+	maintenance := r.svc.DatabaseMaintenanceRunning()
+	kind := longOpCloseKind(importing, maintenance)
+	if kind == "" {
 		return false
 	}
 	prevent := r.guard.prevent()
 	if prevent && r.ctx != nil {
-		runtime.EventsEmit(r.ctx, events.ImportCloseRequested, CloseRequested{
-			Committed: r.svc.ImportCommitted(),
-		})
+		switch kind {
+		case CloseKindImport:
+			runtime.EventsEmit(r.ctx, events.ImportCloseRequested, CloseRequested{
+				Kind:      CloseKindImport,
+				Committed: r.svc.ImportCommitted(),
+			})
+		case CloseKindMaintenance:
+			runtime.EventsEmit(r.ctx, events.MaintenanceCloseRequested, CloseRequested{
+				Kind: CloseKindMaintenance,
+			})
+		}
 	}
 	return prevent
+}
+
+func longOpCloseKind(importing, maintenance bool) string {
+	if importing {
+		return CloseKindImport
+	}
+	if maintenance {
+		return CloseKindMaintenance
+	}
+	return ""
 }
 
 func (r *Runtime) FocusExistingWindow() {

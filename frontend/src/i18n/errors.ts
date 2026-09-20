@@ -62,6 +62,32 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.personal_export_failed', params))
     case 'personal_import_failed':
       return String(t('errors.personal_import_failed', params))
+    case 'secret_invalid_id':
+      return String(t('errors.secret_invalid_id', params))
+    case 'secret_empty':
+      return String(t('errors.secret_empty', params))
+    case 'secret_too_large':
+      return String(t('errors.secret_too_large', params))
+    case 'secret_store_failed':
+      return String(t('errors.secret_store_failed', params))
+    case 'secret_store_unreadable':
+      return String(t('errors.secret_store_unreadable', params))
+    case 'invalid_ai_provider':
+      return String(t('errors.invalid_ai_provider', params))
+    case 'db_no_space':
+      return String(t('errors.db_no_space', params))
+    case 'db_maintenance_busy':
+      return String(t('errors.db_maintenance_busy', params))
+    case 'import_in_progress':
+      return String(t('errors.import_in_progress', params))
+    case 'cover_warmup_in_progress':
+      return String(t('errors.cover_warmup_in_progress', params))
+    case 'db_optimize_failed':
+      return String(t('errors.db_optimize_failed', params))
+    case 'diag_failed':
+      return String(t('errors.diag_failed', params))
+    case 'diag_archive_failed':
+      return String(t('errors.diag_archive_failed', params))
     default:
       return String(t('errors.internal', params))
   }
