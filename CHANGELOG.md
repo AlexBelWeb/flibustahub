@@ -43,6 +43,8 @@ Conventions:
 - While a database schema update is applied at startup, a dedicated screen explains that a backup was made and asks you to wait.
 - While an import is running the window is blocked and shows the current stage, the number of records processed and a progress bar based on the size of the dump; the import can be cancelled until the data is written to the database.
 - An import report is shown afterwards: how many works and editions were added or changed, which archives are missing from disk, which genres have no name, the file encodings that were detected and how long each stage took.
+- The catalog can be optimized after several incremental imports; this refreshes planner statistics and does not always free disk space.
+- A manual copy of the catalog can be saved into the backup folder.
 
 ### Changed
 
