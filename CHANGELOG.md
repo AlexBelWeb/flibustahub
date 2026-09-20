@@ -39,16 +39,19 @@ Conventions:
 - A layout banner reports when the library disk is offline or unreadable, with Check again and Choose folder again; a compact reminder stays after the banner is dismissed.
 - Covers of visible cards reload when the library disk comes back, without restarting the app.
 - A quieter notice offers to update the catalog when a newer dump is in the library folder; import never starts by itself.
-- Settings for the downloads folder and an optional reader application are on the Library tab.
+- Settings for the downloads folder and an optional reader application have their own section.
+- Settings lists sections down the left side, or in a single control on a narrow window: Interface, Library and database, Downloads folder and reading, Personal data, AI assistant, and Diagnostics.
+- The AI assistant section lets you choose Gemini, OpenAI or Ollama, save or delete an API key without showing it, and says whether the key is in the OS store or an encrypted file.
 - While a database schema update is applied at startup, a dedicated screen explains that a backup was made and asks you to wait.
 - While an import is running the window is blocked and shows the current stage, the number of records processed and a progress bar based on the size of the dump; the import can be cancelled until the data is written to the database.
 - An import report is shown afterwards: how many works and editions were added or changed, which archives are missing from disk, which genres have no name, the file encodings that were detected and how long each stage took.
-- The catalog can be optimized after several incremental imports; this refreshes planner statistics and does not always free disk space.
-- A manual copy of the catalog can be saved into the backup folder.
-- A diagnostics archive can be saved without the catalog or stored keys, and a GitHub issue report can be prepared from it.
+- The catalog can be optimized from Library and database settings after several incremental imports; this refreshes planner statistics and does not always free disk space.
+- A manual copy of the catalog can be saved from the same settings into the backup folder.
+- Diagnostics settings list paths, versions and catalog stats, save a support archive without ratings, notes or books, and prepare a GitHub issue or a markdown report you can edit first.
 
 ### Changed
 
+- Settings navigation is a vertical list of sections instead of three tabs.
 - Catalog filters open as a sliding panel and can be set by language, genre, author and series; the selection stays in the address bar.
 - The command palette, sidebar and drop-down lists use the same themed controls as the rest of the window, including keyboard movement in the palette and on the book grid.
 - Sidebar, filter and list pictograms use a single icon set instead of mixed letter marks and ad-hoc drawings.

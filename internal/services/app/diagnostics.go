@@ -21,7 +21,7 @@ func (s *Service) SaveDiagnosticArchive(ctx context.Context, dir string) (diagno
 	return s.diag.WriteArchive(ctx, dir)
 }
 
-func (s *Service) PreviewIssue(ctx context.Context, kind, description string) (diagnostics.IssueReport, error) {
+func (s *Service) BuildIssueReport(ctx context.Context, kind, description string) (diagnostics.IssueReport, error) {
 	if s == nil || s.diag == nil {
 		return diagnostics.IssueReport{}, apperr.New(apperr.CodeDiagFailed, nil)
 	}

@@ -6,6 +6,10 @@ export function Bootstrap() {
   return window['go']['handlers']['App']['Bootstrap']();
 }
 
+export function BuildIssueReport(arg1, arg2) {
+  return window['go']['handlers']['App']['BuildIssueReport'](arg1, arg2);
+}
+
 export function CancelFileOp(arg1, arg2) {
   return window['go']['handlers']['App']['CancelFileOp'](arg1, arg2);
 }
@@ -150,10 +154,6 @@ export function PreviewImport() {
   return window['go']['handlers']['App']['PreviewImport']();
 }
 
-export function PreviewIssue(arg1, arg2) {
-  return window['go']['handlers']['App']['PreviewIssue'](arg1, arg2);
-}
-
 export function PreviewPersonalImport(arg1) {
   return window['go']['handlers']['App']['PreviewPersonalImport'](arg1);
 }
@@ -184,6 +184,10 @@ export function RetryStartup() {
 
 export function SaveDiagnosticArchive(arg1) {
   return window['go']['handlers']['App']['SaveDiagnosticArchive'](arg1);
+}
+
+export function SaveIssueReport(arg1, arg2) {
+  return window['go']['handlers']['App']['SaveIssueReport'](arg1, arg2);
 }
 
 export function SearchCatalog(arg1) {

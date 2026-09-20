@@ -1,4 +1,5 @@
 import { getI18n } from '@/i18n'
+import { formatBytes } from '@/lib/format'
 
 /** Keep backend error codes visible to the i18n unused-keys lint. */
 export function errorMessage(code: string, params: Record<string, string> = {}) {
@@ -74,8 +75,15 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.secret_store_unreadable', params))
     case 'invalid_ai_provider':
       return String(t('errors.invalid_ai_provider', params))
-    case 'db_no_space':
-      return String(t('errors.db_no_space', params))
+    case 'db_no_space': {
+      const loc = String(getI18n().global.locale.value)
+      return String(
+        t('errors.db_no_space', {
+          need: formatBytes(Number(params.need) || 0, loc),
+          have: formatBytes(Number(params.have) || 0, loc),
+        }),
+      )
+    }
     case 'db_maintenance_busy':
       return String(t('errors.db_maintenance_busy', params))
     case 'import_in_progress':

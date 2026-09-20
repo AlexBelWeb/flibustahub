@@ -31,6 +31,7 @@ export interface Bootstrap {
   visualEffectsPref: string
   sidebarCollapsed: boolean
   catalogView: string
+  aiProvider: string
   capabilities: Capabilities
   libraryRoot: string
   paths: Paths

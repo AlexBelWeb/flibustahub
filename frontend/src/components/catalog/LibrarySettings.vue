@@ -65,7 +65,7 @@ async function clearReader() {
 </script>
 
 <template>
-  <section class="mt-8 rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
+  <section class="rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
     <h2 class="font-display text-xl font-medium">{{ t('settings.downloads.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.downloads.lead') }}</p>
     <p class="mt-4 font-mono text-sm break-all">
