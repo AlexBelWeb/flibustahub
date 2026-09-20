@@ -103,3 +103,5 @@ Conventions:
 ### Performance
 
 ### Security
+
+- API keys are stored in the operating system credential store, or in an encrypted file when that store is unavailable.
