@@ -279,7 +279,7 @@ func TestImportIdempotentAndKeepsPersonalData(t *testing.T) {
 	if err := d.Write.QueryRow(`SELECT id FROM works LIMIT 1`).Scan(&workID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.Write.Exec(`UPDATE works SET rating=8, rating_updated_at='rate-ts', comment='note', comment_updated_at='comment-ts', exported_at='export-ts' WHERE id=?`, workID); err != nil {
+	if _, err := d.Write.Exec(`UPDATE works SET rating=8, rating_updated_at='rate-ts', comment='note', comment_updated_at='comment-ts', exported_at='export-ts', want_to_read=1, want_to_read_updated_at='want-ts' WHERE id=?`, workID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := d.Write.Exec(`INSERT INTO recently_viewed(work_id, viewed_at) VALUES (?, 'viewed-ts')`, workID); err != nil {
@@ -301,13 +301,13 @@ func TestImportIdempotentAndKeepsPersonalData(t *testing.T) {
 		t.Fatalf("counts changed %d/%d -> %d/%d", works1, editions1, works2, editions2)
 	}
 
-	var rating int
-	var comment, rateAt, commentAt, exported string
-	if err := d.Read.QueryRow(`SELECT rating, comment, rating_updated_at, comment_updated_at, exported_at FROM works WHERE id=?`, workID).Scan(&rating, &comment, &rateAt, &commentAt, &exported); err != nil {
+	var rating, want int
+	var comment, rateAt, commentAt, exported, wantAt string
+	if err := d.Read.QueryRow(`SELECT rating, comment, rating_updated_at, comment_updated_at, exported_at, want_to_read, want_to_read_updated_at FROM works WHERE id=?`, workID).Scan(&rating, &comment, &rateAt, &commentAt, &exported, &want, &wantAt); err != nil {
 		t.Fatal(err)
 	}
-	if rating != 8 || comment != "note" || rateAt != "rate-ts" || commentAt != "comment-ts" || exported != "export-ts" {
-		t.Fatalf("personal data lost: rating=%d comment=%q rateAt=%q commentAt=%q exported=%q", rating, comment, rateAt, commentAt, exported)
+	if rating != 8 || comment != "note" || rateAt != "rate-ts" || commentAt != "comment-ts" || exported != "export-ts" || want != 1 || wantAt != "want-ts" {
+		t.Fatalf("personal data lost: rating=%d comment=%q rateAt=%q commentAt=%q exported=%q want=%d wantAt=%q", rating, comment, rateAt, commentAt, exported, want, wantAt)
 	}
 	var viewed string
 	if err := d.Read.QueryRow(`SELECT viewed_at FROM recently_viewed WHERE work_id=?`, workID).Scan(&viewed); err != nil {
@@ -319,10 +319,10 @@ func TestImportIdempotentAndKeepsPersonalData(t *testing.T) {
 
 	rep3 := importFixture(t, d, nil)
 	_ = rep3
-	if err := d.Read.QueryRow(`SELECT rating, comment, rating_updated_at, comment_updated_at, exported_at FROM works WHERE id=?`, workID).Scan(&rating, &comment, &rateAt, &commentAt, &exported); err != nil {
+	if err := d.Read.QueryRow(`SELECT rating, comment, rating_updated_at, comment_updated_at, exported_at, want_to_read, want_to_read_updated_at FROM works WHERE id=?`, workID).Scan(&rating, &comment, &rateAt, &commentAt, &exported, &want, &wantAt); err != nil {
 		t.Fatal(err)
 	}
-	if rating != 8 || comment != "note" || rateAt != "rate-ts" || commentAt != "comment-ts" || exported != "export-ts" {
+	if rating != 8 || comment != "note" || rateAt != "rate-ts" || commentAt != "comment-ts" || exported != "export-ts" || want != 1 || wantAt != "want-ts" {
 		t.Fatalf("personal data lost after third import")
 	}
 	if err := d.Read.QueryRow(`SELECT viewed_at FROM recently_viewed WHERE work_id=?`, workID).Scan(&viewed); err != nil {

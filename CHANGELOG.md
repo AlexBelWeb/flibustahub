@@ -22,7 +22,7 @@ Conventions:
 - Starting the application a second time focuses the existing window instead of launching another instance.
 - If the settings cannot be loaded at startup, the window still opens, explains what happened and offers to retry.
 - The book catalog is stored in a local database, and the schema is upgraded automatically when the application is updated.
-- A backup is created before the schema of an existing database is upgraded; the three most recent backups are kept.
+- A backup is created before the schema of an existing database is upgraded, before a catalog import, and before personal marks are imported; the three most recent backups of each kind are kept.
 - The home screen shows how many books are in the catalog, when the last import ran, and a grid of recent arrivals.
 - The catalog can be searched and browsed in virtualized lists, with tile or table layout.
 - Authors, series and genres have their own lists with an alphabet index.
@@ -31,6 +31,8 @@ Conventions:
 - The book page and side panel show the annotation and previous/next books in a series.
 - Settings can clear the cover cache and preload covers for rated and recently added books.
 - First-run setup walks through choosing the library folder, the `.inpx` dump and starting the import.
+- Books can be rated, given a note, and marked as want-to-read.
+- Personal ratings, notes and reading marks can be exported and imported, including to another installation of the app (database migration).
 - Books can be opened in an external reader or saved to the system downloads folder; a missing archive or disconnected library is explained instead of failing silently.
 - Unavailable Read and Download controls show why they are disabled.
 - A layout banner reports when the library disk is offline or unreadable, with Check again and Choose folder again; a compact reminder stays after the banner is dismissed.
@@ -60,6 +62,7 @@ Conventions:
 - Search looks up books by title, author name and series together, so typing an author opens their books instead of an empty list.
 - Search results show matching authors and series above the book list; the command palette highlights the first match and offers “all authors” / “all series” when there are more.
 - The book page has one primary Read button; edition rows use quiet Read/Download controls, show the file name inside the archive and the added date, and mark the header’s edition as the default. The summary line uses that edition’s size. The files count stays on the card and panel, not next to the edition list.
+- Older catalog backups that shared one filename are removed the next time a backup is made; new backups are named by why they were taken.
 
 ### Fixed
 

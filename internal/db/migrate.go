@@ -173,7 +173,7 @@ func applyMigrations(ctx context.Context, d *DB, source fs.FS) error {
 		return nil
 	}
 	if len(applied) > 0 {
-		if _, err := d.Backup(ctx); err != nil {
+		if _, err := d.Backup(ctx, BackupReasonMigration); err != nil {
 			return err
 		}
 	}

@@ -227,6 +227,7 @@ marked AS (
     FROM works w
    WHERE w.rating IS NOT NULL
       OR (w.comment IS NOT NULL AND trim(w.comment) != '')
+      OR w.want_to_read = 1
 ),
 recent AS (
   SELECT w.id AS work_id

@@ -116,7 +116,7 @@ func (s *Service) Import(ctx context.Context, opt Options) (Report, error) {
 	wallStart := time.Now()
 
 	tBackup := time.Now()
-	if _, err := s.catalog.Backup(ctx); err != nil {
+	if _, err := s.catalog.Backup(ctx, db.BackupReasonINPX); err != nil {
 		return Report{}, err
 	}
 	mark("backup", tBackup)

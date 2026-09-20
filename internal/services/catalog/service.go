@@ -67,7 +67,7 @@ func (s *Service) ListWorks(ctx context.Context, q ListWorksQuery) (WorkPage, er
 	if q.SeriesID != 0 && q.GenreID == 0 && q.AuthorID == 0 && (sort == "" || sort == "series" || sort == "seriesno") {
 		sort = "seriesno"
 	} else {
-		sort = normalizeSort(q.Sort)
+		sort = normalizeSort(q.Sort, q.Rated, q.Want)
 	}
 	p := repositories.WorkListParams{
 		Sort:       sort,
@@ -78,6 +78,8 @@ func (s *Service) ListWorks(ctx context.Context, q ListWorksQuery) (WorkPage, er
 		SeriesName: seriesName,
 		Visible:    visible,
 		Narrow:     narrow,
+		Rated:      q.Rated,
+		Want:       q.Want,
 		Limit:      limit + 1,
 	}
 	switch sort {
@@ -93,6 +95,25 @@ func (s *Service) ListWorks(ctx context.Context, q ListWorksQuery) (WorkPage, er
 		if cur, ok := decodeCursor(q.Cursor, curAdded); ok {
 			p.HasCursor = true
 			p.AfterAdded = cur.V
+			p.AfterID = cur.ID
+		}
+	case SortRating:
+		if cur, ok := decodeCursor(q.Cursor, curRating); ok {
+			p.HasCursor = true
+			p.AfterRating = cur.R
+			p.AfterRateAt = cur.V
+			p.AfterID = cur.ID
+		}
+	case SortRatedAt:
+		if cur, ok := decodeCursor(q.Cursor, curRatedAt); ok {
+			p.HasCursor = true
+			p.AfterRateAt = cur.V
+			p.AfterID = cur.ID
+		}
+	case SortWantAt:
+		if cur, ok := decodeCursor(q.Cursor, curWantAt); ok {
+			p.HasCursor = true
+			p.AfterWantAt = cur.V
 			p.AfterID = cur.ID
 		}
 	default:
@@ -127,9 +148,20 @@ func (s *Service) ListWorks(ctx context.Context, q ListWorksQuery) (WorkPage, er
 		if len(rows) > limit {
 			rows = rows[:limit]
 			last := rows[len(rows)-1]
-			if sort == SortAdded {
+			switch sort {
+			case SortAdded:
 				next = encodeCursor(pageCursor{K: curAdded, V: last.AddedDate.String, ID: last.ID})
-			} else {
+			case SortRating:
+				rate := 0
+				if last.Rating.Valid {
+					rate = int(last.Rating.Int64)
+				}
+				next = encodeCursor(pageCursor{K: curRating, V: last.RatingAt.String, ID: last.ID, R: rate})
+			case SortRatedAt:
+				next = encodeCursor(pageCursor{K: curRatedAt, V: last.RatingAt.String, ID: last.ID})
+			case SortWantAt:
+				next = encodeCursor(pageCursor{K: curWantAt, V: last.WantAt.String, ID: last.ID})
+			default:
 				next = encodeCursor(pageCursor{K: curTitle, V: last.SortTitle, ID: last.ID})
 			}
 		}
@@ -192,7 +224,7 @@ func (s *Service) planList(ctx context.Context, q ListWorksQuery) (seriesName st
 			total = &Total{N: ser.WorkCount}
 		}
 	}
-	if q.GenreID == 0 && q.AuthorID == 0 && q.SeriesID == 0 && q.Lang == "" {
+	if q.GenreID == 0 && q.AuthorID == 0 && q.SeriesID == 0 && q.Lang == "" && !q.Rated && !q.Want {
 		if n, ok, e := s.cat.MetaInt(ctx, db.MetaWorksListable); e != nil {
 			return "", false, false, nil, apperr.Wrap(apperr.CodeInternal, e, nil)
 		} else if ok {
@@ -214,7 +246,7 @@ func (s *Service) planList(ctx context.Context, q ListWorksQuery) (seriesName st
 		// Series page always reads from editions: it must order by series_no.
 		narrow = true
 	}
-	if filters > 1 || q.Lang != "" {
+	if filters > 1 || q.Lang != "" || q.Rated || q.Want {
 		n, e := s.cat.CountWorksCapped(ctx, repositories.WorkListParams{
 			Lang:       strings.TrimSpace(q.Lang),
 			GenreID:    q.GenreID,
@@ -222,6 +254,8 @@ func (s *Service) planList(ctx context.Context, q ListWorksQuery) (seriesName st
 			SeriesName: seriesName,
 			Visible:    visible,
 			Narrow:     narrow,
+			Rated:      q.Rated,
+			Want:       q.Want,
 		}, SearchDepth+1)
 		if e != nil {
 			return "", false, false, nil, apperr.Wrap(apperr.CodeInternal, e, nil)
@@ -241,7 +275,8 @@ func (s *Service) Search(ctx context.Context, q SearchQuery) (SearchResult, erro
 	tokens := Tokens(q.Q)
 	if len(tokens) == 0 {
 		page, err := s.ListWorks(ctx, ListWorksQuery{
-			Sort: SortTitle, Lang: q.Lang, GenreID: q.GenreID, AuthorID: q.AuthorID, SeriesID: q.SeriesID, Limit: q.Limit,
+			Sort: SortTitle, Lang: q.Lang, GenreID: q.GenreID, AuthorID: q.AuthorID, SeriesID: q.SeriesID,
+			Rated: q.Rated, Want: q.Want, Limit: q.Limit,
 		})
 		return SearchResult{Works: page}, err
 	}
@@ -278,6 +313,8 @@ func (s *Service) Search(ctx context.Context, q SearchQuery) (SearchResult, erro
 		AuthorID:   q.AuthorID,
 		SeriesName: seriesName,
 		Visible:    visible,
+		Rated:      q.Rated,
+		Want:       q.Want,
 		Offset:     offset,
 		Limit:      limit,
 		Like:       likePatterns(tokens),
@@ -577,6 +614,14 @@ func (s *Service) GetWorkDetails(ctx context.Context, id int64) (WorkDetails, er
 		return WorkDetails{}, err
 	}
 	out := WorkDetails{Work: work}
+	personal, perr := s.cat.Personal(ctx, id)
+	if perr != nil && perr != sql.ErrNoRows {
+		return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, perr, nil)
+	}
+	if perr == nil && personal.Comment.Valid {
+		c := personal.Comment.String
+		out.Comment = &c
+	}
 	authors, err := s.cat.WorkAuthors(ctx, id)
 	if err != nil {
 		return WorkDetails{}, apperr.Wrap(apperr.CodeInternal, err, nil)
@@ -823,6 +868,7 @@ func workFromRow(r repositories.WorkRow) Work {
 		v := int(r.Rating.Int64)
 		w.Rating = &v
 	}
+	w.WantToRead = r.WantToRead == 1
 	if r.AddedDate.Valid {
 		w.AddedDate = r.AddedDate.String
 	}

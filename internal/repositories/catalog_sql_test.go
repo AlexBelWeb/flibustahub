@@ -33,6 +33,20 @@ func TestWorkListSQLKeysetIsTuple(t *testing.T) {
 	if len(addedArgs) != 4 {
 		t.Fatalf("added args %d = %v", len(addedArgs), addedArgs)
 	}
+
+	rating, ratingArgs := WorkListSQL(WorkListParams{Sort: "rating", HasCursor: true, AfterRating: 8, AfterRateAt: "t", AfterID: 9, Limit: 50})
+	if !strings.Contains(rating, "(w.rating, w.rating_updated_at, w.id) < (?, ?, ?)") {
+		t.Fatalf("rating keyset is not a row-value predicate:\n%s", rating)
+	}
+	if !strings.Contains(rating, "ORDER BY w.rating DESC, w.rating_updated_at DESC, w.id DESC") {
+		t.Fatalf("rating order mixed directions:\n%s", rating)
+	}
+	if strings.Contains(rating, "w.sort_title, w.id") || strings.Contains(rating, "w.sort_title, w.id DESC") {
+		t.Fatalf("rating keyset still uses title:\n%s", rating)
+	}
+	if len(ratingArgs) != 5 {
+		t.Fatalf("rating args %d = %v", len(ratingArgs), ratingArgs)
+	}
 }
 
 func TestSeriesListSQLKeyset(t *testing.T) {

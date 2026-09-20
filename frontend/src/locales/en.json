@@ -120,7 +120,10 @@
     "reader_unavailable": "No application is associated with this file type. Choose a reader or show the file in its folder.",
     "reader_missing": "Could not start “{path}”. Pick another program or go back to the system default.",
     "downloads_dir_unusable": "The downloads folder cannot be used. Choose another folder.",
-    "cancelled": "The action was cancelled."
+    "cancelled": "The action was cancelled.",
+    "invalid_rating": "A rating must be between half a star and five stars.",
+    "personal_export_failed": "Could not export personal data.",
+    "personal_import_failed": "Could not import personal data."
   },
   "storage": {
     "offlineTitle": "Storage unavailable",

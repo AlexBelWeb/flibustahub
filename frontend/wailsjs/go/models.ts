@@ -232,6 +232,116 @@ export namespace catalog {
 	        this.workCount = source["workCount"];
 	    }
 	}
+	export class Series {
+	    id: number;
+	    name: string;
+	    sortName: string;
+	    workCount: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Series(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.sortName = source["sortName"];
+	        this.workCount = source["workCount"];
+	    }
+	}
+	export class Work {
+	    id: number;
+	    workKey: string;
+	    title: string;
+	    sortTitle: string;
+	    authorsText: string;
+	    lang?: string;
+	    rating?: number;
+	    wantToRead?: boolean;
+	    addedDate?: string;
+	    series?: string;
+	    seriesNo?: string;
+	    editionCount: number;
+	    hasFile: boolean;
+	    size?: number;
+	    librate?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Work(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.workKey = source["workKey"];
+	        this.title = source["title"];
+	        this.sortTitle = source["sortTitle"];
+	        this.authorsText = source["authorsText"];
+	        this.lang = source["lang"];
+	        this.rating = source["rating"];
+	        this.wantToRead = source["wantToRead"];
+	        this.addedDate = source["addedDate"];
+	        this.series = source["series"];
+	        this.seriesNo = source["seriesNo"];
+	        this.editionCount = source["editionCount"];
+	        this.hasFile = source["hasFile"];
+	        this.size = source["size"];
+	        this.librate = source["librate"];
+	    }
+	}
+	export class HomeDashboard {
+	    worksListable: number;
+	    authorsTotal: number;
+	    seriesTotal: number;
+	    inpxVersion?: string;
+	    importedAt?: string;
+	    hero?: Work;
+	    heroSource?: string;
+	    arrivals?: Work[];
+	    rated?: Work[];
+	    wantToReadCount: number;
+	    popularGenres?: Genre[];
+	    popularSeries?: Series[];
+	
+	    static createFrom(source: any = {}) {
+	        return new HomeDashboard(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.worksListable = source["worksListable"];
+	        this.authorsTotal = source["authorsTotal"];
+	        this.seriesTotal = source["seriesTotal"];
+	        this.inpxVersion = source["inpxVersion"];
+	        this.importedAt = source["importedAt"];
+	        this.hero = this.convertValues(source["hero"], Work);
+	        this.heroSource = source["heroSource"];
+	        this.arrivals = this.convertValues(source["arrivals"], Work);
+	        this.rated = this.convertValues(source["rated"], Work);
+	        this.wantToReadCount = source["wantToReadCount"];
+	        this.popularGenres = this.convertValues(source["popularGenres"], Genre);
+	        this.popularSeries = this.convertValues(source["popularSeries"], Series);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ListPeopleQuery {
 	    letter: string;
 	    query: string;
@@ -257,6 +367,8 @@ export namespace catalog {
 	    genreId: number;
 	    authorId: number;
 	    seriesId: number;
+	    rated: boolean;
+	    want: boolean;
 	    limit: number;
 	
 	    static createFrom(source: any = {}) {
@@ -271,6 +383,8 @@ export namespace catalog {
 	        this.genreId = source["genreId"];
 	        this.authorId = source["authorId"];
 	        this.seriesId = source["seriesId"];
+	        this.rated = source["rated"];
+	        this.want = source["want"];
 	        this.limit = source["limit"];
 	    }
 	}
@@ -280,6 +394,8 @@ export namespace catalog {
 	    genreId: number;
 	    authorId: number;
 	    seriesId: number;
+	    rated: boolean;
+	    want: boolean;
 	    offset: number;
 	    limit: number;
 	
@@ -294,46 +410,10 @@ export namespace catalog {
 	        this.genreId = source["genreId"];
 	        this.authorId = source["authorId"];
 	        this.seriesId = source["seriesId"];
+	        this.rated = source["rated"];
+	        this.want = source["want"];
 	        this.offset = source["offset"];
 	        this.limit = source["limit"];
-	    }
-	}
-	export class Work {
-	    id: number;
-	    workKey: string;
-	    title: string;
-	    sortTitle: string;
-	    authorsText: string;
-	    lang?: string;
-	    rating?: number;
-	    addedDate?: string;
-	    series?: string;
-	    seriesNo?: string;
-	    editionCount: number;
-	    hasFile: boolean;
-	    size?: number;
-	    librate?: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new Work(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.workKey = source["workKey"];
-	        this.title = source["title"];
-	        this.sortTitle = source["sortTitle"];
-	        this.authorsText = source["authorsText"];
-	        this.lang = source["lang"];
-	        this.rating = source["rating"];
-	        this.addedDate = source["addedDate"];
-	        this.series = source["series"];
-	        this.seriesNo = source["seriesNo"];
-	        this.editionCount = source["editionCount"];
-	        this.hasFile = source["hasFile"];
-	        this.size = source["size"];
-	        this.librate = source["librate"];
 	    }
 	}
 	export class WorkPage {
@@ -369,24 +449,6 @@ export namespace catalog {
 		    }
 		    return a;
 		}
-	}
-	export class Series {
-	    id: number;
-	    name: string;
-	    sortName: string;
-	    workCount: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new Series(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.sortName = source["sortName"];
-	        this.workCount = source["workCount"];
-	    }
 	}
 	export class SearchResult {
 	    authors?: Author[];
@@ -497,6 +559,7 @@ export namespace catalog {
 	    authorsText: string;
 	    lang?: string;
 	    rating?: number;
+	    wantToRead?: boolean;
 	    addedDate?: string;
 	    series?: string;
 	    seriesNo?: string;
@@ -504,6 +567,7 @@ export namespace catalog {
 	    hasFile: boolean;
 	    size?: number;
 	    librate?: number;
+	    comment?: string;
 	    authors?: Author[];
 	    genres?: Genre[];
 	    seriesId?: number;
@@ -528,6 +592,7 @@ export namespace catalog {
 	        this.authorsText = source["authorsText"];
 	        this.lang = source["lang"];
 	        this.rating = source["rating"];
+	        this.wantToRead = source["wantToRead"];
 	        this.addedDate = source["addedDate"];
 	        this.series = source["series"];
 	        this.seriesNo = source["seriesNo"];
@@ -535,6 +600,7 @@ export namespace catalog {
 	        this.hasFile = source["hasFile"];
 	        this.size = source["size"];
 	        this.librate = source["librate"];
+	        this.comment = source["comment"];
 	        this.authors = this.convertValues(source["authors"], Author);
 	        this.genres = this.convertValues(source["genres"], Genre);
 	        this.seriesId = source["seriesId"];
@@ -769,6 +835,97 @@ export namespace inpximport {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace personal {
+	
+	export class ExportResult {
+	    path: string;
+	    count: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExportResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.count = source["count"];
+	    }
+	}
+	export class ImportNote {
+	    workKey?: string;
+	    title?: string;
+	    field?: string;
+	    reason: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ImportNote(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.workKey = source["workKey"];
+	        this.title = source["title"];
+	        this.field = source["field"];
+	        this.reason = source["reason"];
+	    }
+	}
+	export class ImportReport {
+	    applied: number;
+	    skipped: number;
+	    notFound: number;
+	    invalid: number;
+	    notes?: ImportNote[];
+	    notFoundPath?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ImportReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.applied = source["applied"];
+	        this.skipped = source["skipped"];
+	        this.notFound = source["notFound"];
+	        this.invalid = source["invalid"];
+	        this.notes = this.convertValues(source["notes"], ImportNote);
+	        this.notFoundPath = source["notFoundPath"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Snapshot {
+	    unsyncedCount: number;
+	    lastExportAt?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Snapshot(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.unsyncedCount = source["unsyncedCount"];
+	        this.lastExportAt = source["lastExportAt"];
+	    }
 	}
 
 }

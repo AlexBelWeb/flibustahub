@@ -123,6 +123,69 @@ func TestSnapshotHomeDashboard(t *testing.T) {
 	budget(t, "home_arrivals_18", d, 300*time.Millisecond)
 }
 
+func TestSnapshotPersonalCountsAndUnsyncedPlan(t *testing.T) {
+	svc, d := openSnapshot(t)
+	ctx := context.Background()
+	authors := warm(t, "count_authors", func() {
+		var n int
+		if err := d.Read.QueryRow(`SELECT count(*) FROM authors`).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n < 1000 {
+			t.Fatalf("authors %d", n)
+		}
+	})
+	series := warm(t, "count_series", func() {
+		var n int
+		if err := d.Read.QueryRow(`SELECT count(*) FROM series`).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n < 1000 {
+			t.Fatalf("series %d", n)
+		}
+	})
+	t.Logf("count(*) authors %s series %s", authors, series)
+	if authors > 50*time.Millisecond || series > 50*time.Millisecond {
+		t.Logf("start-path counts exceed 50ms; Home must read app_meta, not live count(*)")
+	}
+
+	home := warm(t, "home_dashboard", func() {
+		dash, err := svc.Home(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if dash.WorksListable == 0 || dash.AuthorsTotal == 0 || dash.SeriesTotal == 0 {
+			t.Fatalf("home totals %+v", dash)
+		}
+	})
+	budget(t, "home dashboard", home, 300*time.Millisecond)
+
+	unsyncedSQL := `SELECT count(*) FROM (
+  SELECT id FROM works WHERE rating_updated_at IS NOT NULL AND (exported_at IS NULL OR rating_updated_at > exported_at)
+  UNION
+  SELECT id FROM works WHERE comment_updated_at IS NOT NULL AND (exported_at IS NULL OR comment_updated_at > exported_at)
+  UNION
+  SELECT id FROM works WHERE want_to_read_updated_at IS NOT NULL AND (exported_at IS NULL OR want_to_read_updated_at > exported_at)
+)`
+	plan := explainSQL(t, d, unsyncedSQL)
+	t.Logf("unsynced plan:\n%s", plan)
+	for _, idx := range []string{"idx_works_unsynced_rating", "idx_works_unsynced_comment", "idx_works_unsynced_want"} {
+		if !strings.Contains(plan, idx) {
+			t.Fatalf("unsynced counter missing %s:\n%s", idx, plan)
+		}
+	}
+	if strings.Contains(plan, "SCAN works\n") || strings.Contains(plan, "SCAN works\r") {
+		t.Fatalf("unsynced counter must not table-scan works:\n%s", plan)
+	}
+	elapsed := warm(t, "unsynced_count", func() {
+		var n int
+		if err := d.Read.QueryRow(unsyncedSQL).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+	})
+	budget(t, "unsynced count", elapsed, 20*time.Millisecond)
+}
+
 func TestSnapshotBudgets(t *testing.T) {
 	svc, d := openSnapshot(t)
 	ctx := context.Background()

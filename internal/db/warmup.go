@@ -140,7 +140,20 @@ func storeCatalogCounts(ctx context.Context, e Execer) error {
 	if err := putMeta(ctx, e, MetaWorksTotal, strconv.Itoa(total)); err != nil {
 		return err
 	}
-	return putMeta(ctx, e, MetaWorksListable, strconv.Itoa(listable))
+	if err := putMeta(ctx, e, MetaWorksListable, strconv.Itoa(listable)); err != nil {
+		return err
+	}
+	var authors, series int
+	if err := e.QueryRowContext(ctx, `SELECT count(*) FROM authors`).Scan(&authors); err != nil {
+		return fmt.Errorf("warmup authors_total: %w", err)
+	}
+	if err := e.QueryRowContext(ctx, `SELECT count(*) FROM series`).Scan(&series); err != nil {
+		return fmt.Errorf("warmup series_total: %w", err)
+	}
+	if err := putMeta(ctx, e, MetaAuthorsTotal, strconv.Itoa(authors)); err != nil {
+		return err
+	}
+	return putMeta(ctx, e, MetaSeriesTotal, strconv.Itoa(series))
 }
 
 func putMeta(ctx context.Context, e Execer, key, value string) error {
