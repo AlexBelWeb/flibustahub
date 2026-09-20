@@ -64,9 +64,16 @@ Conventions:
 - Search results show matching authors and series above the book list; the command palette highlights the first match and offers “all authors” / “all series” when there are more.
 - The book page has one primary Read button; edition rows use quiet Read/Download controls, show the file name inside the archive and the added date, and mark the header’s edition as the default. The summary line uses that edition’s size. The files count stays on the card and panel, not next to the edition list.
 - Older catalog backups that shared one filename are removed the next time a backup is made; new backups are named by why they were taken.
+- Home shortcuts to genres and series scroll with the same chevrons as the book carousels and no longer show a scrollbar strip.
+- Want-to-read is a two-state button instead of a switch.
+- The note editor says that Markdown is supported.
+- The home hero shows why the book is there, its title and authors, a short metadata line, Open as the main action and a quiet Read; a random pick can be swapped for another book. The cover sits in a 2:3 frame instead of a cropped strip.
+- The last-import tile shows the date and dump version in the same type as the other counters.
+- The book panel and page put the annotation above editions and the note; rating and want-to-read sit on one row under the actions, without a Rating heading. An empty note collapses to “Add a note”.
 
 ### Fixed
 
+- The home hero no longer shows an empty strip with a cropped cover.
 - If the data folder already contains a catalog created by another program, this is stated plainly: the file is neither opened nor converted.
 - The collapsed sidebar no longer leaves an empty strip beside the icons.
 - Catalog lists no longer come up blank while a result count is shown.
@@ -85,6 +92,8 @@ Conventions:
 - The files badge uses the correct plural (1 file, 2 files / 1 файл, 2 файла, 5 файлов).
 - A cover in the book panel no longer paints over the text below it.
 - Show in folder and Open downloads folder no longer open Documents when the path has spaces or the file is gone; the app reports the error instead.
+- The home screen no longer grows a sideways page scrollbar when carousels and shortcuts are wider than the window.
+- Home genre shortcuts and book carousels keep their arrows beside the content instead of on top of it.
 
 ### Removed
 

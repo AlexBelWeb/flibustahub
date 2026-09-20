@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n'
 import BookCover from '@/components/catalog/BookCover.vue'
 import HighlightText from '@/components/catalog/HighlightText.vue'
 import RatingValue from '@/components/catalog/RatingValue.vue'
-import WantSwitch from '@/components/catalog/WantSwitch.vue'
+import WantButton from '@/components/catalog/WantButton.vue'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatFiles } from '@/lib/format'
@@ -93,9 +93,6 @@ async function onWant(value: boolean) {
         </p>
         <div class="flex flex-wrap items-center gap-1">
           <RatingValue :rating="work.rating" compact />
-          <Badge v-if="work.librate" variant="muted">
-            {{ t('catalog.librate', { n: work.librate }) }}
-          </Badge>
           <Badge v-if="work.editionCount > 1" variant="secondary" class="tabular-nums">
             {{ formatFiles(work.editionCount, locale) }}
           </Badge>
@@ -106,7 +103,7 @@ async function onWant(value: boolean) {
       </div>
     </RouterLink>
     <div class="px-3 pb-3" @click.stop @pointerdown.stop @keydown.stop>
-      <WantSwitch compact :model-value="Boolean(work.wantToRead)" @update:model-value="onWant" />
+      <WantButton compact :model-value="Boolean(work.wantToRead)" @update:model-value="onWant" />
     </div>
   </article>
 </template>

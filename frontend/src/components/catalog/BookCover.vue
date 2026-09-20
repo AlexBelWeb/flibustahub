@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from 'vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { authorParts, coverHue, isBlankTitle, isUnknownAuthor, titleMonogram } from '@/lib/work'
 import { useAppStore } from '@/stores/app'
 import { useCoversStore } from '@/stores/covers'
@@ -10,6 +12,8 @@ import type { Work } from '@/types/catalog'
 
 const COVER_PRIORITY_HEADER = 'X-Cover-Priority'
 
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(
   defineProps<{
     work: Pick<Work, 'id' | 'workKey' | 'title' | 'authorsText' | 'hasFile'>
@@ -17,6 +21,7 @@ const props = withDefaults(
     observe?: boolean
     compact?: boolean
     fit?: 'cover' | 'contain'
+    class?: HTMLAttributes['class']
   }>(),
   { prio: 'visible', observe: true, compact: false, fit: 'cover' },
 )
@@ -225,7 +230,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="root" class="relative isolate overflow-hidden bg-muted">
+  <div ref="root" :class="cn('relative isolate overflow-hidden bg-muted', props.class)">
     <div
       class="flex h-full w-full items-center justify-center text-primary-foreground"
       :style="{ background: `hsl(${hue} 32% var(--cover-l, 28%))` }"

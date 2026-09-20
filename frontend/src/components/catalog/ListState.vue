@@ -17,7 +17,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div :class="cn('flex min-h-0 flex-1 flex-col', props.class)">
+  <div :class="cn('flex min-h-0 min-w-0 flex-1 flex-col', props.class)">
     <div v-if="status === 'loading'" class="grid gap-3" aria-busy="true">
       <span class="sr-only">{{ $t('common.loading') }}</span>
       <Skeleton class="h-40 rounded-xl" />
@@ -35,7 +35,7 @@ const emit = defineEmits<{
       <p>{{ emptyText }}</p>
       <slot name="empty" />
     </div>
-    <div v-else class="flex min-h-0 flex-1 flex-col">
+    <div v-else class="flex min-h-0 min-w-0 flex-1 flex-col">
       <slot />
     </div>
   </div>

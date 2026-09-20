@@ -30,6 +30,7 @@ const props = defineProps<{
   editionId?: number
   hasFile?: boolean
   quiet?: boolean
+  hideDownload?: boolean
 }>()
 
 const { t } = useI18n()
@@ -173,7 +174,7 @@ async function clearReader() {
       <TooltipTrigger as-child>
         <span class="inline-flex">
           <Button
-            :variant="quiet ? 'ghost' : 'default'"
+            :variant="quiet ? 'ghost' : hideDownload ? 'outline' : 'default'"
             :size="quiet ? 'sm' : 'default'"
             :disabled="blocked && busy !== 'read'"
             @click="run('read')"
@@ -184,7 +185,7 @@ async function clearReader() {
       </TooltipTrigger>
       <TooltipContent v-if="reason">{{ reason }}</TooltipContent>
     </Tooltip>
-    <Tooltip :disabled="!reason">
+    <Tooltip v-if="!hideDownload" :disabled="!reason">
       <TooltipTrigger as-child>
         <span class="inline-flex">
           <Button
@@ -202,7 +203,7 @@ async function clearReader() {
     <Button v-if="busy && slow" variant="ghost" size="sm" @click="cancel">
       {{ t('common.cancel') }}
     </Button>
-    <DropdownMenu v-if="lastPath && !busy" :modal="false">
+    <DropdownMenu v-if="lastPath && !busy && !hideDownload" :modal="false">
       <DropdownMenuTrigger
         :class="cn(buttonVariants({ variant: 'ghost', size: 'icon' }))"
         :aria-label="t('book.editionActions')"

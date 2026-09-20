@@ -90,7 +90,12 @@ provide(CAROUSEL_KEY, {
 </script>
 
 <template>
-  <div :class="cn('relative', props.class)" role="region" tabindex="0" @keydown="onKey">
+  <div
+    :class="cn('relative min-w-0 w-full', props.class)"
+    role="region"
+    tabindex="0"
+    @keydown="onKey"
+  >
     <slot />
   </div>
 </template>

@@ -4,6 +4,7 @@ import { RatingItem, RatingItemIndicator, RatingRoot } from 'reka-ui'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { internalFromStars, starsFromInternal } from '@/lib/rating'
 
 const props = withDefaults(
@@ -41,42 +42,47 @@ function onKey(event: KeyboardEvent) {
 
 <template>
   <div class="flex flex-wrap items-center gap-2" @keydown="onKey">
-    <RatingRoot
-      :model-value="stars"
-      :length="5"
-      :step="0.5"
-      :disabled="disabled"
-      clearable
-      hoverable
-      class="flex gap-0.5"
-      :aria-label="t('personal.rating')"
-      @update:model-value="onStars"
-    >
-      <template #default="{ items }">
-        <RatingItem
-          v-for="item in items"
-          :key="item"
-          :item="item"
-          class="relative inline-flex size-6"
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <RatingRoot
+          :model-value="stars"
+          :length="5"
+          :step="0.5"
+          :disabled="disabled"
+          clearable
+          hoverable
+          class="flex gap-0.5"
+          :aria-label="t('personal.rating')"
+          @update:model-value="onStars"
         >
-          <template #default="{ steps }">
-            <Star class="size-6 text-muted-foreground" aria-hidden="true" />
-            <RatingItemIndicator
-              v-for="step in steps"
-              :key="step"
-              :step="step"
-              class="absolute inset-y-0 left-0 overflow-hidden opacity-0 data-[state=active]:opacity-100"
-              :style="{
-                width: 'var(--reka-rating-item-step-width)',
-                zIndex: 'var(--reka-rating-item-step-z-index)',
-              }"
+          <template #default="{ items }">
+            <RatingItem
+              v-for="item in items"
+              :key="item"
+              :item="item"
+              class="relative inline-flex size-6"
             >
-              <Star class="size-6 fill-primary text-primary" aria-hidden="true" />
-            </RatingItemIndicator>
+              <template #default="{ steps }">
+                <Star class="size-6 text-muted-foreground" aria-hidden="true" />
+                <RatingItemIndicator
+                  v-for="step in steps"
+                  :key="step"
+                  :step="step"
+                  class="absolute inset-y-0 left-0 overflow-hidden opacity-0 data-[state=active]:opacity-100"
+                  :style="{
+                    width: 'var(--reka-rating-item-step-width)',
+                    zIndex: 'var(--reka-rating-item-step-z-index)',
+                  }"
+                >
+                  <Star class="size-6 fill-primary text-primary" aria-hidden="true" />
+                </RatingItemIndicator>
+              </template>
+            </RatingItem>
           </template>
-        </RatingItem>
-      </template>
-    </RatingRoot>
+        </RatingRoot>
+      </TooltipTrigger>
+      <TooltipContent>{{ t('personal.ratingShortcuts') }}</TooltipContent>
+    </Tooltip>
     <Button
       v-if="!disabled && stars > 0"
       type="button"

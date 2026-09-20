@@ -112,8 +112,8 @@ function onFocus() {
       </header>
       <StorageAlert />
       <DumpOfferBanner />
-      <div class="relative min-h-0 flex-1">
-        <div class="absolute inset-0 flex min-h-0 flex-col overflow-hidden">
+      <div class="relative min-h-0 min-w-0 flex-1">
+        <div class="absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-hidden">
           <RouterView />
         </div>
       </div>

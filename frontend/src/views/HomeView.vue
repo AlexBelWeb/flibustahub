@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import BookCover from '@/components/catalog/BookCover.vue'
 import HomeCarousel from '@/components/catalog/HomeCarousel.vue'
+import HomeHero from '@/components/catalog/HomeHero.vue'
+import HomeTags from '@/components/catalog/HomeTags.vue'
 import ListState from '@/components/catalog/ListState.vue'
 import WorkCard from '@/components/catalog/WorkCard.vue'
 import { Button } from '@/components/ui/button'
@@ -12,9 +12,7 @@ import { CarouselItem } from '@/components/ui/carousel'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
-import { formatCount, formatDate, formatRelative } from '@/lib/format'
-import { authorParts, isBlankTitle, isUnknownAuthor } from '@/lib/work'
-import { withWorkQuery } from '@/lib/work-route'
+import { formatCount, formatDate, formatDumpVersionDate, formatRelative } from '@/lib/format'
 import { useCatalogStore, type ListStatus } from '@/stores/catalog'
 import { useUiStore } from '@/stores/ui'
 import type { Work } from '@/types/catalog'
@@ -22,7 +20,6 @@ import type { Work } from '@/types/catalog'
 const { t, locale } = useI18n()
 const catalog = useCatalogStore()
 const ui = useUiStore()
-const route = useRoute()
 
 const arrivalsStatus = ref<ListStatus>('idle')
 const arrivalsError = ref('')
@@ -30,6 +27,8 @@ const arrivals = ref<Work[]>([])
 const ratedStatus = ref<ListStatus>('idle')
 const ratedError = ref('')
 const rated = ref<Work[]>([])
+const heroPick = ref<Work | null>(null)
+const heroSourcePick = ref('')
 
 const home = computed(() => catalog.home)
 const emptyCatalog = computed(() => catalog.homeStatus === 'empty')
@@ -38,35 +37,23 @@ const books = computed(() => formatCount(home.value.worksListable, locale.value)
 const authors = computed(() => formatCount(home.value.authorsTotal, locale.value))
 const series = computed(() => formatCount(home.value.seriesTotal, locale.value))
 
-const importLine = computed(() => {
-  if (!home.value.importedAt && !home.value.inpxVersion) {
-    return t('home.lastImportNever')
+const importWhen = computed(() => {
+  if (home.value.importedAt) {
+    return formatRelative(home.value.importedAt, locale.value)
   }
-  const version = home.value.inpxVersion
-    ? t('home.lastImportVersion', { version: home.value.inpxVersion })
-    : ''
-  const when = home.value.importedAt ? formatRelative(home.value.importedAt, locale.value) : ''
-  return [when, version].filter(Boolean).join(' · ')
+  const fromVersion = formatDumpVersionDate(home.value.inpxVersion, locale.value)
+  if (fromVersion) {
+    return fromVersion
+  }
+  return t('home.lastImportNever')
 })
-
+const importVersion = computed(() => home.value.inpxVersion || '')
 const importExact = computed(() =>
   home.value.importedAt ? formatDate(home.value.importedAt, locale.value) : '',
 )
 
-const hero = computed(() => home.value.hero)
-const heroTitle = computed(() =>
-  hero.value && !isBlankTitle(hero.value.title) ? hero.value.title : t('catalog.untitled'),
-)
-const heroAuthors = computed(() => {
-  if (!hero.value) {
-    return ''
-  }
-  const named = authorParts(hero.value.authorsText).filter((name) => !isUnknownAuthor(name))
-  return named.length ? named.join(', ') : t('catalog.unknownAuthor')
-})
-const heroLead = computed(() =>
-  home.value.heroSource === 'random' ? t('home.randomBook') : t('home.returnToBook'),
-)
+const hero = computed(() => heroPick.value ?? home.value.hero)
+const heroSource = computed(() => heroSourcePick.value || home.value.heroSource || '')
 
 const tags = computed(() => {
   const items: Array<{ key: string; to: object; label: string }> = []
@@ -96,6 +83,11 @@ const tags = computed(() => {
   return items
 })
 
+function onHeroReplace(work: Work) {
+  heroPick.value = work
+  heroSourcePick.value = 'random'
+}
+
 function applyCarousels() {
   arrivals.value = home.value.arrivals ?? []
   arrivalsStatus.value = arrivals.value.length ? 'ready' : 'empty'
@@ -106,6 +98,8 @@ function applyCarousels() {
 }
 
 async function load() {
+  heroPick.value = null
+  heroSourcePick.value = ''
   await catalog.loadHome()
   if (catalog.homeStatus === 'ready') {
     applyCarousels()
@@ -180,9 +174,9 @@ watch(
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-auto px-6 pt-8">
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-6 pt-4">
     <ListState
-      class="flex-none"
+      class="min-w-0 flex-none"
       :status="catalog.homeStatus"
       :empty-text="t('home.emptyTitle')"
       :error-text="
@@ -199,42 +193,10 @@ watch(
         }}</Button>
       </template>
 
-      <div class="grid gap-8 pb-12">
-        <section
-          v-if="hero"
-          class="relative overflow-hidden rounded-3xl border border-border min-h-56"
-        >
-          <BookCover
-            :work="hero"
-            prio="open"
-            :observe="false"
-            fit="cover"
-            class="absolute inset-0 h-full w-full"
-          />
-          <div
-            class="relative z-10 flex flex-col gap-6 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8 backdrop-panel"
-          >
-            <div class="grid min-w-0 max-w-xl gap-3">
-              <p class="text-sm text-muted-foreground">{{ heroLead }}</p>
-              <h2 class="font-display text-3xl font-semibold">{{ heroTitle }}</h2>
-              <p class="text-muted-foreground">{{ heroAuthors }}</p>
-              <Button class="w-fit" size="lg" as-child>
-                <RouterLink :to="{ query: withWorkQuery(route.query, hero.id) }">
-                  {{ t('home.open') }}
-                </RouterLink>
-              </Button>
-            </div>
-            <BookCover
-              :work="hero"
-              prio="open"
-              :observe="false"
-              fit="contain"
-              class="hidden aspect-[2/3] w-32 shrink-0 overflow-hidden rounded-xl sm:block"
-            />
-          </div>
-        </section>
+      <div class="grid min-w-0 gap-6 pb-12">
+        <HomeHero v-if="hero" :work="hero" :source="heroSource" @replace="onHeroReplace" />
 
-        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section class="grid min-w-0 gap-4 sm:grid-cols-2 md:grid-cols-4">
           <Card class="p-6 backdrop-panel">
             <p class="text-sm text-muted-foreground">{{ t('home.books') }}</p>
             <p class="mt-2 font-display text-4xl tabular-nums">{{ books }}</p>
@@ -247,28 +209,32 @@ watch(
             <p class="text-sm text-muted-foreground">{{ t('home.series') }}</p>
             <p class="mt-2 font-display text-4xl tabular-nums">{{ series }}</p>
           </Card>
-          <Card class="p-6 backdrop-panel">
+          <Card class="min-w-0 p-6 backdrop-panel">
             <p class="text-sm text-muted-foreground">{{ t('home.lastImport') }}</p>
-            <Tooltip :disabled="!importExact">
+            <Tooltip :disabled="!importExact && !importWhen">
               <TooltipTrigger as-child>
-                <p class="mt-2 text-lg">{{ importLine }}</p>
+                <div class="mt-2 grid min-w-0 gap-2">
+                  <p
+                    v-if="importWhen"
+                    class="font-display text-2xl leading-none tabular-nums tracking-tight"
+                  >
+                    {{ importWhen }}
+                  </p>
+                  <p
+                    v-if="importVersion"
+                    class="font-display text-2xl leading-none tabular-nums tracking-tight"
+                  >
+                    {{ importVersion }}
+                  </p>
+                </div>
               </TooltipTrigger>
               <TooltipContent v-if="importExact">{{ importExact }}</TooltipContent>
             </Tooltip>
           </Card>
         </section>
 
-        <section v-if="tags.length" class="grid gap-3">
-          <div class="flex gap-2 overflow-x-auto pb-1">
-            <RouterLink
-              v-for="tag in tags"
-              :key="tag.key"
-              :to="tag.to"
-              class="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-sm hover:bg-accent"
-            >
-              {{ tag.label }}
-            </RouterLink>
-          </div>
+        <section v-if="tags.length" class="min-w-0">
+          <HomeTags :tags="tags" />
         </section>
 
         <HomeCarousel

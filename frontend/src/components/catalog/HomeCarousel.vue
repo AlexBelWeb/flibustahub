@@ -21,7 +21,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <section class="grid gap-4">
+  <section class="grid min-w-0 gap-4">
     <div class="flex flex-wrap items-baseline justify-between gap-3">
       <h2 class="font-display text-2xl font-semibold">{{ title }}</h2>
       <RouterLink :to="moreTo" class="text-sm text-primary underline-offset-4 hover:underline">
@@ -35,14 +35,14 @@ const { t } = useI18n()
       :error-text="errorText"
       @retry="emit('retry')"
     >
-      <Carousel class="px-8">
-        <CarouselContent>
-          <slot />
-        </CarouselContent>
-        <CarouselPrevious class="left-0">
+      <Carousel class="flex min-w-0 items-center gap-4">
+        <CarouselPrevious class="static top-auto left-auto shrink-0 translate-y-0">
           <span class="sr-only">{{ t('home.carouselPrev') }}</span>
         </CarouselPrevious>
-        <CarouselNext class="right-0">
+        <CarouselContent class="w-auto min-w-0 flex-1">
+          <slot />
+        </CarouselContent>
+        <CarouselNext class="static top-auto right-auto shrink-0 translate-y-0">
           <span class="sr-only">{{ t('home.carouselNext') }}</span>
         </CarouselNext>
       </Carousel>
