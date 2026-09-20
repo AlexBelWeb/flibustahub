@@ -14,6 +14,11 @@ export function queryId(value: unknown): number {
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
+export function queryFlag(value: unknown): boolean {
+  const raw = queryText(value)
+  return raw === '1' || raw.toLowerCase() === 'true'
+}
+
 export function routeId(value: string | string[] | undefined): number {
   const raw = Array.isArray(value) ? value[0] : value
   return queryId(raw)

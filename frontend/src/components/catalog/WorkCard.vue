@@ -1,23 +1,30 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from 'vue'
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import BookCover from '@/components/catalog/BookCover.vue'
 import HighlightText from '@/components/catalog/HighlightText.vue'
+import RatingValue from '@/components/catalog/RatingValue.vue'
+import WantSwitch from '@/components/catalog/WantSwitch.vue'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatFiles } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { authorParts, isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import { withWorkQuery } from '@/lib/work-route'
+import { usePersonalStore } from '@/stores/personal'
 import type { Work } from '@/types/catalog'
 
 const props = defineProps<{
   work: Work
   query?: string
+  class?: HTMLAttributes['class']
 }>()
 
 const { t, locale } = useI18n()
 const route = useRoute()
+const personal = usePersonalStore()
 
 const title = computed(() =>
   isBlankTitle(props.work.title) ? t('catalog.untitled') : props.work.title,
@@ -37,14 +44,31 @@ const authorsLine = computed(() => {
 const authorsFull = computed(() =>
   authors.value.length ? authors.value.join(', ') : t('catalog.unknownAuthor'),
 )
+
+async function onWant(value: boolean) {
+  try {
+    await personal.setWant(props.work.id, value)
+  } catch (err) {
+    personal.reportSaveError(err, () => {
+      void onWant(value)
+    })
+  }
+}
 </script>
 
 <template>
-  <RouterLink
-    :to="{ query: withWorkQuery(route.query, work.id) }"
-    class="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left outline-none"
+  <article
+    :class="
+      cn(
+        'flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left',
+        props.class,
+      )
+    "
   >
-    <article class="flex h-full flex-col">
+    <RouterLink
+      :to="{ query: withWorkQuery(route.query, work.id) }"
+      class="flex min-h-0 flex-1 flex-col outline-none"
+    >
       <BookCover :work="work" class="aspect-[2/3] w-full" />
       <div class="grid gap-1 p-3">
         <Tooltip>
@@ -67,7 +91,11 @@ const authorsFull = computed(() =>
           {{ work.series }}
           <span v-if="work.seriesNo">{{ t('catalog.seriesNo', { n: work.seriesNo }) }}</span>
         </p>
-        <div class="flex flex-wrap gap-1">
+        <div class="flex flex-wrap items-center gap-1">
+          <RatingValue :rating="work.rating" compact />
+          <Badge v-if="work.librate" variant="muted">
+            {{ t('catalog.librate', { n: work.librate }) }}
+          </Badge>
           <Badge v-if="work.editionCount > 1" variant="secondary" class="tabular-nums">
             {{ formatFiles(work.editionCount, locale) }}
           </Badge>
@@ -76,6 +104,9 @@ const authorsFull = computed(() =>
           </Badge>
         </div>
       </div>
-    </article>
-  </RouterLink>
+    </RouterLink>
+    <div class="px-3 pb-3" @click.stop @pointerdown.stop @keydown.stop>
+      <WantSwitch compact :model-value="Boolean(work.wantToRead)" @update:model-value="onWant" />
+    </div>
+  </article>
 </template>

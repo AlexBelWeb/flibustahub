@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import ImportHomeCard from '@/components/import/ImportHomeCard.vue'
 import CoversSettings from '@/components/catalog/CoversSettings.vue'
 import LibrarySettings from '@/components/catalog/LibrarySettings.vue'
+import PersonalSettings from '@/components/catalog/PersonalSettings.vue'
 import InterfaceControls from '@/components/InterfaceControls.vue'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -28,12 +29,19 @@ function onSection(value: string | number) {
     <header>
       <p class="text-sm text-muted-foreground">{{ t('settings.title') }}</p>
       <h1 class="font-display text-3xl font-semibold">
-        {{ section === 'library' ? t('settings.library.title') : t('settings.interface.title') }}
+        {{
+          section === 'library'
+            ? t('settings.library.title')
+            : section === 'personal'
+              ? t('settings.personal.title')
+              : t('settings.interface.title')
+        }}
       </h1>
       <Tabs class="mt-4" :model-value="section" @update:model-value="onSection">
         <TabsList>
           <TabsTrigger value="interface">{{ t('settings.interface.title') }}</TabsTrigger>
           <TabsTrigger value="library">{{ t('settings.library.title') }}</TabsTrigger>
+          <TabsTrigger value="personal">{{ t('settings.personal.title') }}</TabsTrigger>
         </TabsList>
       </Tabs>
     </header>
@@ -47,6 +55,9 @@ function onSection(value: string | number) {
       <ImportHomeCard />
       <LibrarySettings />
       <CoversSettings />
+    </section>
+    <section v-else-if="section === 'personal'">
+      <PersonalSettings />
     </section>
     <Card v-else class="bg-card/80 p-6 backdrop-panel">
       <InterfaceControls />

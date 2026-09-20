@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { X } from '@lucide/vue'
 import BookCover from '@/components/catalog/BookCover.vue'
 import BookActions from '@/components/catalog/BookActions.vue'
 import ListState from '@/components/catalog/ListState.vue'
+import WantSwitch from '@/components/catalog/WantSwitch.vue'
+import WorkComment from '@/components/catalog/WorkComment.vue'
+import WorkRating from '@/components/catalog/WorkRating.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SheetClose } from '@/components/ui/sheet'
@@ -13,8 +16,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
 import { formatBytes, formatDate, formatFiles, languageName } from '@/lib/format'
+import { ratingFromShortcut } from '@/lib/rating'
 import { isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import type { ListStatus } from '@/stores/catalog'
+import { usePersonalStore } from '@/stores/personal'
 import type { Author, WorkDetails, WorkEdition } from '@/types/catalog'
 
 const props = defineProps<{
@@ -24,6 +29,7 @@ const props = defineProps<{
 
 const { t, locale } = useI18n()
 const route = useRoute()
+const personal = usePersonalStore()
 
 const status = ref<ListStatus>('loading')
 const details = ref<WorkDetails | null>(null)
@@ -181,9 +187,65 @@ async function load() {
   }
 }
 
+async function onRating(rating: number) {
+  if (!details.value) {
+    return
+  }
+  const id = details.value.id
+  try {
+    await personal.setRating(id, rating)
+    if (details.value?.id === id) {
+      details.value.rating = rating > 0 ? rating : undefined
+    }
+  } catch (err) {
+    personal.reportSaveError(err, () => {
+      void onRating(rating)
+    })
+  }
+}
+
+async function onWant(value: boolean) {
+  if (!details.value) {
+    return
+  }
+  const id = details.value.id
+  try {
+    await personal.setWant(id, value)
+    if (details.value?.id === id) {
+      details.value.wantToRead = value
+    }
+  } catch (err) {
+    personal.reportSaveError(err, () => {
+      void onWant(value)
+    })
+  }
+}
+
+function onShortcut(event: KeyboardEvent) {
+  const target = event.target
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  ) {
+    return
+  }
+  const rating = ratingFromShortcut(event)
+  if (rating == null || !details.value) {
+    return
+  }
+  event.preventDefault()
+  void onRating(rating)
+}
+
 onUnmounted(() => {
   loadGen += 1
   clearAnnTimer()
+  window.removeEventListener('keydown', onShortcut)
+})
+
+onMounted(() => {
+  window.addEventListener('keydown', onShortcut)
 })
 
 watch(
@@ -338,6 +400,14 @@ watch(
         </div>
 
         <BookActions class="mt-1" :edition-id="preferredId" :has-file="details.hasFile" />
+
+        <section class="grid gap-3">
+          <h2 class="font-display text-lg font-medium">{{ t('personal.rating') }}</h2>
+          <WorkRating :rating="details.rating" @change="onRating" />
+          <WantSwitch :model-value="Boolean(details.wantToRead)" @update:model-value="onWant" />
+        </section>
+
+        <WorkComment :work-id="details.id" :comment="details.comment" />
 
         <section v-if="!drawer && (details.editions?.length ?? 0) > 1" class="grid gap-2">
           <h2 class="font-display text-lg font-medium">{{ t('book.editions') }}</h2>

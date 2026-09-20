@@ -13,12 +13,14 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useAppStore } from '@/stores/app'
 import { useImportStore } from '@/stores/import'
 import { useStorageStore } from '@/stores/storage'
+import { usePersonalStore } from '@/stores/personal'
 import { useUiStore } from '@/stores/ui'
 
 const { t } = useI18n()
 const app = useAppStore()
 const imp = useImportStore()
 const storage = useStorageStore()
+const personal = usePersonalStore()
 const ui = useUiStore()
 const router = useRouter()
 
@@ -70,6 +72,7 @@ onMounted(() => {
   storage.hydrateFromBootstrap()
   void storage.check(false)
   void storage.loadReaderPath()
+  void personal.loadSnapshot()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)

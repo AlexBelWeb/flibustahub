@@ -20,6 +20,8 @@
     "@tanstack/vue-virtual": "3.13.39",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "embla-carousel-vue": "8.6.0",
+    "markdown-it": "15.0.2",
     "pinia": "^4.0.3",
     "reka-ui": "2.10.4",
     "tailwind-merge": "^3.7.0",

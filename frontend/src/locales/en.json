@@ -5,6 +5,19 @@
     "lastImportNever": "No import has been run yet",
     "lastImportVersion": "version {version}",
     "newArrivals": "New arrivals",
+    "myRatings": "My ratings",
+    "allArrivals": "All new arrivals",
+    "allRated": "All ratings",
+    "open": "Open",
+    "returnToBook": "Return to the book",
+    "randomBook": "A random book",
+    "authors": "Authors",
+    "series": "Series",
+    "wantTag": "Want to read ({n})",
+    "carouselPrev": "Previous books",
+    "carouselNext": "Next books",
+    "arrivalsEmpty": "There are no new arrivals yet.",
+    "ratedEmpty": "No books have been rated yet.",
     "emptyTitle": "The catalog has no books yet",
     "emptyBody": "Choose the library folder and import a dump. The counter and new arrivals will appear afterwards.",
     "continueSetup": "Continue setup"
@@ -75,6 +88,42 @@
       "warmupStop": "Stop",
       "warmupCount": "{n} book will be processed | {n} books will be processed",
       "warmupProgress": "Processed {done} of {total}"
+    },
+    "personal": {
+      "title": "Personal data",
+      "lead": "Export and import ratings, notes and want-to-read marks. The file can be moved to another installation of the app.",
+      "unsyncedLabel": "Not exported",
+      "unsynced": "{n} unsynced change | {n} unsynced changes",
+      "lastExportLabel": "Last export",
+      "lastExport": "{date}",
+      "neverExported": "Nothing has been exported yet",
+      "export": "Export",
+      "exportTitle": "Where to save the export",
+      "exportDone": "{n} row exported | {n} rows exported",
+      "import": "Import",
+      "importTitle": "Personal data file",
+      "previewTitle": "Preview",
+      "previewEmpty": "The file has no rows that can be applied.",
+      "apply": "Apply",
+      "confirmTitle": "Import personal data?",
+      "confirmBody": "Only older local values will be updated. A catalog backup is made before writing.",
+      "reportTitle": "Import report",
+      "applied": "{n} row applied | {n} rows applied",
+      "skipped": "{n} row skipped | {n} rows skipped",
+      "notFound": "{n} book not found | {n} books not found",
+      "invalid": "{n} invalid row | {n} invalid rows",
+      "noteLine": "{title}: {field} — {reason}",
+      "reason": {
+        "stale": "the local value is newer",
+        "notFound": "the book is not in the catalog",
+        "invalid": "invalid value",
+        "noTimestamp": "no timestamp, and a local value already exists"
+      },
+      "field": {
+        "rating": "rating",
+        "comment": "note",
+        "wantToRead": "want to read"
+      }
     }
   },
   "common": {
@@ -168,7 +217,7 @@
     "table": "Table",
     "random": "Random book",
     "filters": "Filters",
-    "filtersLead": "Language, genre, author and series. Filters are kept in the address.",
+    "filtersLead": "Language, genre, author, series and personal marks. Filters are kept in the address.",
     "removeFilter": "Remove filter",
     "sortSeries": "Series number",
     "lang": "Language",
@@ -197,7 +246,22 @@
     "colSeries": "Series",
     "colLang": "Language",
     "colSize": "Size",
-    "colRating": "Rating"
+    "colRating": "Rating",
+    "filterRated": "Rated by me",
+    "filterWant": "Want to read",
+    "sortRating": "Personal rating",
+    "sortWant": "Date marked",
+    "librate": "In the dump {n}"
+  },
+  "personal": {
+    "rating": "Rating",
+    "ratingValue": "{n}",
+    "clearRating": "Clear rating",
+    "want": "Want to read",
+    "note": "Note",
+    "noteEdit": "Edit",
+    "notePreview": "Preview",
+    "saved": "Saved"
   },
   "authors": {
     "title": "Authors",

@@ -17,10 +17,13 @@ import {
 } from '@/components/ui/sidebar'
 import { useAppStore } from '@/stores/app'
 import { useImportStore } from '@/stores/import'
+import { usePersonalStore } from '@/stores/personal'
+import { formatCount } from '@/lib/format'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const app = useAppStore()
 const imp = useImportStore()
+const personal = usePersonalStore()
 const route = useRoute()
 
 const items = computed((): Array<{ to: string; name: string; label: string; icon: Component }> => [
@@ -70,9 +73,19 @@ const activity = computed(() => {
           <SidebarMenu>
             <SidebarMenuItem v-for="item in items" :key="item.name">
               <SidebarMenuButton as-child :is-active="active(item.name)" :tooltip="item.label">
-                <RouterLink :to="item.to" :aria-current="active(item.name) ? 'page' : undefined">
+                <RouterLink
+                  :to="item.to"
+                  class="relative"
+                  :aria-current="active(item.name) ? 'page' : undefined"
+                >
                   <component :is="item.icon" class="size-4" />
                   <span>{{ item.label }}</span>
+                  <div
+                    v-if="item.name === 'settings' && personal.showBadge"
+                    class="ml-auto min-w-5 rounded-full bg-primary px-1.5 text-center text-[10px] text-primary-foreground tabular-nums group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:top-1 group-data-[collapsible=icon]:right-1 group-data-[collapsible=icon]:min-w-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:text-[0px]"
+                  >
+                    {{ formatCount(personal.snapshot.unsyncedCount, locale) }}
+                  </div>
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

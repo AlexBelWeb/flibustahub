@@ -23,7 +23,7 @@ Conventions:
 - If the settings cannot be loaded at startup, the window still opens, explains what happened and offers to retry.
 - The book catalog is stored in a local database, and the schema is upgraded automatically when the application is updated.
 - A backup is created before the schema of an existing database is upgraded, before a catalog import, and before personal marks are imported; the three most recent backups of each kind are kept.
-- The home screen shows how many books are in the catalog, when the last import ran, and a grid of recent arrivals.
+- The home screen shows a return-to-book block, how many books, authors and series are in the catalog, when the last import ran, shortcuts to popular genres and series, and carousels of new arrivals and recent ratings.
 - The catalog can be searched and browsed in virtualized lists, with tile or table layout.
 - Authors, series and genres have their own lists with an alphabet index.
 - Opening a book from the catalog, the command palette or a random pick shows a side panel on the current page; Back closes it.
@@ -31,8 +31,9 @@ Conventions:
 - The book page and side panel show the annotation and previous/next books in a series.
 - Settings can clear the cover cache and preload covers for rated and recently added books.
 - First-run setup walks through choosing the library folder, the `.inpx` dump and starting the import.
-- Books can be rated, given a note, and marked as want-to-read.
-- Personal ratings, notes and reading marks can be exported and imported, including to another installation of the app (database migration).
+- Books can be rated with half-stars, given a note, and marked want-to-read from the book panel and page.
+- Catalog filters include books rated by you and books marked want-to-read; sorting by personal rating is offered when the rated filter is on.
+- Settings has a Personal data section for exporting and importing ratings, notes and want-to-read marks, with a preview before applying.
 - Books can be opened in an external reader or saved to the system downloads folder; a missing archive or disconnected library is explained instead of failing silently.
 - Unavailable Read and Download controls show why they are disabled.
 - A layout banner reports when the library disk is offline or unreadable, with Check again and Choose folder again; a compact reminder stays after the banner is dismissed.
@@ -52,7 +53,7 @@ Conventions:
 - The book panel keeps the title and authors in a header with the close button, and opens at the start of the book instead of remembering the previous scroll position.
 - The book page lists every edition with its archive and size.
 - A missing cover shows a coloured monogram from the title, not the same title and author again on the plate.
-- The home screen opens on the book count and new arrivals.
+- The home screen opens on counters, shortcuts and carousels instead of a static arrivals grid.
 - Untitled books appear at the end of the catalog, not at the start.
 - Lists, the home grid and the book panel leave empty space at the bottom of the scroll area.
 - The book panel and book page show the cover in full on a blurred, darkened copy of the same picture; the page uses a narrow cover column beside the text.

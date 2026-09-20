@@ -5,6 +5,7 @@ import type {
   Author,
   AuthorPage,
   Genre,
+  HomeDashboard,
   ListPeopleQuery,
   ListWorksQuery,
   SearchQuery,
@@ -18,6 +19,7 @@ import type {
   CoverProgress,
 } from './types/catalog'
 import type { ImportPreview, ImportReport } from './types/import'
+import type { PersonalExportResult, PersonalImportReport, PersonalSnapshot } from './types/personal'
 import type { FileResult, StorageSnapshot } from './types/storage'
 
 declare module '*.vue' {
@@ -31,6 +33,7 @@ interface Window {
     EventsOn: (eventName: string, callback: (...data: unknown[]) => void) => () => void
     EventsOff: (eventName: string) => void
     Quit: () => void
+    BrowserOpenURL: (url: string) => void
   }
   go: {
     handlers: {
@@ -85,6 +88,16 @@ interface Window {
         RecordSearch: (query: string) => Promise<void>
         SearchHistory: () => Promise<string[]>
         ClearSearchHistory: () => Promise<void>
+        GetHome: () => Promise<HomeDashboard>
+        PersonalSnapshot: () => Promise<PersonalSnapshot>
+        SetWorkRating: (id: number, rating: number) => Promise<void>
+        SetWorkComment: (id: number, comment: string) => Promise<void>
+        SetWorkWantToRead: (id: number, want: boolean) => Promise<void>
+        ExportPersonal: (path: string) => Promise<PersonalExportResult>
+        PreviewPersonalImport: (path: string) => Promise<PersonalImportReport>
+        ImportPersonal: (path: string) => Promise<PersonalImportReport>
+        SelectPersonalExportPath: (title: string) => Promise<string>
+        SelectPersonalImportPath: (title: string) => Promise<string>
       }
     }
   }

@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import BookCover from '@/components/catalog/BookCover.vue'
 import HighlightText from '@/components/catalog/HighlightText.vue'
+import RatingValue from '@/components/catalog/RatingValue.vue'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatBytes, languageName } from '@/lib/format'
 import { authorParts, isBlankTitle, isUnknownAuthor } from '@/lib/work'
@@ -32,7 +33,7 @@ const lang = computed(() => languageName(props.work.lang, locale.value))
 <template>
   <RouterLink
     :to="{ query: withWorkQuery(route.query, work.id) }"
-    class="grid grid-cols-[2.5rem_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_7rem_6rem_4rem] items-center gap-3 border-b border-border px-2 py-2 text-sm hover:bg-accent"
+    class="grid grid-cols-[2.5rem_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1fr)_7rem_6rem_5.5rem] items-center gap-3 border-b border-border px-2 py-2 text-sm hover:bg-accent"
   >
     <BookCover :work="work" compact class="size-10 rounded-md" />
     <Tooltip>
@@ -57,6 +58,8 @@ const lang = computed(() => languageName(props.work.lang, locale.value))
     </span>
     <span class="truncate text-muted-foreground">{{ lang }}</span>
     <span class="truncate text-right tabular-nums text-muted-foreground">{{ size }}</span>
-    <span class="truncate text-right tabular-nums">{{ work.rating || work.librate }}</span>
+    <span class="flex justify-end">
+      <RatingValue :rating="work.rating" compact />
+    </span>
   </RouterLink>
 </template>
