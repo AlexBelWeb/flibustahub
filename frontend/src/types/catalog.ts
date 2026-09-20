@@ -11,6 +11,7 @@ export interface Work {
   authorsText: string
   lang?: string
   rating?: number
+  wantToRead?: boolean
   addedDate?: string
   series?: string
   seriesNo?: string
@@ -42,6 +43,7 @@ export interface Genre {
 }
 
 export interface WorkDetails extends Work {
+  comment?: string
   authors?: Author[]
   genres?: Genre[]
   seriesId?: number
@@ -100,6 +102,8 @@ export interface ListWorksQuery {
   genreId?: number
   authorId?: number
   seriesId?: number
+  rated?: boolean
+  want?: boolean
   limit?: number
 }
 
@@ -116,8 +120,25 @@ export interface SearchQuery {
   genreId?: number
   authorId?: number
   seriesId?: number
+  rated?: boolean
+  want?: boolean
   offset?: number
   limit?: number
+}
+
+export interface HomeDashboard {
+  worksListable: number
+  authorsTotal: number
+  seriesTotal: number
+  inpxVersion?: string
+  importedAt?: string
+  hero?: Work
+  heroSource?: string
+  arrivals?: Work[]
+  rated?: Work[]
+  wantToReadCount: number
+  popularGenres?: Genre[]
+  popularSeries?: Series[]
 }
 
 export interface SearchResult {
@@ -151,5 +172,22 @@ export function asSearchResult(value: SearchResult | null | undefined): SearchRe
     seriesTotal: value?.seriesTotal,
     works: asWorkPage(value?.works),
     fallback: Boolean(value?.fallback),
+  }
+}
+
+export function asHomeDashboard(value: HomeDashboard | null | undefined): HomeDashboard {
+  return {
+    worksListable: value?.worksListable ?? 0,
+    authorsTotal: value?.authorsTotal ?? 0,
+    seriesTotal: value?.seriesTotal ?? 0,
+    inpxVersion: value?.inpxVersion,
+    importedAt: value?.importedAt,
+    hero: value?.hero,
+    heroSource: value?.heroSource,
+    arrivals: value?.arrivals ?? [],
+    rated: value?.rated ?? [],
+    wantToReadCount: value?.wantToReadCount ?? 0,
+    popularGenres: value?.popularGenres ?? [],
+    popularSeries: value?.popularSeries ?? [],
   }
 }

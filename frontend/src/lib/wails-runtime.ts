@@ -6,3 +6,7 @@ export function eventsOn(name: string, callback: (...data: unknown[]) => void): 
 export function quitApp(): void {
   window.runtime?.Quit()
 }
+
+export function openExternalUrl(url: string): void {
+  window.runtime?.BrowserOpenURL(url)
+}

@@ -31,6 +31,14 @@ const toasts = useToastStore()
             {{ t('toast.duplicateCount', { n: item.count }) }}
           </span>
         </ToastDescription>
+        <Button
+          v-if="item.onAction && item.actionLabel"
+          variant="outline"
+          size="sm"
+          @click="toasts.runAction(item.id)"
+        >
+          {{ item.actionLabel }}
+        </Button>
         <ToastClose as-child>
           <Button variant="ghost" size="sm" :aria-label="t('common.dismiss')">
             {{ t('common.dismiss') }}

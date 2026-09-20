@@ -151,6 +151,28 @@ body {
   outline-offset: 2px;
 }
 
+.note-preview a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.note-preview p,
+.note-preview ul,
+.note-preview ol {
+  margin: 0.5em 0;
+}
+
+.note-preview p:first-child {
+  margin-top: 0;
+}
+
+.note-preview :is(h1, h2, h3) {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0.8em 0 0.4em;
+}
+
 [role='option']:focus-visible,
 [cmdk-input-wrapper] :focus-visible {
   outline: none;

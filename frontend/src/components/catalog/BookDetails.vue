@@ -1,20 +1,26 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { X } from '@lucide/vue'
 import BookCover from '@/components/catalog/BookCover.vue'
 import BookActions from '@/components/catalog/BookActions.vue'
 import ListState from '@/components/catalog/ListState.vue'
+import WantButton from '@/components/catalog/WantButton.vue'
+import WorkComment from '@/components/catalog/WorkComment.vue'
+import WorkRating from '@/components/catalog/WorkRating.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SheetClose } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
 import { formatBytes, formatDate, formatFiles, languageName } from '@/lib/format'
+import { ratingFromShortcut } from '@/lib/rating'
 import { isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import type { ListStatus } from '@/stores/catalog'
+import { usePersonalStore } from '@/stores/personal'
 import type { Author, WorkDetails, WorkEdition } from '@/types/catalog'
 
 const props = defineProps<{
@@ -24,6 +30,7 @@ const props = defineProps<{
 
 const { t, locale } = useI18n()
 const route = useRoute()
+const personal = usePersonalStore()
 
 const status = ref<ListStatus>('loading')
 const details = ref<WorkDetails | null>(null)
@@ -181,9 +188,65 @@ async function load() {
   }
 }
 
+async function onRating(rating: number) {
+  if (!details.value) {
+    return
+  }
+  const id = details.value.id
+  try {
+    await personal.setRating(id, rating)
+    if (details.value?.id === id) {
+      details.value.rating = rating > 0 ? rating : undefined
+    }
+  } catch (err) {
+    personal.reportSaveError(err, () => {
+      void onRating(rating)
+    })
+  }
+}
+
+async function onWant(value: boolean) {
+  if (!details.value) {
+    return
+  }
+  const id = details.value.id
+  try {
+    await personal.setWant(id, value)
+    if (details.value?.id === id) {
+      details.value.wantToRead = value
+    }
+  } catch (err) {
+    personal.reportSaveError(err, () => {
+      void onWant(value)
+    })
+  }
+}
+
+function onShortcut(event: KeyboardEvent) {
+  const target = event.target
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  ) {
+    return
+  }
+  const rating = ratingFromShortcut(event)
+  if (rating == null || !details.value) {
+    return
+  }
+  event.preventDefault()
+  void onRating(rating)
+}
+
 onUnmounted(() => {
   loadGen += 1
   clearAnnTimer()
+  window.removeEventListener('keydown', onShortcut)
+})
+
+onMounted(() => {
+  window.addEventListener('keydown', onShortcut)
 })
 
 watch(
@@ -244,14 +307,18 @@ watch(
         </SheetClose>
       </header>
 
-      <BookCover
+      <div
         v-if="!drawer"
-        :work="details"
-        prio="open"
-        :observe="false"
-        fit="contain"
-        class="mx-auto aspect-[2/3] h-auto w-full max-h-80 max-w-[320px] rounded-xl lg:mx-0 lg:max-h-none"
-      />
+        class="mx-auto aspect-[2/3] h-auto w-full max-h-80 max-w-[320px] overflow-hidden rounded-xl lg:mx-0 lg:max-h-none"
+      >
+        <BookCover
+          :work="details"
+          prio="open"
+          :observe="false"
+          fit="contain"
+          class="h-full w-full"
+        />
+      </div>
 
       <div
         ref="bodyRef"
@@ -279,13 +346,13 @@ watch(
           </p>
         </header>
 
-        <div v-if="drawer" class="mx-auto w-[58%] shrink-0">
+        <div v-if="drawer" class="mx-auto aspect-[2/3] w-[58%] shrink-0 overflow-hidden rounded-xl">
           <BookCover
             :work="details"
             prio="open"
             :observe="false"
             fit="contain"
-            class="aspect-[2/3] w-full overflow-hidden rounded-xl"
+            class="h-full w-full"
           />
         </div>
 
@@ -322,9 +389,17 @@ watch(
         </div>
 
         <div
-          v-if="(drawer && details.editionCount > 1) || !details.hasFile"
+          v-if="details.librate || (drawer && details.editionCount > 1) || !details.hasFile"
           class="flex flex-wrap gap-2"
         >
+          <Tooltip v-if="details.librate">
+            <TooltipTrigger as-child>
+              <Badge variant="muted" class="px-3 py-1 text-sm tabular-nums" tabindex="0">
+                {{ t('catalog.librate', { n: details.librate }) }}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>{{ t('catalog.librateHint') }}</TooltipContent>
+          </Tooltip>
           <Badge
             v-if="drawer && details.editionCount > 1"
             variant="secondary"
@@ -339,27 +414,10 @@ watch(
 
         <BookActions class="mt-1" :edition-id="preferredId" :has-file="details.hasFile" />
 
-        <section v-if="!drawer && (details.editions?.length ?? 0) > 1" class="grid gap-2">
-          <h2 class="font-display text-lg font-medium">{{ t('book.editions') }}</h2>
-          <ul class="grid gap-2 text-sm text-muted-foreground">
-            <li
-              v-for="ed in details.editions"
-              :key="ed.id"
-              :aria-current="ed.preferred ? 'true' : undefined"
-              class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 rounded-lg px-3 py-2"
-              :class="ed.preferred ? 'bg-muted/60 text-foreground' : ''"
-            >
-              <div class="grid min-w-0 gap-1">
-                <p v-if="editionExt(ed)" class="text-foreground">{{ editionExt(ed) }}</p>
-                <p>{{ editionLine(ed) }}</p>
-                <Badge v-if="ed.preferred" variant="secondary" class="w-fit">{{
-                  t('book.default')
-                }}</Badge>
-              </div>
-              <BookActions quiet class="shrink-0" :edition-id="ed.id" :has-file="details.hasFile" />
-            </li>
-          </ul>
-        </section>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <WorkRating :rating="details.rating" @change="onRating" />
+          <WantButton :model-value="Boolean(details.wantToRead)" @update:model-value="onWant" />
+        </div>
 
         <section class="grid gap-2">
           <h2 class="font-display text-lg font-medium">{{ t('book.annotation') }}</h2>
@@ -387,6 +445,30 @@ watch(
           </p>
           <p v-else class="whitespace-pre-wrap text-sm leading-relaxed">{{ annotation }}</p>
         </section>
+
+        <section v-if="!drawer && (details.editions?.length ?? 0) > 1" class="grid gap-2">
+          <h2 class="font-display text-lg font-medium">{{ t('book.editions') }}</h2>
+          <ul class="grid gap-2 text-sm text-muted-foreground">
+            <li
+              v-for="ed in details.editions"
+              :key="ed.id"
+              :aria-current="ed.preferred ? 'true' : undefined"
+              class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 rounded-lg px-3 py-2"
+              :class="ed.preferred ? 'bg-muted/60 text-foreground' : ''"
+            >
+              <div class="grid min-w-0 gap-1">
+                <p v-if="editionExt(ed)" class="text-foreground">{{ editionExt(ed) }}</p>
+                <p>{{ editionLine(ed) }}</p>
+                <Badge v-if="ed.preferred" variant="secondary" class="w-fit">{{
+                  t('book.default')
+                }}</Badge>
+              </div>
+              <BookActions quiet class="shrink-0" :edition-id="ed.id" :has-file="details.hasFile" />
+            </li>
+          </ul>
+        </section>
+
+        <WorkComment :work-id="details.id" :comment="details.comment" />
 
         <nav v-if="details.prevWorkId || details.nextWorkId" class="flex gap-2">
           <Button v-if="details.prevWorkId" variant="outline" as-child>

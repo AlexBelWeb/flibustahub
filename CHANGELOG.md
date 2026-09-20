@@ -22,8 +22,8 @@ Conventions:
 - Starting the application a second time focuses the existing window instead of launching another instance.
 - If the settings cannot be loaded at startup, the window still opens, explains what happened and offers to retry.
 - The book catalog is stored in a local database, and the schema is upgraded automatically when the application is updated.
-- A backup is created before the schema of an existing database is upgraded; the three most recent backups are kept.
-- The home screen shows how many books are in the catalog, when the last import ran, and a grid of recent arrivals.
+- A backup is created before the schema of an existing database is upgraded, before a catalog import, and before personal marks are imported; the three most recent backups of each kind are kept.
+- The home screen shows a return-to-book block, how many books, authors and series are in the catalog, when the last import ran, shortcuts to popular genres and series, and carousels of new arrivals and recent ratings.
 - The catalog can be searched and browsed in virtualized lists, with tile or table layout.
 - Authors, series and genres have their own lists with an alphabet index.
 - Opening a book from the catalog, the command palette or a random pick shows a side panel on the current page; Back closes it.
@@ -31,6 +31,9 @@ Conventions:
 - The book page and side panel show the annotation and previous/next books in a series.
 - Settings can clear the cover cache and preload covers for rated and recently added books.
 - First-run setup walks through choosing the library folder, the `.inpx` dump and starting the import.
+- Books can be rated with half-stars, given a note, and marked want-to-read from the book panel and page.
+- Catalog filters include books rated by you and books marked want-to-read; sorting by personal rating is offered when the rated filter is on.
+- Settings has a Personal data section for exporting and importing ratings, notes and want-to-read marks, with a preview before applying.
 - Books can be opened in an external reader or saved to the system downloads folder; a missing archive or disconnected library is explained instead of failing silently.
 - Unavailable Read and Download controls show why they are disabled.
 - A layout banner reports when the library disk is offline or unreadable, with Check again and Choose folder again; a compact reminder stays after the banner is dismissed.
@@ -50,7 +53,7 @@ Conventions:
 - The book panel keeps the title and authors in a header with the close button, and opens at the start of the book instead of remembering the previous scroll position.
 - The book page lists every edition with its archive and size.
 - A missing cover shows a coloured monogram from the title, not the same title and author again on the plate.
-- The home screen opens on the book count and new arrivals.
+- The home screen opens on counters, shortcuts and carousels instead of a static arrivals grid.
 - Untitled books appear at the end of the catalog, not at the start.
 - Lists, the home grid and the book panel leave empty space at the bottom of the scroll area.
 - The book panel and book page show the cover in full on a blurred, darkened copy of the same picture; the page uses a narrow cover column beside the text.
@@ -60,9 +63,17 @@ Conventions:
 - Search looks up books by title, author name and series together, so typing an author opens their books instead of an empty list.
 - Search results show matching authors and series above the book list; the command palette highlights the first match and offers “all authors” / “all series” when there are more.
 - The book page has one primary Read button; edition rows use quiet Read/Download controls, show the file name inside the archive and the added date, and mark the header’s edition as the default. The summary line uses that edition’s size. The files count stays on the card and panel, not next to the edition list.
+- Older catalog backups that shared one filename are removed the next time a backup is made; new backups are named by why they were taken.
+- Home shortcuts to genres and series scroll with the same chevrons as the book carousels and no longer show a scrollbar strip.
+- Want-to-read is a two-state button instead of a switch.
+- The note editor says that Markdown is supported.
+- The home hero shows why the book is there, its title and authors, a short metadata line, Open as the main action and a quiet Read; a random pick can be swapped for another book. The cover sits in a 2:3 frame instead of a cropped strip.
+- The last-import tile shows the date and dump version in the same type as the other counters.
+- The book panel and page put the annotation above editions and the note; rating and want-to-read sit on one row under the actions, without a Rating heading. An empty note collapses to “Add a note”.
 
 ### Fixed
 
+- The home hero no longer shows an empty strip with a cropped cover.
 - If the data folder already contains a catalog created by another program, this is stated plainly: the file is neither opened nor converted.
 - The collapsed sidebar no longer leaves an empty strip beside the icons.
 - Catalog lists no longer come up blank while a result count is shown.
@@ -81,6 +92,8 @@ Conventions:
 - The files badge uses the correct plural (1 file, 2 files / 1 файл, 2 файла, 5 файлов).
 - A cover in the book panel no longer paints over the text below it.
 - Show in folder and Open downloads folder no longer open Documents when the path has spaces or the file is gone; the app reports the error instead.
+- The home screen no longer grows a sideways page scrollbar when carousels and shortcuts are wider than the window.
+- Home genre shortcuts and book carousels keep their arrows beside the content instead of on top of it.
 
 ### Removed
 

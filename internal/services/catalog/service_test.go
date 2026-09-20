@@ -214,6 +214,104 @@ func TestGhostStaysListableNotInGenre(t *testing.T) {
 	}
 }
 
+func TestGhostWantToReadStaysListable(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	if _, err := d.Write.Exec(`UPDATE works SET want_to_read = 1, want_to_read_updated_at = 't' WHERE id = 11`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`UPDATE editions SET is_active = 0 WHERE work_id = 11`); err != nil {
+		t.Fatal(err)
+	}
+	page, err := svc.ListWorks(ctx, ListWorksQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, w := range page.Items {
+		if w.ID == 11 {
+			found = true
+			if !w.WantToRead {
+				t.Fatal("want_to_read missing on card")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("want-to-read ghost missing from catalog")
+	}
+	filtered, err := svc.ListWorks(ctx, ListWorksQuery{Want: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filtered.Items) != 1 || filtered.Items[0].ID != 11 {
+		t.Fatalf("want filter %+v", titles(filtered))
+	}
+}
+
+func TestRatedFilterSortsByRating(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	if _, err := d.Write.Exec(`UPDATE works SET rating = 6, rating_updated_at = '2026-01-01T00:00:00Z' WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`UPDATE works SET rating = 10, rating_updated_at = '2026-01-02T00:00:00Z' WHERE id = 2`); err != nil {
+		t.Fatal(err)
+	}
+	page, err := svc.ListWorks(ctx, ListWorksQuery{Rated: true, Sort: SortRating})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 2 || page.Items[0].ID != 2 || page.Items[1].ID != 1 {
+		t.Fatalf("rating sort %+v", titles(page))
+	}
+	recent, err := svc.ListWorks(ctx, ListWorksQuery{Rated: true, Sort: SortRatedAt})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recent.Items) != 2 || recent.Items[0].ID != 2 {
+		t.Fatalf("ratedat %+v", titles(recent))
+	}
+}
+
+func TestRatingKeysetPagesEqualTimestamps(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	if _, err := d.Write.Exec(`UPDATE works SET rating = 8, rating_updated_at = '2026-09-01T00:00:00.000Z' WHERE id IN (1, 2, 3)`); err != nil {
+		t.Fatal(err)
+	}
+	seen := map[int64]int{}
+	var order []int64
+	var cursor string
+	for i := 0; i < 5; i++ {
+		page, err := svc.ListWorks(ctx, ListWorksQuery{Rated: true, Sort: SortRating, Limit: 1, Cursor: cursor})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Items) == 0 {
+			break
+		}
+		if len(page.Items) != 1 {
+			t.Fatalf("page %d: %+v", i, titles(page))
+		}
+		id := page.Items[0].ID
+		seen[id]++
+		order = append(order, id)
+		cursor = page.NextCursor
+		if cursor == "" {
+			break
+		}
+	}
+	if len(seen) != 3 || seen[1] != 1 || seen[2] != 1 || seen[3] != 1 {
+		t.Fatalf("pages %v seen %v", order, seen)
+	}
+	if order[0] != 3 || order[1] != 2 || order[2] != 1 {
+		t.Fatalf("want id DESC, got %v", order)
+	}
+}
+
 func TestBrokenFTSFallsBackToLike(t *testing.T) {
 	var buf bytes.Buffer
 	d, err := db.Open(context.Background(), db.Options{
@@ -579,5 +677,53 @@ func TestWorkDetailsAndViewed(t *testing.T) {
 	var n int
 	if err := d.Read.QueryRow(`SELECT count(*) FROM recently_viewed WHERE work_id = 5`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("viewed n=%d err=%v", n, err)
+	}
+}
+
+func TestHomeHeroUsesRecentlyViewed(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	home, err := svc.Home(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if home.Hero == nil || home.HeroSource != HeroFromRandom {
+		t.Fatalf("empty history should pick a random book: %+v", home.HeroSource)
+	}
+	if err := svc.RecordViewed(ctx, 3); err != nil {
+		t.Fatal(err)
+	}
+	home, err = svc.Home(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if home.Hero == nil || home.Hero.ID != 3 || home.HeroSource != HeroFromViewed {
+		t.Fatalf("hero %+v source %q", home.Hero, home.HeroSource)
+	}
+	if home.WorksListable == 0 || len(home.Arrivals) == 0 {
+		t.Fatalf("dashboard empty %+v", home)
+	}
+}
+
+func TestHomeHeroFallsBackWhenViewedWorkMissing(t *testing.T) {
+	svc, d := openSvc(t)
+	seed(t, d)
+	ctx := context.Background()
+	if err := svc.RecordViewed(ctx, 3); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write.Exec(`DELETE FROM works WHERE id = 3`); err != nil {
+		t.Fatal(err)
+	}
+	home, err := svc.Home(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if home.Hero == nil || home.Hero.ID == 3 || home.HeroSource != HeroFromRandom {
+		t.Fatalf("hero %+v source %q", home.Hero, home.HeroSource)
 	}
 }

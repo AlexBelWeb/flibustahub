@@ -15,6 +15,8 @@ const (
 	MetaFTSDirty      = "fts_dirty"
 	MetaWorksTotal    = "works_total"
 	MetaWorksListable = "works_listable"
+	MetaAuthorsTotal  = "authors_total"
+	MetaSeriesTotal   = "series_total"
 	MetaLastWarmup    = "last_warmup_at"
 	importCacheSize   = -128000
 	workingCacheSize  = -64000

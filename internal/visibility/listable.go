@@ -5,7 +5,7 @@ package visibility
 const VisibleEditionSQL = `e.is_active = 1 AND e.is_deleted = 0`
 
 // ListableWorkSQL is the catalog-listing predicate on works aliased as w:
-// a work stays listed if it has a visible edition or the user left a rating or note.
+// a work stays listed if it has a visible edition or personal value.
 const ListableWorkSQL = `(
   EXISTS (
     SELECT 1 FROM editions e
@@ -13,6 +13,15 @@ const ListableWorkSQL = `(
   )
   OR w.rating IS NOT NULL
   OR (w.comment IS NOT NULL AND trim(w.comment) != '')
+  OR w.want_to_read = 1
+)`
+
+// ExportableWorkSQL is the personal-history predicate on works aliased as w.
+// A work is dumped if any personal timestamp is set, including cleared values.
+const ExportableWorkSQL = `(
+  w.rating_updated_at IS NOT NULL
+  OR w.comment_updated_at IS NOT NULL
+  OR w.want_to_read_updated_at IS NOT NULL
 )`
 
 // ListableTempSQL builds a keyed temp table of listable work ids for set-based aggregates.
@@ -24,5 +33,6 @@ var ListableTempSQL = []string{
 	`INSERT OR IGNORE INTO listable(work_id)
 	 SELECT id FROM works
 	  WHERE rating IS NOT NULL
-	     OR (comment IS NOT NULL AND trim(comment) <> '')`,
+	     OR (comment IS NOT NULL AND trim(comment) <> '')
+	     OR want_to_read = 1`,
 }

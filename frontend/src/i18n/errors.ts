@@ -56,6 +56,12 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.downloads_dir_unusable', params))
     case 'cancelled':
       return String(t('errors.cancelled', params))
+    case 'invalid_rating':
+      return String(t('errors.invalid_rating', params))
+    case 'personal_export_failed':
+      return String(t('errors.personal_export_failed', params))
+    case 'personal_import_failed':
+      return String(t('errors.personal_import_failed', params))
     default:
       return String(t('errors.internal', params))
   }

@@ -95,7 +95,7 @@ func TestMigrateTwiceIsNoop(t *testing.T) {
 	if err := d2.Write.QueryRow(`SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 5 {
+	if n != 6 {
 		t.Fatalf("schema_migrations rows = %d", n)
 	}
 }
@@ -128,6 +128,18 @@ func TestWorksAddedDateMigration(t *testing.T) {
 	}
 	if n != 1 {
 		t.Fatal("idx_series_sort missing")
+	}
+	if err := d.Read.QueryRow(`SELECT count(*) FROM pragma_table_info('works') WHERE name = 'want_to_read'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("works.want_to_read missing")
+	}
+	if err := d.Read.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='index' AND name='idx_works_unsynced_rating'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("idx_works_unsynced_rating missing")
 	}
 	var total, listable string
 	if err := d.Read.QueryRow(`SELECT value FROM app_meta WHERE key = ?`, MetaWorksTotal).Scan(&total); err != nil {
@@ -625,13 +637,13 @@ func TestBackupVacuumAndRetention(t *testing.T) {
 	var files []string
 	for i := 0; i < 5; i++ {
 		clock = t0.Add(time.Duration(i) * time.Second)
-		path, err := d.Backup(context.Background())
+		path, err := d.Backup(context.Background(), BackupReasonINPX)
 		if err != nil {
 			t.Fatal(err)
 		}
 		files = append(files, path)
 	}
-	matches, err := filepath.Glob(filepath.Join(d.backupsDir, "catalog-*.sqlite"))
+	matches, err := filepath.Glob(filepath.Join(d.backupsDir, "catalog-inpx-*.sqlite"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -650,6 +662,79 @@ func TestBackupVacuumAndRetention(t *testing.T) {
 	}
 	if n != 1 {
 		t.Fatalf("backup works = %d", n)
+	}
+}
+
+func TestBackupRetentionIsPerReason(t *testing.T) {
+	t0 := time.Date(2026, 9, 17, 12, 0, 0, 0, time.UTC)
+	clock := t0
+	d := openTest(t, func(o *Options) {
+		o.Now = func() time.Time { return clock }
+	})
+	if _, err := d.Write.Exec(`INSERT INTO works(work_key, title, sort_title, authors_text, created_at, updated_at)
+		VALUES ('k', 'T', 't', 'A', 'now', 'now')`); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 5; i++ {
+		clock = t0.Add(time.Duration(i) * time.Second)
+		if _, err := d.Backup(context.Background(), BackupReasonPersonal); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i := 0; i < 5; i++ {
+		clock = t0.Add(time.Duration(5+i) * time.Second)
+		if _, err := d.Backup(context.Background(), BackupReasonMigration); err != nil {
+			t.Fatal(err)
+		}
+	}
+	personal, err := filepath.Glob(filepath.Join(d.backupsDir, "catalog-personal-*.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	migration, err := filepath.Glob(filepath.Join(d.backupsDir, "catalog-migration-*.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(personal) != 3 {
+		t.Fatalf("personal kept %d: %v", len(personal), personal)
+	}
+	if len(migration) != 3 {
+		t.Fatalf("migration kept %d: %v", len(migration), migration)
+	}
+}
+
+func TestBackupRemovesLegacyNames(t *testing.T) {
+	t0 := time.Date(2026, 9, 17, 12, 0, 0, 0, time.UTC)
+	d := openTest(t, func(o *Options) {
+		o.Now = func() time.Time { return t0 }
+	})
+	if _, err := d.Write.Exec(`INSERT INTO works(work_key, title, sort_title, authors_text, created_at, updated_at)
+		VALUES ('k', 'T', 't', 'A', 'now', 'now')`); err != nil {
+		t.Fatal(err)
+	}
+	legacy := []string{
+		filepath.Join(d.backupsDir, "catalog-20260915-120000.sqlite"),
+		filepath.Join(d.backupsDir, "catalog-20260916-180000.sqlite"),
+	}
+	for _, p := range legacy {
+		if err := os.WriteFile(p, []byte("old"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := d.Backup(context.Background(), BackupReasonINPX); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range legacy {
+		if _, err := os.Stat(p); !os.IsNotExist(err) {
+			t.Fatalf("legacy %s still there: %v", p, err)
+		}
+	}
+	kept, err := filepath.Glob(filepath.Join(d.backupsDir, "catalog-inpx-*.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(kept) != 1 {
+		t.Fatalf("inpx kept %d: %v", len(kept), kept)
 	}
 }
 

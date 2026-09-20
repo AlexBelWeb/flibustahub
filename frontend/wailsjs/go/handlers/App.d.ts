@@ -4,6 +4,7 @@ import {app} from '../models';
 import {storage} from '../models';
 import {covers} from '../models';
 import {downloads} from '../models';
+import {personal} from '../models';
 import {catalog} from '../models';
 import {inpximport} from '../models';
 
@@ -33,17 +34,23 @@ export function DismissWindowClose():Promise<void>;
 
 export function DownloadEdition(arg1:number):Promise<downloads.Result>;
 
+export function ExportPersonal(arg1:string):Promise<personal.ExportResult>;
+
 export function GetAnnotation(arg1:number):Promise<covers.Annotation>;
 
 export function GetAuthor(arg1:number):Promise<catalog.Author>;
 
 export function GetGenre(arg1:number):Promise<catalog.Genre>;
 
+export function GetHome():Promise<catalog.HomeDashboard>;
+
 export function GetSeries(arg1:number):Promise<catalog.Series>;
 
 export function GetWork(arg1:number):Promise<catalog.Work>;
 
 export function GetWorkDetails(arg1:number):Promise<catalog.WorkDetails>;
+
+export function ImportPersonal(arg1:string):Promise<personal.ImportReport>;
 
 export function LastImportReport():Promise<inpximport.ReportDTO>;
 
@@ -61,7 +68,11 @@ export function OpenDownloadsDir():Promise<void>;
 
 export function OpenLogsDir():Promise<void>;
 
+export function PersonalSnapshot():Promise<personal.Snapshot>;
+
 export function PreviewImport():Promise<app.ImportPreview>;
+
+export function PreviewPersonalImport(arg1:string):Promise<personal.ImportReport>;
 
 export function RandomWork():Promise<catalog.Work>;
 
@@ -85,6 +96,10 @@ export function SelectINPXFile(arg1:string):Promise<string>;
 
 export function SelectLibraryRoot(arg1:string):Promise<string>;
 
+export function SelectPersonalExportPath(arg1:string):Promise<string>;
+
+export function SelectPersonalImportPath(arg1:string):Promise<string>;
+
 export function SelectReaderPath(arg1:string):Promise<string>;
 
 export function SetCatalogView(arg1:string):Promise<void>;
@@ -98,6 +113,12 @@ export function SetSidebarCollapsed(arg1:boolean):Promise<void>;
 export function SetTheme(arg1:string):Promise<void>;
 
 export function SetVisualEffects(arg1:string):Promise<void>;
+
+export function SetWorkComment(arg1:number,arg2:string):Promise<void>;
+
+export function SetWorkRating(arg1:number,arg2:number):Promise<void>;
+
+export function SetWorkWantToRead(arg1:number,arg2:boolean):Promise<void>;
 
 export function ShowInFolder(arg1:string):Promise<void>;
 

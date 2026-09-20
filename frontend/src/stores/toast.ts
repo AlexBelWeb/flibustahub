@@ -8,6 +8,8 @@ export interface ToastItem {
   kind: ToastKind
   message: string
   count: number
+  actionLabel?: string
+  onAction?: () => void
 }
 
 let nextId = 1
@@ -29,17 +31,26 @@ export const useToastStore = defineStore('toast', () => {
     items.value = items.value.filter((item) => item.id !== id)
   }
 
-  function push(kind: ToastKind, message: string) {
+  function push(kind: ToastKind, message: string, action?: { label: string; run: () => void }) {
     const existing = items.value.find((item) => item.kind === kind && item.message === message)
     if (existing) {
       existing.count += 1
+      existing.actionLabel = action?.label
+      existing.onAction = action?.run
       if (kind !== 'error') {
         restartTimer(existing.id)
       }
       return
     }
     const id = nextId++
-    items.value.push({ id, kind, message, count: 1 })
+    items.value.push({
+      id,
+      kind,
+      message,
+      count: 1,
+      actionLabel: action?.label,
+      onAction: action?.run,
+    })
     if (items.value.length > MAX_STACK) {
       const dropped = items.value.shift()
       if (dropped) {
@@ -62,13 +73,20 @@ export const useToastStore = defineStore('toast', () => {
     )
   }
 
-  function pushError(message: string) {
-    push('error', message)
+  function pushError(message: string, action?: { label: string; run: () => void }) {
+    push('error', message, action)
   }
 
   function pushInfo(message: string) {
     push('info', message)
   }
 
-  return { items, visible, dismiss, pushError, pushInfo }
+  function runAction(id: number) {
+    const item = items.value.find((entry) => entry.id === id)
+    const run = item?.onAction
+    dismiss(id)
+    run?.()
+  }
+
+  return { items, visible, dismiss, pushError, pushInfo, runAction }
 })

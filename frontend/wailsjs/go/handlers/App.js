@@ -54,6 +54,10 @@ export function DownloadEdition(arg1) {
   return window['go']['handlers']['App']['DownloadEdition'](arg1);
 }
 
+export function ExportPersonal(arg1) {
+  return window['go']['handlers']['App']['ExportPersonal'](arg1);
+}
+
 export function GetAnnotation(arg1) {
   return window['go']['handlers']['App']['GetAnnotation'](arg1);
 }
@@ -66,6 +70,10 @@ export function GetGenre(arg1) {
   return window['go']['handlers']['App']['GetGenre'](arg1);
 }
 
+export function GetHome() {
+  return window['go']['handlers']['App']['GetHome']();
+}
+
 export function GetSeries(arg1) {
   return window['go']['handlers']['App']['GetSeries'](arg1);
 }
@@ -76,6 +84,10 @@ export function GetWork(arg1) {
 
 export function GetWorkDetails(arg1) {
   return window['go']['handlers']['App']['GetWorkDetails'](arg1);
+}
+
+export function ImportPersonal(arg1) {
+  return window['go']['handlers']['App']['ImportPersonal'](arg1);
 }
 
 export function LastImportReport() {
@@ -110,8 +122,16 @@ export function OpenLogsDir() {
   return window['go']['handlers']['App']['OpenLogsDir']();
 }
 
+export function PersonalSnapshot() {
+  return window['go']['handlers']['App']['PersonalSnapshot']();
+}
+
 export function PreviewImport() {
   return window['go']['handlers']['App']['PreviewImport']();
+}
+
+export function PreviewPersonalImport(arg1) {
+  return window['go']['handlers']['App']['PreviewPersonalImport'](arg1);
 }
 
 export function RandomWork() {
@@ -158,6 +178,14 @@ export function SelectLibraryRoot(arg1) {
   return window['go']['handlers']['App']['SelectLibraryRoot'](arg1);
 }
 
+export function SelectPersonalExportPath(arg1) {
+  return window['go']['handlers']['App']['SelectPersonalExportPath'](arg1);
+}
+
+export function SelectPersonalImportPath(arg1) {
+  return window['go']['handlers']['App']['SelectPersonalImportPath'](arg1);
+}
+
 export function SelectReaderPath(arg1) {
   return window['go']['handlers']['App']['SelectReaderPath'](arg1);
 }
@@ -184,6 +212,18 @@ export function SetTheme(arg1) {
 
 export function SetVisualEffects(arg1) {
   return window['go']['handlers']['App']['SetVisualEffects'](arg1);
+}
+
+export function SetWorkComment(arg1, arg2) {
+  return window['go']['handlers']['App']['SetWorkComment'](arg1, arg2);
+}
+
+export function SetWorkRating(arg1, arg2) {
+  return window['go']['handlers']['App']['SetWorkRating'](arg1, arg2);
+}
+
+export function SetWorkWantToRead(arg1, arg2) {
+  return window['go']['handlers']['App']['SetWorkWantToRead'](arg1, arg2);
 }
 
 export function ShowInFolder(arg1) {

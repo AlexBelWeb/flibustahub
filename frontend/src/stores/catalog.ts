@@ -2,12 +2,14 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { parseBackendError, type BackendError } from '@/lib/backend-error'
 import {
+  asHomeDashboard,
   asSearchResult,
   asWorkPage,
   type Author,
   type AuthorPage,
   type CatalogTotal,
   type Genre,
+  type HomeDashboard,
   type ListPeopleQuery,
   type ListWorksQuery,
   type SearchQuery,
@@ -19,8 +21,6 @@ import {
 } from '@/types/catalog'
 
 export type ListStatus = 'idle' | 'loading' | 'empty' | 'error' | 'ready' | 'missing'
-
-export const HOME_ARRIVALS_KEY = 'home:added'
 
 export interface WorkListState {
   items: Work[]
@@ -84,6 +84,9 @@ export const useCatalogStore = defineStore('catalog', () => {
   const series = ref<Record<string, PeopleListState<Series>>>({})
   const genres = ref<Record<string, PeopleListState<Genre>>>({})
   const alphabet = ref<string[]>([])
+  const home = ref<HomeDashboard>(asHomeDashboard(undefined))
+  const homeStatus = ref<ListStatus>('idle')
+  const homeError = ref<BackendError | null>(null)
   const tokens: Record<string, number> = {}
 
   function nextToken(key: string): number {
@@ -138,6 +141,26 @@ export const useCatalogStore = defineStore('catalog', () => {
     authors.value = {}
     series.value = {}
     genres.value = {}
+    home.value = asHomeDashboard(undefined)
+    homeStatus.value = 'idle'
+    homeError.value = null
+  }
+
+  async function loadHome(silent = false) {
+    if (!silent || homeStatus.value !== 'ready') {
+      homeStatus.value = 'loading'
+    }
+    homeError.value = null
+    try {
+      const next = asHomeDashboard(await window.go.handlers.App.GetHome())
+      home.value = next
+      homeStatus.value = next.worksListable === 0 ? 'empty' : 'ready'
+    } catch (err) {
+      homeError.value = parseBackendError(err)
+      if (homeStatus.value !== 'ready') {
+        homeStatus.value = 'error'
+      }
+    }
   }
 
   async function loadAlphabet() {
@@ -378,12 +401,45 @@ export const useCatalogStore = defineStore('catalog', () => {
     return window.go.handlers.App.RandomWork()
   }
 
+  function patchOne(work: Work | undefined, patch: Partial<Work>) {
+    if (!work) {
+      return
+    }
+    Object.assign(work, patch)
+    if ('rating' in patch && patch.rating == null) {
+      delete work.rating
+    }
+  }
+
+  function patchWork(id: number, patch: Partial<Work>) {
+    for (const state of Object.values(works.value)) {
+      patchOne(
+        state.items.find((work) => work.id === id),
+        patch,
+      )
+    }
+    if (home.value.hero?.id === id) {
+      patchOne(home.value.hero, patch)
+    }
+    patchOne(
+      home.value.arrivals?.find((work) => work.id === id),
+      patch,
+    )
+    patchOne(
+      home.value.rated?.find((work) => work.id === id),
+      patch,
+    )
+  }
+
   return {
     works,
     authors,
     series,
     genres,
     alphabet,
+    home,
+    homeStatus,
+    homeError,
     workState,
     authorState,
     seriesState,
@@ -391,6 +447,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     rememberScroll,
     rememberPeopleScroll,
     reset,
+    loadHome,
     loadAlphabet,
     loadWorks,
     loadSearch,
@@ -402,5 +459,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     getGenre,
     getSeries,
     randomWork,
+    patchWork,
   }
 })

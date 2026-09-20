@@ -3,8 +3,11 @@ package catalog
 import "strings"
 
 const (
-	SortTitle = "title"
-	SortAdded = "added"
+	SortTitle   = "title"
+	SortAdded   = "added"
+	SortRating  = "rating"
+	SortRatedAt = "ratedat"
+	SortWantAt  = "wantat"
 
 	PageWorks   = 50
 	PageAuthors = 40
@@ -33,6 +36,7 @@ type Work struct {
 	AuthorsText  string `json:"authorsText"`
 	Lang         string `json:"lang,omitempty"`
 	Rating       *int   `json:"rating,omitempty"`
+	WantToRead   bool   `json:"wantToRead,omitempty"`
 	AddedDate    string `json:"addedDate,omitempty"`
 	Series       string `json:"series,omitempty"`
 	SeriesNo     string `json:"seriesNo,omitempty"`
@@ -44,6 +48,7 @@ type Work struct {
 
 type WorkDetails struct {
 	Work
+	Comment            *string       `json:"comment,omitempty"`
 	Authors            []Author      `json:"authors,omitempty"`
 	Genres             []Genre       `json:"genres,omitempty"`
 	SeriesID           int64         `json:"seriesId,omitempty"`
@@ -112,6 +117,8 @@ type ListWorksQuery struct {
 	GenreID  int64  `json:"genreId"`
 	AuthorID int64  `json:"authorId"`
 	SeriesID int64  `json:"seriesId"`
+	Rated    bool   `json:"rated"`
+	Want     bool   `json:"want"`
 	Limit    int    `json:"limit"`
 }
 
@@ -128,6 +135,8 @@ type SearchQuery struct {
 	GenreID  int64  `json:"genreId"`
 	AuthorID int64  `json:"authorId"`
 	SeriesID int64  `json:"seriesId"`
+	Rated    bool   `json:"rated"`
+	Want     bool   `json:"want"`
 	Offset   int    `json:"offset"`
 	Limit    int    `json:"limit"`
 }
@@ -141,10 +150,23 @@ type SearchResult struct {
 	Fallback     bool     `json:"fallback,omitempty"`
 }
 
-func normalizeSort(s string) string {
+func normalizeSort(s string, rated, want bool) string {
 	s = strings.TrimSpace(strings.ToLower(s))
-	if s == SortAdded {
+	switch s {
+	case SortAdded:
 		return SortAdded
+	case SortRating:
+		if rated {
+			return SortRating
+		}
+	case SortRatedAt:
+		if rated {
+			return SortRatedAt
+		}
+	case SortWantAt:
+		if want {
+			return SortWantAt
+		}
 	}
 	return SortTitle
 }

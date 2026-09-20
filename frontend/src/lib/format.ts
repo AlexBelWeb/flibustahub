@@ -92,6 +92,23 @@ export function formatDate(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date)
 }
 
+export function formatDumpVersionDate(version: string | undefined, locale: string): string {
+  const m = /^(\d{4})(\d{2})(\d{2})$/.exec((version || '').trim())
+  if (!m) {
+    return ''
+  }
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date)
+}
+
 export function formatRelative(iso: string, locale: string, now = Date.now()): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) {

@@ -31,6 +31,8 @@ type WorkSearchParams struct {
 	AuthorID   int64
 	SeriesName string
 	Visible    bool
+	Rated      bool
+	Want       bool
 	Offset     int
 	Limit      int
 }
@@ -104,6 +106,12 @@ func appendWorkFilters(q string, args []any, p WorkSearchParams) (string, []any)
 	if p.SeriesName != "" {
 		q += ` AND EXISTS (SELECT 1 FROM editions e WHERE e.work_id = w.id AND e.series = ? AND ` + visibility.VisibleEditionSQL + `)`
 		args = append(args, p.SeriesName)
+	}
+	if p.Rated {
+		q += ` AND w.rating IS NOT NULL`
+	}
+	if p.Want {
+		q += ` AND w.want_to_read = 1`
 	}
 	return q, args
 }

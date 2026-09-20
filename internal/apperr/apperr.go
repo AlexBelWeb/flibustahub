@@ -36,6 +36,9 @@ const (
 	CodeReaderMissing        = "reader_missing"
 	CodeDownloadsDirUnusable = "downloads_dir_unusable"
 	CodeCancelled            = "cancelled"
+	CodeInvalidRating        = "invalid_rating"
+	CodePersonalExportFailed = "personal_export_failed"
+	CodePersonalImportFailed = "personal_import_failed"
 )
 
 // Error is a typed application error safe to send to the frontend.

@@ -33,12 +33,15 @@ type WorkRow struct {
 	AuthorsText  string
 	Lang         sql.NullString
 	Rating       sql.NullInt64
+	WantToRead   int
 	AddedDate    sql.NullString
 	Series       sql.NullString
 	SeriesNo     sql.NullString
 	EditionCount int
 	Size         sql.NullInt64
 	Librate      sql.NullInt64
+	RatingAt     sql.NullString
+	WantAt       sql.NullString
 }
 
 type AuthorRow struct {
@@ -71,8 +74,13 @@ type WorkListParams struct {
 	SeriesName  string
 	Visible     bool
 	Narrow      bool
+	Rated       bool
+	Want        bool
 	AfterTitle  string
 	AfterAdded  string
+	AfterRating int
+	AfterRateAt string
+	AfterWantAt string
 	AfterID     int64
 	HasCursor   bool
 	AfterBucket int
@@ -155,7 +163,7 @@ func (c *Catalog) ListWorkIDs(ctx context.Context, p WorkListParams) ([]WorkRow,
 	var out []WorkRow
 	for rows.Next() {
 		var r WorkRow
-		if err := rows.Scan(&r.ID, &r.SortTitle, &r.AddedDate); err != nil {
+		if err := rows.Scan(&r.ID, &r.SortTitle, &r.AddedDate, &r.Rating, &r.RatingAt, &r.WantAt); err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -168,19 +176,37 @@ func WorkListSQL(p WorkListParams) (string, []any) {
 	from, args := workListFromWhere(p)
 	var b strings.Builder
 	if p.Narrow && p.SeriesName != "" {
-		b.WriteString(`SELECT DISTINCT w.id, w.sort_title, w.added_date`)
+		b.WriteString(`SELECT DISTINCT w.id, w.sort_title, w.added_date, w.rating, w.rating_updated_at, w.want_to_read_updated_at`)
 	} else {
-		b.WriteString(`SELECT w.id, w.sort_title, w.added_date`)
+		b.WriteString(`SELECT w.id, w.sort_title, w.added_date, w.rating, w.rating_updated_at, w.want_to_read_updated_at`)
 	}
 	b.WriteString(from)
-	if p.Sort == "added" {
+	switch p.Sort {
+	case "added":
 		if p.HasCursor {
-			// Leftmost bound seeks idx_works_added; the tuple is the keyset predicate.
 			b.WriteString(` AND w.added_date <= ? AND (w.added_date, w.id) < (?, ?)`)
 			args = append(args, p.AfterAdded, p.AfterAdded, p.AfterID)
 		}
 		b.WriteString(` ORDER BY w.added_date DESC, w.id DESC LIMIT ?`)
-	} else {
+	case "rating":
+		if p.HasCursor {
+			b.WriteString(` AND w.rating <= ? AND (w.rating, w.rating_updated_at, w.id) < (?, ?, ?)`)
+			args = append(args, p.AfterRating, p.AfterRating, p.AfterRateAt, p.AfterID)
+		}
+		b.WriteString(` ORDER BY w.rating DESC, w.rating_updated_at DESC, w.id DESC LIMIT ?`)
+	case "ratedat":
+		if p.HasCursor {
+			b.WriteString(` AND w.rating_updated_at <= ? AND (w.rating_updated_at, w.id) < (?, ?)`)
+			args = append(args, p.AfterRateAt, p.AfterRateAt, p.AfterID)
+		}
+		b.WriteString(` ORDER BY w.rating_updated_at DESC, w.id DESC LIMIT ?`)
+	case "wantat":
+		if p.HasCursor {
+			b.WriteString(` AND w.want_to_read_updated_at <= ? AND (w.want_to_read_updated_at, w.id) < (?, ?)`)
+			args = append(args, p.AfterWantAt, p.AfterWantAt, p.AfterID)
+		}
+		b.WriteString(` ORDER BY w.want_to_read_updated_at DESC, w.id DESC LIMIT ?`)
+	default:
 		if p.HasCursor {
 			b.WriteString(` AND w.sort_title >= ? AND (w.sort_title, w.id) > (?, ?)`)
 			args = append(args, p.AfterTitle, p.AfterTitle, p.AfterID)
@@ -237,6 +263,12 @@ func workListFromWhere(p WorkListParams) (string, []any) {
 	if !p.Narrow && p.SeriesName != "" {
 		b.WriteString(` AND EXISTS (SELECT 1 FROM editions e WHERE e.work_id = w.id AND e.series = ? AND ` + visibility.VisibleEditionSQL + `)`)
 		args = append(args, p.SeriesName)
+	}
+	if p.Rated {
+		b.WriteString(` AND w.rating IS NOT NULL`)
+	}
+	if p.Want {
+		b.WriteString(` AND w.want_to_read = 1`)
 	}
 	return b.String(), args
 }
@@ -310,7 +342,7 @@ func (c *Catalog) HydrateWorks(ctx context.Context, ids []int64, seriesHint stri
 		seriesNoPick = `SELECT e.series_no FROM editions e WHERE e.work_id = w.id AND e.series = ? AND ` + visibility.VisibleEditionSQL + `
 		 ORDER BY CASE WHEN ` + seriesNoNumeric + ` THEN 0 ELSE 1 END, CAST(e.series_no AS REAL), e.id LIMIT 1`
 	}
-	q := `SELECT w.id, w.work_key, w.title, w.sort_title, w.authors_text, w.lang, w.rating, w.added_date,
+	q := `SELECT w.id, w.work_key, w.title, w.sort_title, w.authors_text, w.lang, w.rating, w.want_to_read, w.added_date,
 	        (` + seriesPick + `),
 	        (` + seriesNoPick + `),
 	        (SELECT count(*) FROM editions e WHERE e.work_id = w.id AND ` + visibility.VisibleEditionSQL + `),
@@ -326,7 +358,7 @@ func (c *Catalog) HydrateWorks(ctx context.Context, ids []int64, seriesHint stri
 	byID := make(map[int64]WorkRow, len(ids))
 	for rows.Next() {
 		var r WorkRow
-		if err := rows.Scan(&r.ID, &r.WorkKey, &r.Title, &r.SortTitle, &r.AuthorsText, &r.Lang, &r.Rating, &r.AddedDate,
+		if err := rows.Scan(&r.ID, &r.WorkKey, &r.Title, &r.SortTitle, &r.AuthorsText, &r.Lang, &r.Rating, &r.WantToRead, &r.AddedDate,
 			&r.Series, &r.SeriesNo, &r.EditionCount, &r.Size, &r.Librate); err != nil {
 			return nil, err
 		}

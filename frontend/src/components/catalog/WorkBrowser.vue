@@ -28,7 +28,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { errorMessage } from '@/i18n/errors'
 import { formatCount, formatCappedCount } from '@/lib/format'
-import { queryId, queryText } from '@/lib/route-query'
+import { queryFlag, queryId, queryText } from '@/lib/route-query'
 import { withWorkQuery } from '@/lib/work-route'
 import { useAppStore } from '@/stores/app'
 import { useCatalogStore } from '@/stores/catalog'
@@ -60,6 +60,8 @@ const filtersOpen = ref(false)
 const q = computed(() => queryText(route.query.q).trim())
 const lang = computed(() => queryText(route.query.lang))
 const sort = computed(() => queryText(route.query.sort))
+const rated = computed(() => queryFlag(route.query.rated))
+const want = computed(() => queryFlag(route.query.want))
 const genreFilter = computed(() => props.genreId || queryId(route.query.genre))
 const authorFilter = computed(() => props.authorId || queryId(route.query.author))
 const seriesFilter = computed(() => props.seriesId || queryId(route.query.series))
@@ -70,6 +72,8 @@ const listKey = computed(() =>
     q: q.value,
     lang: lang.value,
     sort: sort.value,
+    rated: rated.value,
+    want: want.value,
     genre: genreFilter.value,
     author: authorFilter.value,
     series: seriesFilter.value,
@@ -85,6 +89,8 @@ function patchQuery(next: Record<string, string | undefined>) {
     q: q.value,
     lang: lang.value,
     sort: sort.value,
+    rated: rated.value ? '1' : '',
+    want: want.value ? '1' : '',
     genre: route.query.genre ? String(route.query.genre) : '',
     author: route.query.author ? String(route.query.author) : '',
     series: route.query.series ? String(route.query.series) : '',
@@ -109,6 +115,8 @@ async function reload() {
         genreId: genreFilter.value || undefined,
         authorId: authorFilter.value || undefined,
         seriesId: seriesFilter.value || undefined,
+        rated: rated.value || undefined,
+        want: want.value || undefined,
       },
       true,
     )
@@ -123,6 +131,8 @@ async function reload() {
       genreId: genreFilter.value || undefined,
       authorId: authorFilter.value || undefined,
       seriesId: seriesFilter.value || undefined,
+      rated: rated.value || undefined,
+      want: want.value || undefined,
     },
     true,
   )
@@ -143,6 +153,8 @@ function loadMore() {
         genreId: genreFilter.value || undefined,
         authorId: authorFilter.value || undefined,
         seriesId: seriesFilter.value || undefined,
+        rated: rated.value || undefined,
+        want: want.value || undefined,
       },
       false,
     )
@@ -157,6 +169,8 @@ function loadMore() {
       genreId: genreFilter.value || undefined,
       authorId: authorFilter.value || undefined,
       seriesId: seriesFilter.value || undefined,
+      rated: rated.value || undefined,
+      want: want.value || undefined,
     },
     false,
   )
@@ -234,7 +248,31 @@ function setFilterId(key: 'genre' | 'author' | 'series', id: number) {
   patchQuery({ [key]: id ? String(id) : undefined })
 }
 
-function clearFilter(key: 'lang' | 'genre' | 'author' | 'series') {
+function setRated(on: boolean) {
+  const next: Record<string, string | undefined> = { rated: on ? '1' : undefined }
+  if (!on && (sort.value === 'rating' || sort.value === 'ratedat')) {
+    next.sort = undefined
+  }
+  patchQuery(next)
+}
+
+function setWant(on: boolean) {
+  const next: Record<string, string | undefined> = { want: on ? '1' : undefined }
+  if (!on && sort.value === 'wantat') {
+    next.sort = undefined
+  }
+  patchQuery(next)
+}
+
+function clearFilter(key: 'lang' | 'genre' | 'author' | 'series' | 'rated' | 'want') {
+  if (key === 'rated') {
+    setRated(false)
+    return
+  }
+  if (key === 'want') {
+    setWant(false)
+    return
+  }
   patchQuery({ [key]: undefined })
 }
 
@@ -268,7 +306,14 @@ const emptyText = computed(() => {
   if (searching.value) {
     return t('list.emptySearch')
   }
-  if (lang.value || genreFilter.value || authorFilter.value || seriesFilter.value) {
+  if (
+    lang.value ||
+    genreFilter.value ||
+    authorFilter.value ||
+    seriesFilter.value ||
+    rated.value ||
+    want.value
+  ) {
     return t('list.emptyFiltered')
   }
   return t('list.empty')
@@ -287,7 +332,9 @@ const hasFilters = computed(() =>
     lang.value ||
     (!props.genreId && genreFilter.value) ||
     (!props.authorId && authorFilter.value) ||
-    (!props.seriesId && seriesFilter.value),
+    (!props.seriesId && seriesFilter.value) ||
+    rated.value ||
+    want.value,
   ),
 )
 
@@ -324,6 +371,12 @@ const sortOptions = computed(() => {
   }
   if (searching.value) {
     items.unshift({ value: 'relevance', label: t('catalog.sortRelevance') })
+  }
+  if (rated.value) {
+    items.push({ value: 'rating', label: t('catalog.sortRating') })
+  }
+  if (want.value) {
+    items.push({ value: 'wantat', label: t('catalog.sortWant') })
   }
   return items
 })
@@ -497,6 +550,26 @@ onMounted(() => {
             :model-value="seriesFilter"
             @update:model-value="(id) => setFilterId('series', id)"
           />
+          <div class="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              class="rounded-full"
+              :variant="rated ? 'default' : 'outline'"
+              @click="setRated(!rated)"
+            >
+              {{ t('catalog.filterRated') }}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              class="rounded-full"
+              :variant="want ? 'default' : 'outline'"
+              @click="setWant(!want)"
+            >
+              {{ t('catalog.filterWant') }}
+            </Button>
+          </div>
         </div>
         <SheetFooter>
           <Button variant="outline" @click="clearFilters">{{ t('list.resetFilters') }}</Button>
@@ -535,6 +608,18 @@ onMounted(() => {
           :aria-label="t('catalog.removeFilter')"
           @click="clearFilter('series')"
         >
+          <X class="size-3" />
+        </button>
+      </Badge>
+      <Badge v-if="rated" variant="secondary" class="gap-1 px-3 py-1">
+        {{ t('catalog.filterRated') }}
+        <button type="button" :aria-label="t('catalog.removeFilter')" @click="clearFilter('rated')">
+          <X class="size-3" />
+        </button>
+      </Badge>
+      <Badge v-if="want" variant="secondary" class="gap-1 px-3 py-1">
+        {{ t('catalog.filterWant') }}
+        <button type="button" :aria-label="t('catalog.removeFilter')" @click="clearFilter('want')">
           <X class="size-3" />
         </button>
       </Badge>

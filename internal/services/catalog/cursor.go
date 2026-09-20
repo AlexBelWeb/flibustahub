@@ -13,6 +13,9 @@ const (
 	curAdded    cursorKind = "added"
 	curName     cursorKind = "name"
 	curSeriesNo cursorKind = "seriesno"
+	curRating   cursorKind = "rating"
+	curRatedAt  cursorKind = "ratedat"
+	curWantAt   cursorKind = "wantat"
 )
 
 type pageCursor struct {
@@ -21,6 +24,7 @@ type pageCursor struct {
 	ID int64      `json:"id"`
 	B  int        `json:"b,omitempty"`
 	N  *float64   `json:"n,omitempty"`
+	R  int        `json:"r,omitempty"`
 }
 
 func encodeCursor(c pageCursor) string {
