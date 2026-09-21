@@ -88,9 +88,11 @@ func (s *Service) newCoversLocked() *covers.Service {
 		}
 		return s.storage.Probe(context.Background())
 	}
-	return covers.New(cat, func() string {
+	c := covers.New(cat, func() string {
 		return cfg.Paths().CoversDir
 	}, func() string {
 		return cfg.Live().LibraryRoot
 	}, ready, s.log, nil, s.emitCoverProgress)
+	c.SetAfterWarmup(s.releaseAfterHeavy)
+	return c
 }

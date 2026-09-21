@@ -69,6 +69,7 @@ type Service struct {
 	warmRunning atomic.Bool
 	warmTotal   atomic.Int64
 	warmDone    atomic.Int64
+	afterWarmup func()
 }
 
 func New(
@@ -419,14 +420,20 @@ func (s *Service) WarmupPreview(ctx context.Context) (int, error) {
 	return n, nil
 }
 
-func (s *Service) StartWarmup(ctx context.Context) error {
+func (s *Service) SetAfterWarmup(fn func()) {
+	s.warmMu.Lock()
+	s.afterWarmup = fn
+	s.warmMu.Unlock()
+}
+
+func (s *Service) StartWarmup(ctx context.Context) (bool, error) {
 	if !s.warmRunning.CompareAndSwap(false, true) {
-		return nil
+		return false, nil
 	}
 	items, err := s.store.WarmupItems(ctx)
 	if err != nil {
 		s.warmRunning.Store(false)
-		return apperr.Wrap(apperr.CodeInternal, err, nil)
+		return false, apperr.Wrap(apperr.CodeInternal, err, nil)
 	}
 	dir := s.coversDir()
 	pending := make([]int64, 0, len(items))
@@ -442,14 +449,14 @@ func (s *Service) StartWarmup(ctx context.Context) error {
 	if len(pending) == 0 {
 		s.warmRunning.Store(false)
 		s.emitWarmup()
-		return nil
+		return false, nil
 	}
 	wctx, cancel := context.WithCancel(context.Background())
 	s.warmMu.Lock()
 	s.warmCancel = cancel
 	s.warmMu.Unlock()
 	go s.runWarmup(wctx, pending)
-	return nil
+	return true, nil
 }
 
 func (s *Service) runWarmup(ctx context.Context, ids []int64) {
@@ -459,6 +466,12 @@ func (s *Service) runWarmup(ctx context.Context, ids []int64) {
 		s.warmMu.Unlock()
 		s.warmRunning.Store(false)
 		s.emitWarmup()
+		s.warmMu.Lock()
+		fn := s.afterWarmup
+		s.warmMu.Unlock()
+		if fn != nil {
+			fn()
+		}
 	}()
 	for _, id := range ids {
 		if ctx.Err() != nil {

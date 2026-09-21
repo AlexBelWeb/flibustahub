@@ -50,6 +50,8 @@ type DB struct {
 	recoverCancel context.CancelFunc
 	recoverDone   chan struct{}
 	recoverWaited bool
+
+	idle *cacheGate
 }
 
 // Options control Open.
@@ -111,7 +113,9 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 		log:        opt.Log,
 		now:        opt.Now,
 		source:     opt.Migrations,
+		idle:       newCacheGate(idleCacheDelay),
 	}
+	d.idle.owner = d
 	d.reportPragmas(ctx)
 	if err := applyMigrations(ctx, d, opt.Migrations); err != nil {
 		_ = d.Close()
@@ -199,7 +203,11 @@ func (d *DB) CloseWithin(budget time.Duration) error {
 		return nil
 	}
 	d.closed = true
+	idle := d.idle
 	d.mu.Unlock()
+	if idle != nil {
+		idle.stop()
+	}
 
 	deadline := time.Now().Add(budget)
 	d.stopIndexRecoveryUntil(deadline)

@@ -152,3 +152,7 @@ export function StartCoverWarmup():Promise<void>;
 export function StartImport():Promise<inpximport.ReportDTO>;
 
 export function StopCoverWarmup():Promise<void>;
+
+export function WindowAway():Promise<void>;
+
+export function WindowBack():Promise<void>;

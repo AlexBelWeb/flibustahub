@@ -285,3 +285,11 @@ export function StartImport() {
 export function StopCoverWarmup() {
   return window['go']['handlers']['App']['StopCoverWarmup']();
 }
+
+export function WindowAway() {
+  return window['go']['handlers']['App']['WindowAway']();
+}
+
+export function WindowBack() {
+  return window['go']['handlers']['App']['WindowBack']();
+}

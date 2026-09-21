@@ -144,12 +144,14 @@ func (s *Service) StartImport(ctx context.Context, progress func(inpximport.Prog
 	s.importCancel = cancel
 	s.lastProgress = inpximport.Progress{}
 	s.importMu.Unlock()
+	s.holdCache()
 	defer func() {
 		s.importMu.Lock()
 		s.importing = false
 		s.importCancel = nil
 		s.importMu.Unlock()
 		cancel()
+		s.releaseAfterHeavy()
 	}()
 
 	live := s.config().Live()

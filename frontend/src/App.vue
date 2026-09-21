@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import AppToaster from '@/components/AppToaster.vue'
 import DatabaseUpdating from '@/components/DatabaseUpdating.vue'
 import ImportModal from '@/components/import/ImportModal.vue'
@@ -21,10 +21,35 @@ const imp = useImportStore()
 const covers = useCoversStore()
 const maint = useMaintenanceStore()
 
+function onWindowAway() {
+  void window.go.handlers.App.WindowAway()
+}
+
+function onWindowBack() {
+  void window.go.handlers.App.WindowBack()
+}
+
+function onVisibility() {
+  if (document.visibilityState === 'hidden') {
+    onWindowAway()
+    return
+  }
+  onWindowBack()
+}
+
 onMounted(() => {
   imp.listen()
   covers.listen()
   maint.listen()
+  window.addEventListener('blur', onWindowAway)
+  window.addEventListener('focus', onWindowBack)
+  document.addEventListener('visibilitychange', onVisibility)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('blur', onWindowAway)
+  window.removeEventListener('focus', onWindowBack)
+  document.removeEventListener('visibilitychange', onVisibility)
 })
 </script>
 
