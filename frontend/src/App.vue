@@ -18,9 +18,8 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const route = useRoute()
-const palettePreview = computed(
-  () => route.name === 'palettePreview' || window.location.hash.startsWith('#/palette-preview'),
-)
+// Temporary gate for the palette preview. Remove it with that route.
+const palettePreview = computed(() => route.name === 'palettePreview')
 const app = useAppStore()
 const imp = useImportStore()
 const covers = useCoversStore()

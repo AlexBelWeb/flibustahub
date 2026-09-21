@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CircleCheck, TriangleAlert } from '@lucide/vue'
+import { CircleAlert, CircleCheck, CircleMinus, TriangleAlert } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
@@ -100,16 +100,12 @@ async function copyMissing() {
           report.status === 'failed'
             ? 'text-destructive'
             : report.status === 'cancelled'
-              ? 'text-warning'
+              ? 'text-foreground'
               : 'text-success'
         "
       >
         <CircleAlert v-if="report.status === 'failed'" class="size-4" aria-hidden="true" />
-        <TriangleAlert
-          v-else-if="report.status === 'cancelled'"
-          class="size-4"
-          aria-hidden="true"
-        />
+        <CircleMinus v-else-if="report.status === 'cancelled'" class="size-4" aria-hidden="true" />
         <CircleCheck v-else class="size-4" aria-hidden="true" />
         {{ statusLabel(report.status) }}
       </p>
@@ -130,7 +126,7 @@ async function copyMissing() {
       :class="
         notes.missingArchivesTotal > 0
           ? 'border-transparent bg-warning-quiet text-warning'
-          : 'border-transparent bg-success-quiet text-success'
+          : 'border-border'
       "
     >
       <h3 class="font-display text-lg font-medium">{{ t('import.missingTitle') }}</h3>

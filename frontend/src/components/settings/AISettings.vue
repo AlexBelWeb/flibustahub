@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { CircleCheck, TriangleAlert } from '@lucide/vue'
+import { TriangleAlert } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -87,6 +87,11 @@ async function remove() {
   }
 }
 
+const degradedStore = computed(() => {
+  const st = secrets.status
+  return Boolean(st && (st.kind !== 'os' || st.machineIdMissing))
+})
+
 const storeLine = computed(() => {
   const st = secrets.status
   if (!st) {
@@ -165,18 +170,9 @@ const canSave = computed(
       <p
         v-if="storeLine"
         class="flex items-center gap-2 text-sm"
-        :class="
-          secrets.status?.kind === 'os' && !secrets.status?.machineIdMissing
-            ? 'text-success'
-            : 'text-warning'
-        "
+        :class="degradedStore ? 'text-warning' : 'text-muted-foreground'"
       >
-        <CircleCheck
-          v-if="secrets.status?.kind === 'os' && !secrets.status?.machineIdMissing"
-          class="size-4"
-          aria-hidden="true"
-        />
-        <TriangleAlert v-else class="size-4" aria-hidden="true" />
+        <TriangleAlert v-if="degradedStore" class="size-4 shrink-0" aria-hidden="true" />
         {{ storeLine }}
       </p>
       <p v-if="secrets.status?.hasSecret" class="text-sm">{{ t('settings.ai.hasKey') }}</p>
