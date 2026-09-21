@@ -45,23 +45,47 @@ const lanes = computed(() => {
   return 5
 })
 
-const estimate = computed(() => (props.view === 'tile' ? 500 : 48))
+const rowCount = computed(() =>
+  props.view === 'tile' ? Math.ceil(props.items.length / lanes.value) : props.items.length,
+)
+
+// Guess only. The virtualizer replaces it with the rendered row height.
+function estimateTileRow(): number {
+  const col = width.value / Math.max(1, lanes.value)
+  return Math.round(Math.max(col, 160) * 2)
+}
 
 const virtualizer = useVirtualizer(
   computed(() => ({
-    count: props.items.length,
+    count: rowCount.value,
     getScrollElement: () => parentRef.value,
-    estimateSize: () => estimate.value,
-    overscan: 8,
-    lanes: lanes.value,
+    estimateSize: () => (props.view === 'tile' ? estimateTileRow() : 48),
+    // One row each side keeps the next keyboard step mounted without a screen of extra cards.
+    overscan: props.view === 'tile' ? 1 : 8,
     initialOffset: props.scrollTop,
   })),
 )
 
-const lanePct = computed(() => 100 / lanes.value)
+function measureRow(node: Element | null) {
+  virtualizer.value.measureElement(node)
+}
 
-function measure() {
-  virtualizer.value.measure()
+function indexesInRow(rowIndex: number): number[] {
+  const start = rowIndex * lanes.value
+  const end = Math.min(start + lanes.value, props.items.length)
+  const indexes: number[] = []
+  for (let index = start; index < end; index += 1) {
+    indexes.push(index)
+  }
+  return indexes
+}
+
+function nearEnd(): boolean {
+  const last = virtualizer.value.getVirtualItems().at(-1)
+  if (!last) {
+    return false
+  }
+  return last.index >= rowCount.value - 3
 }
 
 function onScroll() {
@@ -70,15 +94,15 @@ function onScroll() {
     return
   }
   emit('scroll', el.scrollTop)
-  const last = virtualizer.value.getVirtualItems().at(-1)
-  if (last && last.index >= props.items.length - lanes.value * 3) {
+  if (nearEnd()) {
     emit('end')
   }
 }
 
 function focusIndex(index: number) {
   focusedIndex.value = index
-  virtualizer.value.scrollToIndex(index, { align: 'auto' })
+  const row = props.view === 'tile' ? Math.floor(index / lanes.value) : index
+  virtualizer.value.scrollToIndex(row, { align: 'auto' })
   void nextTick(() => {
     requestAnimationFrame(() => {
       const node = parentRef.value?.querySelector<HTMLElement>(`[data-work-index="${index}"]`)
@@ -120,13 +144,11 @@ onMounted(() => {
   width.value = el.clientWidth
   ro = new ResizeObserver(() => {
     width.value = el.clientWidth
-    measure()
   })
   ro.observe(el)
   if (props.scrollTop) {
     el.scrollTop = props.scrollTop
   }
-  void nextTick(() => measure())
 })
 
 onUnmounted(() => {
@@ -136,12 +158,19 @@ onUnmounted(() => {
   }
 })
 
+watch(lanes, () => {
+  void nextTick(() => {
+    virtualizer.value.measure()
+    parentRef.value?.querySelectorAll<HTMLElement>('[data-index]').forEach((node) => {
+      virtualizer.value.measureElement(node)
+    })
+  })
+})
+
 watch(
-  () => [props.items.length, props.view, lanes.value] as const,
+  () => props.items.length,
   () => {
-    void nextTick(() => measure())
-    const last = virtualizer.value.getVirtualItems().at(-1)
-    if (last && last.index >= props.items.length - lanes.value * 3) {
+    if (nearEnd()) {
       emit('end')
     }
   },
@@ -178,23 +207,28 @@ watch(
           <div
             v-for="row in virtualizer.getVirtualItems()"
             :key="row.key"
-            class="absolute top-0"
-            :style="{
-              transform: `translateY(${row.start}px)`,
-              height: `${row.size}px`,
-              left: view === 'tile' ? `${row.lane * lanePct}%` : '0',
-              width: view === 'tile' ? `${lanePct}%` : '100%',
-              padding: view === 'tile' ? '0.5rem' : '0',
-            }"
+            :ref="measureRow"
+            :data-index="row.index"
+            class="absolute top-0 left-0 w-full"
+            :style="{ transform: `translateY(${row.start}px)` }"
           >
-            <WorkCard
-              v-if="view === 'tile' && items[row.index]"
-              :work="items[row.index]"
-              :query="query"
-              :data-work-index="row.index"
-              :tabindex="focusedIndex === row.index ? 0 : -1"
-              @focus="focusedIndex = row.index"
-            />
+            <div
+              v-if="view === 'tile'"
+              class="grid items-stretch"
+              :style="{ gridTemplateColumns: `repeat(${lanes}, minmax(0, 1fr))` }"
+            >
+              <div v-for="index in indexesInRow(row.index)" :key="index" class="flex h-full p-2">
+                <WorkCard
+                  v-if="items[index]"
+                  :work="items[index]"
+                  :query="query"
+                  class="h-full min-w-0 w-full flex-1"
+                  :data-work-index="index"
+                  :tabindex="focusedIndex === index ? 0 : -1"
+                  @focus="focusedIndex = index"
+                />
+              </div>
+            </div>
             <WorkRow
               v-else-if="items[row.index]"
               :work="items[row.index]"

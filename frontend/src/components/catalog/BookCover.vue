@@ -37,6 +37,7 @@ const src = ref('')
 let observer: IntersectionObserver | null = null
 let intersecting = false
 let inflight: AbortController | null = null
+let inflightPrio = ''
 let blobURL = ''
 let absent = false
 let temporary = false
@@ -62,6 +63,7 @@ function coverURL() {
 function abortInflight() {
   inflight?.abort()
   inflight = null
+  inflightPrio = ''
 }
 
 function revokeBlob() {
@@ -94,15 +96,34 @@ function showPlate() {
   status.value = 'plate'
 }
 
+function prioRank(prio: string): number {
+  if (prio === 'open') {
+    return 0
+  }
+  if (prio === 'visible') {
+    return 1
+  }
+  return 2
+}
+
 function load(prio: string) {
   if (!canFetch.value || absent) {
     showPlate()
     return
   }
+  if (status.value === 'image' && src.value) {
+    return
+  }
+  if (inflight && prioRank(prio) >= prioRank(inflightPrio)) {
+    return
+  }
   abortInflight()
+  inflightPrio = prio
   const ac = new AbortController()
   inflight = ac
-  markLoading()
+  if (status.value !== 'loading') {
+    markLoading()
+  }
   void (async () => {
     try {
       const resp = await fetch(coverURL(), {
@@ -166,6 +187,9 @@ function onIntersect(entries: IntersectionObserverEntry[]) {
     return
   }
   intersecting = true
+  if (status.value === 'image' && src.value) {
+    return
+  }
   if (absent || temporary) {
     showPlate()
     return

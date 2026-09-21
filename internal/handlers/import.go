@@ -10,9 +10,15 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// CloseRequested is the payload of import:closeRequested.
+const (
+	CloseKindImport      = "import"
+	CloseKindMaintenance = "maintenance"
+)
+
+// CloseRequested is the payload of import:closeRequested and maintenance:closeRequested.
 type CloseRequested struct {
-	Committed bool `json:"committed"`
+	Kind      string `json:"kind"`
+	Committed bool   `json:"committed"`
 }
 
 func (a *App) SelectLibraryRoot(title string) (string, error) {

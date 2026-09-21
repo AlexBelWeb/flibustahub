@@ -21,6 +21,9 @@ import type {
 import type { ImportPreview, ImportReport } from './types/import'
 import type { PersonalExportResult, PersonalImportReport, PersonalSnapshot } from './types/personal'
 import type { FileResult, StorageSnapshot } from './types/storage'
+import type { ArchiveResult, DiagnosticSnapshot, IssueReport } from './types/diagnostics'
+import type { BackupResult, OptimizeResult } from './types/maintenance'
+import type { SecretStatus } from './types/secrets'
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -34,6 +37,7 @@ interface Window {
     EventsOff: (eventName: string) => void
     Quit: () => void
     BrowserOpenURL: (url: string) => void
+    ClipboardSetText?: (text: string) => Promise<boolean>
   }
   go: {
     handlers: {
@@ -98,6 +102,17 @@ interface Window {
         ImportPersonal: (path: string) => Promise<PersonalImportReport>
         SelectPersonalExportPath: (title: string) => Promise<string>
         SelectPersonalImportPath: (title: string) => Promise<string>
+        SecretStatus: (id: string) => Promise<SecretStatus>
+        SetSecret: (id: string, secret: string) => Promise<void>
+        DeleteSecret: (id: string) => Promise<void>
+        SetAIProvider: (id: string) => Promise<void>
+        OptimizeDatabase: () => Promise<OptimizeResult>
+        CreateCatalogBackup: () => Promise<BackupResult>
+        DatabaseMaintenanceRunning: () => Promise<boolean>
+        Diagnostics: () => Promise<DiagnosticSnapshot>
+        SaveDiagnosticArchive: (title: string) => Promise<ArchiveResult>
+        BuildIssueReport: (kind: string, description: string) => Promise<IssueReport>
+        SaveIssueReport: (title: string, body: string) => Promise<ArchiveResult>
       }
     }
   }

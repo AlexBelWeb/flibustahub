@@ -15,8 +15,11 @@ import (
 	"github.com/alexbelweb/flibustahub/internal/db"
 	"github.com/alexbelweb/flibustahub/internal/platform"
 	"github.com/alexbelweb/flibustahub/internal/services/covers"
+	"github.com/alexbelweb/flibustahub/internal/services/diagnostics"
 	"github.com/alexbelweb/flibustahub/internal/services/downloads"
 	"github.com/alexbelweb/flibustahub/internal/services/inpximport"
+	"github.com/alexbelweb/flibustahub/internal/services/maintenance"
+	"github.com/alexbelweb/flibustahub/internal/services/secrets"
 	"github.com/alexbelweb/flibustahub/internal/services/storage"
 )
 
@@ -32,6 +35,9 @@ type Service struct {
 	covers    *covers.Service
 	downloads *downloads.Service
 	storage   *storage.Service
+	secrets   *secrets.Service
+	maint     *maintenance.Service
+	diag      *diagnostics.Service
 	coverEmit func(covers.Progress)
 	storeEmit func(storage.Snapshot)
 	httpAddr  string
@@ -54,6 +60,24 @@ type Service struct {
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
 	s := &Service{cfg: cfg, log: log, version: version, commit: commit, built: built}
 	s.storage = storage.New(cfg, s.Catalog, s.Logger(), s.emitStorage)
+	s.secrets = secrets.New(secrets.Options{
+		DataDir: func() string { return s.config().Paths().DataDir },
+		Log:     s.Logger(),
+	})
+	s.maint = maintenance.New(maintenance.Options{
+		Catalog:   s.Catalog,
+		Importing: s.IsImporting,
+		Warming:   func() bool { return s.CoverWarmupProgress().Running },
+		Log:       s.Logger(),
+	})
+	s.diag = diagnostics.New(diagnostics.Options{
+		Catalog: s.Catalog,
+		Config:  s.config,
+		Version: version,
+		Commit:  commit,
+		Built:   built,
+		Log:     s.Logger(),
+	})
 	return s
 }
 
@@ -115,6 +139,7 @@ type Bootstrap struct {
 	VisualEffectsPref string                `json:"visualEffectsPref"`
 	SidebarCollapsed  bool                  `json:"sidebarCollapsed"`
 	CatalogView       string                `json:"catalogView"`
+	AIProvider        string                `json:"aiProvider"`
 	Capabilities      platform.Capabilities `json:"capabilities"`
 	LibraryRoot       string                `json:"libraryRoot"`
 	Paths             config.Paths          `json:"paths"`
@@ -176,6 +201,7 @@ func (s *Service) Bootstrap() Bootstrap {
 		VisualEffectsPref: live.VisualEffects,
 		SidebarCollapsed:  live.SidebarCollapsed,
 		CatalogView:       live.CatalogView,
+		AIProvider:        live.AIProvider,
 		Capabilities:      caps,
 		LibraryRoot:       live.LibraryRoot,
 		Paths:             st.cfg.Paths(),

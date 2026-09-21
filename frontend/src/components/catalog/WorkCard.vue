@@ -73,7 +73,7 @@ async function onWant(value: boolean) {
       <div class="grid gap-1 p-3">
         <Tooltip>
           <TooltipTrigger as-child>
-            <p class="line-clamp-2 font-medium">
+            <p class="line-clamp-2 text-sm leading-5 font-medium">
               <HighlightText :text="title" :query="query" />
             </p>
           </TooltipTrigger>
@@ -81,13 +81,13 @@ async function onWant(value: boolean) {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger as-child>
-            <p class="line-clamp-1 text-sm text-muted-foreground">
+            <p class="truncate text-xs leading-4 text-muted-foreground">
               <HighlightText :text="authorsLine" :query="query" />
             </p>
           </TooltipTrigger>
           <TooltipContent>{{ authorsFull }}</TooltipContent>
         </Tooltip>
-        <p v-if="work.series" class="line-clamp-1 text-xs text-muted-foreground">
+        <p v-if="work.series" class="truncate text-xs leading-4 text-muted-foreground">
           {{ work.series }}
           <span v-if="work.seriesNo">{{ t('catalog.seriesNo', { n: work.seriesNo }) }}</span>
         </p>

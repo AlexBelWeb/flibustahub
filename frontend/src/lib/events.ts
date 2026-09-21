@@ -3,6 +3,7 @@
 export const Events = {
   ImportProgress: 'import:progress',
   ImportCloseRequested: 'import:closeRequested',
+  MaintenanceCloseRequested: 'maintenance:closeRequested',
   DBUpdated: 'db:updated',
   SearchIndexReady: 'search:indexReady',
   CoversProgress: 'covers:progress',

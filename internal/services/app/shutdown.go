@@ -23,10 +23,12 @@ func (s *Service) Shutdown(stopHTTP func(context.Context) error) {
 		deadline := time.Now().Add(shutdownBudget)
 		s.beginShutdown()
 		s.CancelImport()
+		s.CancelMaintenance()
 		s.stopCovers()
 		s.stopDownloads()
 		s.CleanupReading()
 		s.waitNamedUntil(deadline, "import", func() bool { return !s.IsImporting() })
+		s.waitNamedUntil(deadline, "maintenance", func() bool { return !s.DatabaseMaintenanceRunning() })
 		s.waitCoversUntil(deadline)
 		s.waitNamedUntil(deadline, "catalog-open", func() bool { return !s.isOpening() })
 		if stopHTTP != nil {

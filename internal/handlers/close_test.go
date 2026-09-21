@@ -65,3 +65,18 @@ func TestCloseGuardDismissCancelsTimeout(t *testing.T) {
 		t.Fatal("dismissed close must not quit")
 	}
 }
+
+func TestLongOpCloseKind(t *testing.T) {
+	if got := longOpCloseKind(true, false); got != CloseKindImport {
+		t.Fatalf("import: %q", got)
+	}
+	if got := longOpCloseKind(false, true); got != CloseKindMaintenance {
+		t.Fatalf("maintenance: %q", got)
+	}
+	if got := longOpCloseKind(true, true); got != CloseKindImport {
+		t.Fatalf("import wins when both: %q", got)
+	}
+	if got := longOpCloseKind(false, false); got != "" {
+		t.Fatalf("idle: %q", got)
+	}
+}

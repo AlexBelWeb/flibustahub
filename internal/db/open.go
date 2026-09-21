@@ -84,6 +84,12 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 		}
 	}
 
+	dir := filepath.Dir(opt.Path)
+	removeOrphanTempDBs(dir, opt.Log)
+	if err := setTempStoreDirectory(dir); err != nil {
+		return nil, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
+	}
+
 	dsn := fileDSN(opt.Path)
 	write, err := sqlOpen(dsn)
 	if err != nil {

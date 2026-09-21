@@ -28,6 +28,7 @@ func RestoreWorkPragmas(ctx context.Context, conn *sql.Conn) error {
 		"PRAGMA foreign_keys=ON",
 		fmt.Sprintf("PRAGMA cache_size=%d", workingCacheSize),
 		"PRAGMA synchronous=FULL",
+		"PRAGMA temp_store=MEMORY",
 	}
 	for _, s := range stmts {
 		if _, err := conn.ExecContext(ctx, s); err != nil {

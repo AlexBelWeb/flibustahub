@@ -10,3 +10,12 @@ export function quitApp(): void {
 export function openExternalUrl(url: string): void {
   window.runtime?.BrowserOpenURL(url)
 }
+
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return Boolean(await window.runtime?.ClipboardSetText?.(text))
+  }
+}

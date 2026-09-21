@@ -35,6 +35,30 @@ func TestSetLocalePersists(t *testing.T) {
 	}
 }
 
+func TestSetAIProviderRejectsUnknown(t *testing.T) {
+	svc := newTestService(t)
+	err := svc.SetAIProvider("claude")
+	if apperr.As(err).Code != apperr.CodeInvalidAIProvider {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestSetAIProviderPersists(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.SetAIProvider("gemini"); err != nil {
+		t.Fatal(err)
+	}
+	if svc.Bootstrap().AIProvider != "gemini" {
+		t.Fatal("provider not saved")
+	}
+	if err := svc.SetAIProvider(""); err != nil {
+		t.Fatal(err)
+	}
+	if svc.Bootstrap().AIProvider != "" {
+		t.Fatal("provider not cleared")
+	}
+}
+
 func TestBootstrapUsesSystemLocaleWhenEmpty(t *testing.T) {
 	t.Setenv("LC_ALL", "ru_RU.UTF-8")
 	svc := newTestService(t)

@@ -48,6 +48,7 @@
   },
   "settings": {
     "title": "Settings",
+    "navLabel": "Settings sections",
     "interface": {
       "title": "Interface",
       "language": "Language",
@@ -62,9 +63,10 @@
       "effectsHint": "On Linux the reduced mode replaces blur with a solid overlay."
     },
     "library": {
-      "title": "Library"
+      "title": "Library and database"
     },
     "downloads": {
+      "navTitle": "Downloads folder and reading",
       "title": "Downloads",
       "lead": "Downloaded books are saved to this folder. There is no Save As dialog — change the folder here.",
       "choose": "Choose downloads folder",
@@ -124,6 +126,91 @@
         "comment": "note",
         "wantToRead": "want to read"
       }
+    },
+    "ai": {
+      "title": "AI assistant",
+      "lead": "The key is stored in the operating system credential store or in an encrypted file. The app never shows the key itself.",
+      "provider": "Provider",
+      "providerNone": "Not selected",
+      "gemini": "Gemini",
+      "openai": "OpenAI",
+      "ollama": "Ollama",
+      "secret": "API key",
+      "secretPlaceholder": "The key is not shown after it is saved",
+      "save": "Save",
+      "delete": "Delete key",
+      "saved": "The key was saved.",
+      "deleted": "The key was deleted.",
+      "storeOS": "The key is stored in the operating system credential store.",
+      "storeFile": "The operating system store is unavailable, so the key is in an encrypted file.",
+      "storeMachineId": "The machine identifier is unavailable, so a file key next to the app data is used.",
+      "hasKey": "A key for this provider is saved.",
+      "noKey": "No key is saved for this provider yet.",
+      "statusEmpty": "The secret store status could not be loaded."
+    },
+    "maintenance": {
+      "title": "Database",
+      "lead": "Optimization refreshes planner statistics and may shrink the file a little. It does not promise free space. A manual copy goes to the backup folder and does not replace copies taken before an import.",
+      "optimize": "Optimize catalog",
+      "backup": "Create a catalog backup",
+      "running": "Database maintenance is running",
+      "alreadyOptimized": "The catalog is already optimized.",
+      "freed": "{size} freed.",
+      "backupDone": "Backup saved: {path}",
+      "confirmTitle": "Optimize the catalog?",
+      "confirmBody": "The catalog file will be rebuilt in full. Free space of about twice the database size is required. If there is nothing to shrink, the app says so instead of reporting zero.",
+      "closeTitle": "Database maintenance is running",
+      "closeBody": "Optimization or a backup has not finished yet. Closing the window now will interrupt the operation.",
+      "closeAnyway": "Close the app"
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "lead": "Paths, versions and counters for this installation. Ratings, notes and books are not included in a diagnostics archive.",
+      "empty": "The diagnostics snapshot is empty.",
+      "dbPath": "Database",
+      "coversPath": "Cover cache",
+      "logsPath": "Logs",
+      "dataPath": "Data folder",
+      "appVersion": "Application",
+      "versionLine": "{version}, {commit}, {built}",
+      "os": "OS and architecture",
+      "webView": "WebView",
+      "webViewUnknown": "unknown",
+      "dumpVersion": "Dump version",
+      "works": "Books",
+      "authors": "Authors",
+      "importedAt": "Import date",
+      "unnamedGenres": "Untitled genres",
+      "unnamedCount": "{n} untitled genre code | {n} untitled genre codes",
+      "unnamedHint": "To set names, create a genres.local.json file in the data folder — the app does not put it there.",
+      "unknown": "unknown",
+      "archive": "Diagnostics archive",
+      "archiveHint": "The archive includes logs, versions, configuration without secrets, database statistics and folder paths. It does not include ratings, notes or books.",
+      "archiveTitle": "Where to save the diagnostics archive",
+      "archiveRunning": "Building the diagnostics archive",
+      "saveArchive": "Save diagnostics archive",
+      "showInFolder": "Show in folder"
+    },
+    "issue": {
+      "title": "Report a problem",
+      "lead": "The app does not send anything by itself. You see the full text and choose whether to open an issue, copy it or save a file.",
+      "kind": "Report type",
+      "kindBug": "Bug",
+      "kindIdea": "Idea",
+      "description": "Description",
+      "descriptionPlaceholder": "What happened, or what you would like to see",
+      "preview": "Report text",
+      "previewLead": "This is what will go into the issue or the file. You can edit any part.",
+      "previewEmpty": "The report text is empty.",
+      "untitled": "FlibustaHub",
+      "openGitHub": "Open a GitHub issue",
+      "urlTooLong": "The report is too large for a link. Save the file and attach it to the issue yourself.",
+      "copy": "Copy report",
+      "copyFailed": "Could not copy to the clipboard.",
+      "save": "Save .md",
+      "saveTitle": "Where to save the report",
+      "attachArchive": "Attach a diagnostics archive",
+      "mailto": "Open email"
     }
   },
   "common": {
@@ -172,7 +259,20 @@
     "cancelled": "The action was cancelled.",
     "invalid_rating": "A rating must be between half a star and five stars.",
     "personal_export_failed": "Could not export personal data.",
-    "personal_import_failed": "Could not import personal data."
+    "personal_import_failed": "Could not import personal data.",
+    "secret_invalid_id": "Unknown AI provider.",
+    "secret_empty": "The key cannot be empty.",
+    "secret_too_large": "The key is too long for the OS credential store (maximum {max} bytes).",
+    "secret_store_failed": "Could not save the key. Details were written to the log.",
+    "secret_store_unreadable": "The key cannot be read. Enter it again, or delete it.",
+    "invalid_ai_provider": "Unknown AI provider.",
+    "db_no_space": "Not enough free space to optimize the catalog: {need} needed, {have} free.",
+    "db_maintenance_busy": "Optimization or a backup is already running.",
+    "import_in_progress": "Wait for the catalog import to finish.",
+    "cover_warmup_in_progress": "Wait for cover preload to finish.",
+    "db_optimize_failed": "Could not optimize the catalog. Details were written to the log.",
+    "diag_failed": "Could not collect diagnostics.",
+    "diag_archive_failed": "Could not save the diagnostics archive."
   },
   "storage": {
     "offlineTitle": "Storage unavailable",
@@ -187,13 +287,6 @@
     "remapped": "The library folder was found on another drive; the path has been updated.",
     "dumpNewer": "A newer dump {name} is in the folder. Import is never started automatically.",
     "dumpUpdate": "Update catalog"
-  },
-  "status": {
-    "version": "Version",
-    "platform": "Platform",
-    "effects": "Effects",
-    "effectsFull": "full",
-    "effectsReduced": "reduced"
   },
   "list": {
     "empty": "Nothing here yet.",

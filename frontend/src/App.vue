@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import AppToaster from '@/components/AppToaster.vue'
 import DatabaseUpdating from '@/components/DatabaseUpdating.vue'
 import ImportModal from '@/components/import/ImportModal.vue'
+import MaintenanceCloseDialog from '@/components/settings/MaintenanceCloseDialog.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import StartupBlock from '@/components/StartupBlock.vue'
 import { Button } from '@/components/ui/button'
@@ -11,16 +12,19 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { useAppStore } from '@/stores/app'
 import { useCoversStore } from '@/stores/covers'
 import { useImportStore } from '@/stores/import'
+import { useMaintenanceStore } from '@/stores/maintenance'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const app = useAppStore()
 const imp = useImportStore()
 const covers = useCoversStore()
+const maint = useMaintenanceStore()
 
 onMounted(() => {
   imp.listen()
   covers.listen()
+  maint.listen()
 })
 </script>
 
@@ -45,6 +49,7 @@ onMounted(() => {
           <AppLayout />
         </div>
         <ImportModal />
+        <MaintenanceCloseDialog />
         <AppToaster />
       </template>
     </div>
