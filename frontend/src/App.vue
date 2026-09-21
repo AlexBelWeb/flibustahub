@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import AppToaster from '@/components/AppToaster.vue'
 import DatabaseUpdating from '@/components/DatabaseUpdating.vue'
 import ImportModal from '@/components/import/ImportModal.vue'
@@ -16,6 +17,10 @@ import { useMaintenanceStore } from '@/stores/maintenance'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+const route = useRoute()
+const palettePreview = computed(
+  () => route.name === 'palettePreview' || window.location.hash.startsWith('#/palette-preview'),
+)
 const app = useAppStore()
 const imp = useImportStore()
 const covers = useCoversStore()
@@ -55,7 +60,10 @@ onUnmounted(() => {
 
 <template>
   <TooltipProvider>
-    <div class="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+    <div v-if="palettePreview" class="h-screen overflow-hidden">
+      <RouterView />
+    </div>
+    <div v-else class="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <div v-if="app.loading" class="h-full" aria-busy="true" />
       <DatabaseUpdating v-else-if="app.databaseUpdating && !app.startupError" />
       <StartupBlock v-else-if="app.startupError" />

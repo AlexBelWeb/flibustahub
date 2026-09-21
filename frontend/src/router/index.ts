@@ -10,6 +10,7 @@ import GenresView from '@/views/GenresView.vue'
 import GenreView from '@/views/GenreView.vue'
 import RecommendationsView from '@/views/RecommendationsView.vue'
 import SettingsView from '@/views/SettingsView.vue'
+import PalettePreviewView from '@/views/palette-preview/PalettePreviewView.vue'
 
 export const router = createRouter({
   history: createWebHashHistory(),
@@ -25,6 +26,7 @@ export const router = createRouter({
     { path: '/genres/:genreId', name: 'genre', component: GenreView },
     { path: '/recommendations', name: 'recommendations', component: RecommendationsView },
     { path: '/settings/:section?', name: 'settings', component: SettingsView },
+    { path: '/palette-preview', name: 'palettePreview', component: PalettePreviewView },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
