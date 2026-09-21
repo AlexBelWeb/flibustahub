@@ -51,6 +51,7 @@ Conventions:
 
 ### Changed
 
+- Catalog tiles share one row height, and the title on a tile is a step smaller. Covers stay put while you scroll.
 - Settings navigation is a vertical list of sections instead of three tabs.
 - Catalog filters open as a sliding panel and can be set by language, genre, author and series; the selection stays in the address bar.
 - The command palette, sidebar and drop-down lists use the same themed controls as the rest of the window, including keyboard movement in the palette and on the book grid.

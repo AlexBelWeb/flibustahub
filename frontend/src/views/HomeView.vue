@@ -249,11 +249,11 @@ watch(
           <CarouselItem
             v-for="work in arrivals"
             :key="work.id"
-            class="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
+            class="flex basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
           >
             <WorkCard
               :work="work"
-              class="h-full transition-transform duration-200 hover:-translate-y-0.5"
+              class="h-full w-full flex-1 transition-transform duration-200 hover:-translate-y-0.5"
             />
           </CarouselItem>
         </HomeCarousel>
@@ -270,11 +270,11 @@ watch(
           <CarouselItem
             v-for="work in rated"
             :key="work.id"
-            class="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
+            class="flex basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
           >
             <WorkCard
               :work="work"
-              class="h-full transition-transform duration-200 hover:-translate-y-0.5"
+              class="h-full w-full flex-1 transition-transform duration-200 hover:-translate-y-0.5"
             />
           </CarouselItem>
         </HomeCarousel>

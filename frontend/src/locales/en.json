@@ -182,7 +182,7 @@
       "importedAt": "Import date",
       "unnamedGenres": "Untitled genres",
       "unnamedCount": "{n} untitled genre code | {n} untitled genre codes",
-      "unnamedHint": "Russian names can be set in genres.local.json in the data folder.",
+      "unnamedHint": "To set names, create a genres.local.json file in the data folder — the app does not put it there.",
       "unknown": "unknown",
       "archive": "Diagnostics archive",
       "archiveHint": "The archive includes logs, versions, configuration without secrets, database statistics and folder paths. It does not include ratings, notes or books.",

@@ -175,12 +175,15 @@ const rows = computed(() => {
     <dl v-else class="mt-6 grid gap-4">
       <div v-for="row in rows" :key="row.key" class="grid gap-1">
         <dt class="text-sm text-muted-foreground">{{ row.label }}</dt>
-        <dd class="flex flex-wrap items-start gap-2">
-          <span class="font-mono text-sm break-all tabular-nums">{{ row.value }}</span>
+        <dd class="flex items-center gap-3">
+          <span class="min-w-0 flex-1 font-mono text-sm break-all tabular-nums">{{
+            row.value
+          }}</span>
           <Button
             v-if="row.copy && row.value"
             variant="ghost"
             size="sm"
+            class="shrink-0"
             @click="copy(row.value, row.key)"
           >
             {{ copiedKey === row.key ? t('common.copied') : t('common.copy') }}
