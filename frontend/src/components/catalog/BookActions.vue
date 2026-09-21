@@ -96,7 +96,7 @@ async function run(kind: 'download' | 'read') {
     const out = await fn(props.editionId)
     lastPath.value = out.path
     if (kind === 'download') {
-      toast.pushInfo(t('book.downloaded', { name: out.fileName }))
+      toast.pushSuccess(t('book.downloaded', { name: out.fileName }))
     }
   } catch (err) {
     const be = parseBackendError(err)
@@ -220,9 +220,9 @@ async function clearReader() {
 
   <AlertDialogRoot :open="!!readerErr" @update:open="(open) => !open && (readerErr = null)">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6"
+        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           readerErr?.code === 'reader_missing'

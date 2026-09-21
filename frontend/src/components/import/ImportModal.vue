@@ -82,9 +82,9 @@ function onCloseDialog(open: boolean) {
 <template>
   <DialogRoot :open="imp.modalOpen" @update:open="onModalOpen">
     <DialogPortal>
-      <DialogOverlay class="fixed inset-0 z-[60] bg-black/50" />
+      <DialogOverlay class="fixed inset-0 z-[60] bg-scrim" />
       <DialogContent
-        class="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(40rem,calc(100vh-2rem))] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(40rem,calc(100vh-2rem))] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl dialog-surface border border-border p-6"
         @escape-key-down="onEscape"
         @pointer-down-outside="onInteractOutside"
         @focus-outside="onInteractOutside"
@@ -177,9 +177,9 @@ function onCloseDialog(open: boolean) {
 
   <AlertDialogRoot :open="imp.confirmCancel" @update:open="imp.confirmCancel = $event">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
       >
         <AlertDialogTitle class="font-display text-xl font-semibold">
           {{ t('import.cancelTitle') }}
@@ -201,9 +201,9 @@ function onCloseDialog(open: boolean) {
 
   <AlertDialogRoot :open="imp.confirmClose" @update:open="onCloseDialog">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
       >
         <AlertDialogTitle class="font-display text-xl font-semibold">
           {{ imp.closeCommitted ? t('import.closeAfterTitle') : t('import.closeBeforeTitle') }}

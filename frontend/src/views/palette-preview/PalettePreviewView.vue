@@ -54,14 +54,14 @@ const groups: Array<{
 ]
 
 const selected = reactive<Record<RoleId, number>>({
-  brand: 31,
+  brand: 46,
   danger: 15,
-  success: 115,
-  warning: 84,
+  success: 168,
+  warning: 58,
   library: 230,
 })
 
-const neutral = ref<'charcoal' | 'warm'>('charcoal')
+const neutral = ref<'charcoal' | 'warm'>('warm')
 const tick = ref(0)
 
 const hueStyle = computed(() => ({
@@ -94,8 +94,8 @@ watch(
       <div class="intro">
         <h1>Палитра ролей</h1>
         <p>
-          Временная страница, в меню её нет. Перед закрытием среза она удаляется. Приложение ниже
-          этих переключателей не перекрашивается.
+          Временная страница, в меню её нет. Перед закрытием среза она удаляется. В приложении стоят
+          выбранные тона; здесь их всё ещё можно сравнить.
         </p>
         <p>Рядом с парой — контраст. 4.5 — обычный текст, 3.0 — крупный текст и границы.</p>
       </div>

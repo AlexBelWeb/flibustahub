@@ -26,9 +26,9 @@ function onCloseDialog(open: boolean) {
 <template>
   <AlertDialogRoot :open="maint.confirmClose" @update:open="onCloseDialog">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
       >
         <AlertDialogTitle class="font-display text-xl font-semibold">
           {{ t('settings.maintenance.closeTitle') }}

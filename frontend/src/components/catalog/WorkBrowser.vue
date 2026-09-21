@@ -637,7 +637,7 @@ onMounted(() => {
           <h2 class="text-sm font-medium text-muted-foreground">{{ t('palette.authors') }}</h2>
           <RouterLink
             v-if="authorsOverflow"
-            class="text-sm text-primary underline-offset-4 hover:underline"
+            class="text-sm underline-offset-4 hover:underline"
             :to="{ name: 'authors', query: { q } }"
           >
             {{ t('palette.allAuthors', { n: formatCappedCount(state.authorsTotal, locale) }) }}
@@ -659,7 +659,7 @@ onMounted(() => {
           <h2 class="text-sm font-medium text-muted-foreground">{{ t('palette.series') }}</h2>
           <RouterLink
             v-if="seriesOverflow"
-            class="text-sm text-primary underline-offset-4 hover:underline"
+            class="text-sm underline-offset-4 hover:underline"
             :to="{ name: 'series', query: { q } }"
           >
             {{ t('palette.allSeries', { n: formatCappedCount(state.seriesTotal, locale) }) }}

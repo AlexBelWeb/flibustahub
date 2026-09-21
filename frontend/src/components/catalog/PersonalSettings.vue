@@ -170,7 +170,7 @@ function noteField(field: string) {
       <Skeleton class="h-4 w-2/3" />
     </div>
     <div v-else-if="personal.snapshotStatus === 'error'" class="mt-4">
-      <p class="mb-3">{{ personal.snapshotError || t('list.error') }}</p>
+      <p class="mb-3 text-destructive">{{ personal.snapshotError || t('list.error') }}</p>
       <Button variant="outline" size="sm" @click="personal.loadSnapshot()">{{
         t('common.retry')
       }}</Button>
@@ -178,7 +178,7 @@ function noteField(field: string) {
     <dl v-else class="mt-4 grid gap-2 text-sm">
       <div>
         <dt class="text-muted-foreground">{{ t('settings.personal.unsyncedLabel') }}</dt>
-        <dd class="tabular-nums">
+        <dd class="text-primary tabular-nums">
           {{
             t('settings.personal.unsynced', personal.snapshot.unsyncedCount, {
               n: personal.snapshot.unsyncedCount,
@@ -285,9 +285,9 @@ function noteField(field: string) {
 
   <AlertDialogRoot :open="confirmOpen" @update:open="confirmOpen = $event">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[91] w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[91] w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           t('settings.personal.confirmTitle')

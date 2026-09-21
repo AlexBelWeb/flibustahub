@@ -57,7 +57,7 @@ const lang = computed(() => languageName(props.work.lang, locale.value))
       <span v-if="work.seriesNo">{{ t('catalog.seriesNo', { n: work.seriesNo }) }}</span>
     </span>
     <span class="truncate text-muted-foreground">{{ lang }}</span>
-    <span class="truncate text-right tabular-nums text-muted-foreground">{{ size }}</span>
+    <span class="truncate text-right text-library tabular-nums">{{ size }}</span>
     <span class="flex justify-end">
       <RatingValue :rating="work.rating" compact />
     </span>

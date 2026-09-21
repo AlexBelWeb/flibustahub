@@ -109,9 +109,9 @@ function chooseDump() {
 
   <AlertDialogRoot :open="imp.confirmReimport" @update:open="imp.confirmReimport = $event">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[70] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[70] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[70] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[70] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
       >
         <AlertDialogTitle class="font-display text-xl font-semibold">
           {{ t('import.confirmTitle') }}

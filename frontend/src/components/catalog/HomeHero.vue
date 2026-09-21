@@ -147,7 +147,7 @@ watch(
             {{ author.displayName }}
           </RouterLink>
         </p>
-        <p v-if="facts" class="text-sm text-muted-foreground tabular-nums">{{ facts }}</p>
+        <p v-if="facts" class="text-sm text-library tabular-nums">{{ facts }}</p>
         <div class="mt-1 flex flex-wrap items-center gap-2">
           <Button as-child>
             <RouterLink :to="{ query: withWorkQuery(route.query, work.id) }">

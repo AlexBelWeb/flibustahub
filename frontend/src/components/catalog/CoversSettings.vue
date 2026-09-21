@@ -124,9 +124,9 @@ async function clearCache() {
 
   <AlertDialogRoot :open="confirmClear" @update:open="confirmClear = $event">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6"
+        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           t('settings.covers.clearTitle')

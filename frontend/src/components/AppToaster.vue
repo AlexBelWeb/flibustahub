@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleAlert, CircleCheck } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,7 +26,25 @@ const toasts = useToastStore()
       @update:open="(open) => !open && toasts.dismiss(item.id)"
     >
       <div class="flex items-start gap-3">
-        <ToastDescription>
+        <CircleAlert
+          v-if="item.kind === 'error'"
+          class="mt-0.5 size-4 shrink-0 text-destructive"
+          aria-hidden="true"
+        />
+        <CircleCheck
+          v-else-if="item.kind === 'success'"
+          class="mt-0.5 size-4 shrink-0 text-success"
+          aria-hidden="true"
+        />
+        <ToastDescription
+          :class="
+            item.kind === 'error'
+              ? 'text-destructive'
+              : item.kind === 'success'
+                ? 'text-success'
+                : ''
+          "
+        >
           {{ item.message }}
           <span v-if="item.count > 1" class="text-muted-foreground tabular-nums">
             {{ t('toast.duplicateCount', { n: item.count }) }}

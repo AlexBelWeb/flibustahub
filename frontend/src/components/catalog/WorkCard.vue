@@ -59,10 +59,7 @@ async function onWant(value: boolean) {
 <template>
   <article
     :class="
-      cn(
-        'flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left',
-        props.class,
-      )
+      cn('elevate flex h-full flex-col overflow-hidden rounded-xl bg-card text-left', props.class)
     "
   >
     <RouterLink
@@ -93,10 +90,10 @@ async function onWant(value: boolean) {
         </p>
         <div class="flex flex-wrap items-center gap-1">
           <RatingValue :rating="work.rating" compact />
-          <Badge v-if="work.editionCount > 1" variant="secondary" class="tabular-nums">
+          <Badge v-if="work.editionCount > 1" variant="library" class="tabular-nums">
             {{ formatFiles(work.editionCount, locale) }}
           </Badge>
-          <Badge v-if="!work.hasFile" variant="muted">
+          <Badge v-if="!work.hasFile" variant="warning">
             {{ t('catalog.ghost') }}
           </Badge>
         </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TriangleAlert } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { useStorageStore } from '@/stores/storage'
@@ -19,9 +20,10 @@ function chooseFolder() {
   <div v-if="storage.offline" class="border-b border-border">
     <div
       v-if="!storage.alertDismissed"
-      class="flex flex-wrap items-start gap-3 px-4 py-3"
+      class="flex flex-wrap items-start gap-3 bg-warning-quiet px-4 py-3 text-warning"
       role="status"
     >
+      <TriangleAlert class="mt-0.5 size-5 shrink-0" aria-hidden="true" />
       <div class="min-w-0 flex-1">
         <p class="font-medium">
           {{ storage.unreachable ? t('storage.unreachableTitle') : t('storage.offlineTitle') }}

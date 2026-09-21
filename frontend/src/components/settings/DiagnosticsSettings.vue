@@ -163,7 +163,7 @@ const rows = computed(() => {
     </div>
 
     <div v-else-if="status === 'error'" class="mt-6">
-      <p>{{ diag.errorText() }}</p>
+      <p class="text-destructive">{{ diag.errorText() }}</p>
       <Button class="mt-3" @click="diag.load()">{{ t('common.retry') }}</Button>
     </div>
 

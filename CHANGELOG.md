@@ -51,7 +51,8 @@ Conventions:
 
 ### Changed
 
-- The app gives memory back after it has been left idle.
+- Personal marks, library facts, warnings, failures and completed actions use separate colors, and a destructive button is no longer the same color as the focus ring.
+- Secondary text on a muted surface is darker, so it stays readable.
 - Catalog tiles share one row height, and the title on a tile is a step smaller. Covers stay put while you scroll.
 - Settings navigation is a vertical list of sections instead of three tabs.
 - Catalog filters open as a sliding panel and can be set by language, genre, author and series; the selection stays in the address bar.

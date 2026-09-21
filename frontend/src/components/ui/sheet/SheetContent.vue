@@ -33,7 +33,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 
 <template>
   <DialogPortal>
-    <DialogOverlay class="fixed inset-0 z-50 bg-black/80" />
+    <DialogOverlay class="fixed inset-0 z-50 bg-scrim" />
     <DialogContent
       v-bind="{ ...forwarded, ...$attrs }"
       :class="cn(sheetVariants({ side: props.side }), props.class)"

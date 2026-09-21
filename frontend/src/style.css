@@ -6,112 +6,109 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f6f3ee;
-  --foreground: #1c1916;
-  --card: #fffdf8;
-  --card-foreground: #1c1916;
-  --primary: #8f2d1f;
-  --primary-foreground: #fff7f2;
-  --secondary: #ebe4d8;
-  --secondary-foreground: #1c1916;
-  --muted: #e7e0d4;
-  --muted-foreground: #6b645b;
-  --accent: #efe6d6;
-  --accent-foreground: #1c1916;
-  --border: #d9d0c3;
-  --ring: #8f2d1f;
-  --overlay: rgb(246 243 238 / 0.88);
+  --brand-h: 46;
+  --danger-h: 15;
+  --success-h: 168;
+  --warning-h: 58;
+  --library-h: 230;
+
+  --background: oklch(0.965 0.007 81);
+  --foreground: oklch(0.216 0.008 67);
+  --card: oklch(0.994 0.007 89);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.997 0.005 90);
+  --popover-foreground: var(--foreground);
+  --sidebar: oklch(0.978 0.008 84);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-accent: oklch(0.928 0.02 82);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.861 0.02 77);
+  --secondary: oklch(0.921 0.018 81);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.909 0.018 81);
+  --muted-foreground: oklch(0.48 0.02 70);
+  --accent: oklch(0.928 0.02 82);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.861 0.02 77);
+  --input: oklch(0.6 0.025 70);
+  --overlay: oklch(0.965 0.007 81 / 0.88);
   --cover-l: 42%;
-  --popover: #fffdf8;
-  --popover-foreground: #1c1916;
-  --input: #d9d0c3;
-  --destructive: #8f2d1f;
-  --destructive-foreground: #fff7f2;
-  --sidebar: #fffdf8;
-  --sidebar-foreground: #1c1916;
-  --sidebar-accent: #efe6d6;
-  --sidebar-accent-foreground: #1c1916;
-  --sidebar-border: #d9d0c3;
-  --sidebar-ring: #8f2d1f;
+  --shadow: 0 1px 1px oklch(0.4 0.03 65 / 0.06), 0 8px 24px oklch(0.42 0.04 60 / 0.1);
+  --shadow-pop: 0 2px 4px oklch(0.38 0.03 65 / 0.06), 0 16px 40px oklch(0.36 0.04 55 / 0.16);
+  --scrim: oklch(0.3 0.02 60 / 0.46);
   --sidebar-width: 14rem;
   --sidebar-width-icon: 4rem;
+
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--danger-foreground);
+  --ring: var(--brand);
+  --sidebar-ring: var(--brand);
 }
 
 .dark {
-  --background: #121214;
-  --foreground: #f4efe8;
-  --card: #1b1b1f;
-  --card-foreground: #f4efe8;
-  --primary: #e07a5f;
-  --primary-foreground: #1a0f0c;
-  --secondary: #26262b;
-  --secondary-foreground: #f4efe8;
-  --muted: #2a2a30;
-  --muted-foreground: #b3aaa0;
-  --accent: #2f2a28;
-  --accent-foreground: #f4efe8;
-  --border: #34343a;
-  --ring: #e07a5f;
-  --overlay: rgb(18 18 20 / 0.88);
+  --background: oklch(0.183 0.014 80);
+  --foreground: oklch(0.954 0.011 77);
+  --card: oklch(0.224 0.016 80);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.275 0.016 80);
+  --popover-foreground: var(--foreground);
+  --sidebar: oklch(0.21 0.015 80);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-accent: oklch(0.3 0.016 80);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.327 0.016 80);
+  --secondary: oklch(0.27 0.015 80);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.288 0.016 80);
+  --muted-foreground: oklch(0.743 0.018 75);
+  --accent: oklch(0.3 0.016 80);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.327 0.016 80);
+  --input: oklch(0.58 0.02 75);
+  --overlay: oklch(0.183 0.014 80 / 0.88);
   --cover-l: 28%;
-  --popover: #1b1b1f;
-  --popover-foreground: #f4efe8;
-  --input: #34343a;
-  --destructive: #e07a5f;
-  --destructive-foreground: #1a0f0c;
-  --sidebar: #1b1b1f;
-  --sidebar-foreground: #f4efe8;
-  --sidebar-accent: #2f2a28;
-  --sidebar-accent-foreground: #f4efe8;
-  --sidebar-border: #34343a;
-  --sidebar-ring: #e07a5f;
+  --shadow: none;
+  --shadow-pop: none;
+  --scrim: oklch(0.14 0.016 80 / 0.64);
 }
 
-/* Role hues. Lightness and chroma stay on the role and the theme; a variant
-   changes hue only. Components do not read these yet, so the shell keeps the
-   tokens above until a hue is chosen. */
-:root {
-  --brand-h: 31;
-  --danger-h: 15;
-  --success-h: 115;
-  --warning-h: 84;
-  --library-h: 230;
-}
-
+/* Lightness and chroma are fixed per role and theme. A preview switch changes hue only. */
 :root,
 .palette-light {
   --on-role-l: 0.975;
   --on-role-c: 0.006;
 
-  --brand-l: 0.443;
-  --brand-c: 0.125;
+  --brand-l: 0.45;
+  --brand-c: 0.13;
   --brand-quiet-l: 0.945;
-  --brand-quiet-c: 0.018;
+  --brand-quiet-c: 0.02;
   --brand: oklch(var(--brand-l) var(--brand-c) var(--brand-h));
   --brand-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--brand-h));
   --brand-quiet: oklch(var(--brand-quiet-l) var(--brand-quiet-c) var(--brand-h));
   --brand-quiet-foreground: var(--brand);
 
-  --danger-l: 0.443;
-  --danger-c: 0.125;
-  --danger-quiet-l: 0.945;
-  --danger-quiet-c: 0.018;
+  --danger-l: 0.46;
+  --danger-c: 0.15;
+  --danger-quiet-l: 0.94;
+  --danger-quiet-c: 0.028;
   --danger: oklch(var(--danger-l) var(--danger-c) var(--danger-h));
   --danger-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--danger-h));
   --danger-quiet: oklch(var(--danger-quiet-l) var(--danger-quiet-c) var(--danger-h));
   --danger-quiet-foreground: var(--danger);
 
-  --success-l: 0.45;
-  --success-c: 0.09;
+  --success-l: 0.47;
+  --success-c: 0.085;
   --success-quiet-l: 0.945;
-  --success-quiet-c: 0.025;
+  --success-quiet-c: 0.022;
   --success: oklch(var(--success-l) var(--success-c) var(--success-h));
   --success-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--success-h));
   --success-quiet: oklch(var(--success-quiet-l) var(--success-quiet-c) var(--success-h));
   --success-quiet-foreground: var(--success);
 
-  --warning-l: 0.47;
-  --warning-c: 0.09;
+  --warning-l: 0.5;
+  --warning-c: 0.11;
   --warning-quiet-l: 0.95;
   --warning-quiet-c: 0.028;
   --warning: oklch(var(--warning-l) var(--warning-c) var(--warning-h));
@@ -119,10 +116,10 @@
   --warning-quiet: oklch(var(--warning-quiet-l) var(--warning-quiet-c) var(--warning-h));
   --warning-quiet-foreground: var(--warning);
 
-  --library-l: 0.45;
-  --library-c: 0.07;
+  --library-l: 0.46;
+  --library-c: 0.045;
   --library-quiet-l: 0.945;
-  --library-quiet-c: 0.018;
+  --library-quiet-c: 0.012;
   --library: oklch(var(--library-l) var(--library-c) var(--library-h));
   --library-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--library-h));
   --library-quiet: oklch(var(--library-quiet-l) var(--library-quiet-c) var(--library-h));
@@ -134,53 +131,53 @@
   --on-role-l: 0.22;
   --on-role-c: 0.025;
 
-  --brand-l: 0.7;
-  --brand-c: 0.12;
-  --brand-quiet-l: 0.3;
+  --brand-l: 0.68;
+  --brand-c: 0.135;
+  --brand-quiet-l: 0.27;
   --brand-quiet-c: 0.04;
   --brand: oklch(var(--brand-l) var(--brand-c) var(--brand-h));
   --brand-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--brand-h));
   --brand-quiet: oklch(var(--brand-quiet-l) var(--brand-quiet-c) var(--brand-h));
   --brand-quiet-foreground: var(--brand);
 
-  --danger-l: 0.7;
-  --danger-c: 0.12;
-  --danger-quiet-l: 0.3;
-  --danger-quiet-c: 0.04;
+  --danger-l: 0.65;
+  --danger-c: 0.16;
+  --danger-quiet-l: 0.25;
+  --danger-quiet-c: 0.06;
   --danger: oklch(var(--danger-l) var(--danger-c) var(--danger-h));
   --danger-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--danger-h));
   --danger-quiet: oklch(var(--danger-quiet-l) var(--danger-quiet-c) var(--danger-h));
   --danger-quiet-foreground: var(--danger);
 
-  --success-l: 0.74;
-  --success-c: 0.09;
-  --success-quiet-l: 0.3;
-  --success-quiet-c: 0.03;
+  --success-l: 0.72;
+  --success-c: 0.11;
+  --success-quiet-l: 0.28;
+  --success-quiet-c: 0.04;
   --success: oklch(var(--success-l) var(--success-c) var(--success-h));
   --success-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--success-h));
   --success-quiet: oklch(var(--success-quiet-l) var(--success-quiet-c) var(--success-h));
   --success-quiet-foreground: var(--success);
 
-  --warning-l: 0.78;
-  --warning-c: 0.1;
-  --warning-quiet-l: 0.31;
-  --warning-quiet-c: 0.035;
+  --warning-l: 0.8;
+  --warning-c: 0.125;
+  --warning-quiet-l: 0.32;
+  --warning-quiet-c: 0.05;
   --warning: oklch(var(--warning-l) var(--warning-c) var(--warning-h));
   --warning-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--warning-h));
   --warning-quiet: oklch(var(--warning-quiet-l) var(--warning-quiet-c) var(--warning-h));
   --warning-quiet-foreground: var(--warning);
 
-  --library-l: 0.74;
-  --library-c: 0.07;
-  --library-quiet-l: 0.3;
-  --library-quiet-c: 0.025;
+  --library-l: 0.72;
+  --library-c: 0.04;
+  --library-quiet-l: 0.28;
+  --library-quiet-c: 0.015;
   --library: oklch(var(--library-l) var(--library-c) var(--library-h));
   --library-foreground: oklch(var(--on-role-l) var(--on-role-c) var(--library-h));
   --library-quiet: oklch(var(--library-quiet-l) var(--library-quiet-c) var(--library-h));
   --library-quiet-foreground: var(--library);
 }
 
-/* Proposed surfaces for the palette preview only. The shell keeps the hex tokens. */
+/* Preview columns restated so a light panel inside a dark window keeps light surfaces. */
 .palette-light {
   --background: oklch(0.965 0.007 81);
   --foreground: oklch(0.216 0.008 67);
@@ -191,49 +188,57 @@
   --sidebar: oklch(0.978 0.008 84);
   --sidebar-foreground: var(--foreground);
   --muted: oklch(0.909 0.018 81);
-  --muted-foreground: oklch(0.5 0.016 74);
+  --muted-foreground: oklch(0.48 0.02 70);
   --border: oklch(0.861 0.02 77);
+  --input: oklch(0.6 0.025 70);
   --ring: var(--brand);
+  --shadow: 0 1px 1px oklch(0.4 0.03 65 / 0.06), 0 8px 24px oklch(0.42 0.04 60 / 0.1);
+  --shadow-pop: 0 2px 4px oklch(0.38 0.03 65 / 0.06), 0 16px 40px oklch(0.36 0.04 55 / 0.16);
+  --scrim: oklch(0.3 0.02 60 / 0.46);
   --cover-l: 0.42;
   --cover-c: 0.06;
   --cover-fg: oklch(0.97 0.008 80);
-  --palette-shadow: 0 1px 1px oklch(0.4 0.03 65 / 0.05), 0 8px 24px oklch(0.42 0.04 60 / 0.1);
-  --palette-shadow-pop:
-    0 2px 4px oklch(0.38 0.03 65 / 0.06), 0 16px 40px oklch(0.36 0.04 55 / 0.16);
+  --palette-shadow: var(--shadow);
+  --palette-shadow-pop: var(--shadow-pop);
   --palette-shadow-side: 8px 0 24px oklch(0.45 0.03 70 / 0.08);
-  --palette-scrim: oklch(0.3 0.02 60 / 0.46);
+  --palette-scrim: var(--scrim);
 }
 
 .palette-dark {
-  --background: oklch(0.183 0.004 286);
+  --background: oklch(0.183 0.014 80);
   --foreground: oklch(0.954 0.011 77);
-  --card: oklch(0.224 0.008 286);
+  --card: oklch(0.224 0.016 80);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.275 0.01 286);
+  --popover: oklch(0.275 0.016 80);
   --popover-foreground: var(--foreground);
-  --sidebar: oklch(0.21 0.006 286);
+  --sidebar: oklch(0.21 0.015 80);
   --sidebar-foreground: var(--foreground);
-  --muted: oklch(0.288 0.011 286);
+  --muted: oklch(0.288 0.016 80);
   --muted-foreground: oklch(0.743 0.018 75);
-  --border: oklch(0.327 0.011 286);
+  --border: oklch(0.327 0.016 80);
+  --input: oklch(0.58 0.02 75);
   --ring: var(--brand);
+  --shadow: none;
+  --shadow-pop: none;
+  --scrim: oklch(0.14 0.016 80 / 0.64);
   --cover-l: 0.32;
   --cover-c: 0.055;
   --cover-fg: oklch(0.97 0.008 80);
   --palette-shadow: none;
   --palette-shadow-pop: none;
   --palette-shadow-side: none;
-  --palette-scrim: oklch(0.14 0.012 80 / 0.64);
+  --palette-scrim: var(--scrim);
 }
 
-.palette-dark[data-neutral='warm'] {
-  --background: oklch(0.183 0.014 80);
-  --card: oklch(0.224 0.016 80);
-  --popover: oklch(0.275 0.016 80);
-  --sidebar: oklch(0.21 0.015 80);
-  --muted: oklch(0.288 0.016 80);
-  --border: oklch(0.327 0.016 80);
-  --palette-scrim: oklch(0.14 0.016 80 / 0.64);
+.palette-dark[data-neutral='charcoal'] {
+  --background: oklch(0.183 0.004 286);
+  --card: oklch(0.224 0.008 286);
+  --popover: oklch(0.275 0.01 286);
+  --sidebar: oklch(0.21 0.006 286);
+  --muted: oklch(0.288 0.011 286);
+  --border: oklch(0.327 0.011 286);
+  --scrim: oklch(0.14 0.012 80 / 0.64);
+  --palette-scrim: var(--scrim);
 }
 
 @theme inline {
@@ -256,6 +261,19 @@
   --color-input: var(--input);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-quiet: var(--danger-quiet);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-quiet: var(--success-quiet);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-quiet: var(--warning-quiet);
+  --color-library: var(--library);
+  --color-library-foreground: var(--library-foreground);
+  --color-library-quiet: var(--library-quiet);
+  --color-scrim: var(--scrim);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -288,6 +306,16 @@ body {
 
 .font-mono {
   font-family: var(--font-mono);
+}
+
+.elevate {
+  box-shadow: var(--shadow);
+}
+
+.dialog-surface {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-pop);
 }
 
 .backdrop-panel {

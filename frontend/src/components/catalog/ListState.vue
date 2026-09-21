@@ -25,7 +25,7 @@ const emit = defineEmits<{
       <Skeleton class="h-40 rounded-xl" />
     </div>
     <div v-else-if="status === 'error'" class="rounded-2xl border border-border bg-card p-6">
-      <p class="mb-4">{{ errorText }}</p>
+      <p class="mb-4 text-destructive">{{ errorText }}</p>
       <Button @click="emit('retry')">{{ $t('common.retry') }}</Button>
     </div>
     <div

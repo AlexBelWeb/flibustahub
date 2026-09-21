@@ -24,7 +24,7 @@ const { t } = useI18n()
   <section class="grid min-w-0 gap-4">
     <div class="flex flex-wrap items-baseline justify-between gap-3">
       <h2 class="font-display text-2xl font-semibold">{{ title }}</h2>
-      <RouterLink :to="moreTo" class="text-sm text-primary underline-offset-4 hover:underline">
+      <RouterLink :to="moreTo" class="text-sm underline-offset-4 hover:underline">
         {{ moreLabel }}
       </RouterLink>
     </div>
