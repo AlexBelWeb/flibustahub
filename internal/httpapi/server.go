@@ -110,6 +110,7 @@ func handleMemStats(w http.ResponseWriter, r *http.Request) {
 		"heapReleased": m.HeapReleased,
 		"heapSys":      m.HeapSys,
 		"sys":          m.Sys,
+		"stackSys":     m.StackSys,
 		"numGC":        m.NumGC,
 		"free":         freed,
 	}

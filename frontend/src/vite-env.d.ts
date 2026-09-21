@@ -83,6 +83,8 @@ interface Window {
         CoverWarmupPreview: () => Promise<number>
         StartCoverWarmup: () => Promise<void>
         StopCoverWarmup: () => void
+        WindowAway: () => Promise<void>
+        WindowBack: () => Promise<void>
         CoverWarmupProgress: () => Promise<CoverProgress>
         GetAuthor: (id: number) => Promise<Author>
         GetGenre: (id: number) => Promise<Genre>

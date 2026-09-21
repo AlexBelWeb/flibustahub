@@ -11,6 +11,8 @@ func (s *Service) OptimizeDatabase(ctx context.Context) (maintenance.OptimizeRes
 	if s == nil || s.maint == nil {
 		return maintenance.OptimizeResult{}, apperr.New(apperr.CodeDBOpenFailed, nil)
 	}
+	s.holdCache()
+	defer s.releaseAfterHeavy()
 	return s.maint.Optimize(ctx)
 }
 
@@ -18,6 +20,8 @@ func (s *Service) CreateCatalogBackup(ctx context.Context) (maintenance.BackupRe
 	if s == nil || s.maint == nil {
 		return maintenance.BackupResult{}, apperr.New(apperr.CodeDBOpenFailed, nil)
 	}
+	s.holdCache()
+	defer s.releaseAfterHeavy()
 	return s.maint.Backup(ctx)
 }
 

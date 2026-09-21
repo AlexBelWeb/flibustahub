@@ -35,6 +35,14 @@ func (a *App) StopCoverWarmup() {
 	a.svc.StopCoverWarmup()
 }
 
+func (a *App) WindowAway() {
+	a.svc.WindowAway()
+}
+
+func (a *App) WindowBack() {
+	a.svc.WindowBack()
+}
+
 func (a *App) CoverWarmupProgress() covers.Progress {
 	return a.svc.CoverWarmupProgress()
 }

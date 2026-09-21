@@ -93,7 +93,13 @@ func (s *Service) StartCoverWarmup(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return c.StartWarmup(ctx)
+	s.holdCache()
+	started, err := c.StartWarmup(ctx)
+	if err != nil || !started {
+		s.releaseAfterHeavy()
+		return err
+	}
+	return nil
 }
 
 func (s *Service) StopCoverWarmup() {
