@@ -51,6 +51,7 @@ Conventions:
 
 ### Changed
 
+- Panels, dialogs, menus and toasts ease in and out instead of appearing all at once.
 - Personal marks, library facts, warnings, failures and completed actions use separate colors, and a destructive button is no longer the same color as the focus ring.
 - Secondary text on a muted surface is darker, so it stays readable.
 - Catalog tiles share one row height, and the title on a tile is a step smaller. Covers stay put while you scroll.

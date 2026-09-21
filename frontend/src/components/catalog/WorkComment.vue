@@ -202,7 +202,7 @@ onUnmounted(() => {
       </CollapsibleTrigger>
       <div v-if="expanded" class="flex items-center gap-2">
         <p
-          class="flex items-center gap-1 text-xs text-success transition-opacity duration-200"
+          class="motion-fast flex items-center gap-1 text-xs text-success transition-opacity"
           :class="justSaved ? 'opacity-100' : 'opacity-0'"
         >
           <CircleCheck class="size-3.5" aria-hidden="true" />

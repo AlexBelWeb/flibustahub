@@ -110,11 +110,11 @@ async function clearCache() {
         </p>
         <div class="h-2 overflow-hidden rounded-full bg-muted">
           <div
-            class="h-full bg-primary transition-[width] duration-200"
+            class="motion-base h-full w-full origin-left bg-primary transition-transform"
             :style="{
-              width: progress.total
-                ? `${Math.min(100, (100 * progress.done) / progress.total)}%`
-                : '0%',
+              transform: `scaleX(${
+                progress.total ? Math.min(1, progress.done / progress.total) : 0
+              })`,
             }"
           />
         </div>

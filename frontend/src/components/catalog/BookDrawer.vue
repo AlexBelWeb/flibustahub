@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import BookDetails from '@/components/catalog/BookDetails.vue'
@@ -11,6 +11,13 @@ const route = useRoute()
 const router = useRouter()
 const workId = computed(() => workIdFromQuery(route.query))
 const open = computed(() => workId.value > 0)
+const shownId = ref(0)
+
+watch(workId, (id) => {
+  if (id > 0) {
+    shownId.value = id
+  }
+})
 
 function onOpen(next: boolean) {
   if (!next && workId.value) {
@@ -38,7 +45,7 @@ watch(
     >
       <SheetTitle class="sr-only">{{ t('book.drawerTitle') }}</SheetTitle>
       <SheetDescription class="sr-only">{{ t('book.drawerLead') }}</SheetDescription>
-      <BookDetails v-if="workId" :work-id="workId" drawer />
+      <BookDetails v-if="shownId" :work-id="shownId" drawer />
     </SheetContent>
   </Sheet>
 </template>

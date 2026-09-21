@@ -253,7 +253,7 @@ watch(
           >
             <WorkCard
               :work="work"
-              class="h-full w-full flex-1 transition-transform duration-200 hover:-translate-y-0.5"
+              class="motion-fast h-full w-full flex-1 transition-transform hover:-translate-y-0.5"
             />
           </CarouselItem>
         </HomeCarousel>
@@ -274,7 +274,7 @@ watch(
           >
             <WorkCard
               :work="work"
-              class="h-full w-full flex-1 transition-transform duration-200 hover:-translate-y-0.5"
+              class="motion-fast h-full w-full flex-1 transition-transform hover:-translate-y-0.5"
             />
           </CarouselItem>
         </HomeCarousel>

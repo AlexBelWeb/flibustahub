@@ -136,7 +136,7 @@ function onCloseDialog(open: boolean) {
             >
               <ProgressIndicator
                 v-if="determinate"
-                class="h-full w-full bg-primary transition-transform duration-200"
+                class="motion-base h-full w-full bg-primary transition-transform"
                 :style="{ transform: `translateX(-${100 - percent}%)` }"
               />
               <div
@@ -226,7 +226,7 @@ function onCloseDialog(open: boolean) {
 
 <style scoped>
 .import-pulse {
-  animation: import-pulse 1s ease-in-out infinite;
+  animation: import-pulse calc(var(--motion-slow) * 4) var(--ease-in-out) infinite;
 }
 
 @keyframes import-pulse {
