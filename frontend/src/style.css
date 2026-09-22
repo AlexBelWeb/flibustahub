@@ -548,6 +548,7 @@ body {
 }
 
 [role='option']:focus-visible,
+[role='combobox']:focus-visible,
 [cmdk-input-wrapper] :focus-visible {
   outline: none;
 }

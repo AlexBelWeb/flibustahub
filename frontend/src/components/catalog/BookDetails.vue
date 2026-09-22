@@ -18,7 +18,7 @@ import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
 import { formatBytes, formatDate, formatFiles, languageName } from '@/lib/format'
 import { ratingFromShortcut } from '@/lib/rating'
-import { isBlankTitle, isUnknownAuthor } from '@/lib/work'
+import { isBlankTitle, isUnknownAuthor, visibleSeriesNo } from '@/lib/work'
 import type { ListStatus } from '@/stores/catalog'
 import { usePersonalStore } from '@/stores/personal'
 import type { Author, WorkDetails, WorkEdition } from '@/types/catalog'
@@ -363,14 +363,14 @@ watch(
             class="underline-offset-4 hover:underline"
           >
             {{ details.series }}
-            <span v-if="details.seriesNo">{{
-              t('catalog.seriesNo', { n: details.seriesNo })
+            <span v-if="visibleSeriesNo(details.seriesNo)">{{
+              t('catalog.seriesNo', { n: visibleSeriesNo(details.seriesNo) })
             }}</span>
           </RouterLink>
           <span v-else>
             {{ details.series }}
-            <span v-if="details.seriesNo">{{
-              t('catalog.seriesNo', { n: details.seriesNo })
+            <span v-if="visibleSeriesNo(details.seriesNo)">{{
+              t('catalog.seriesNo', { n: visibleSeriesNo(details.seriesNo) })
             }}</span>
           </span>
         </p>

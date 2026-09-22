@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ChevronDown, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import {
   ComboboxAnchor,
@@ -184,29 +185,37 @@ onUnmounted(() => {
       @update:open="open = $event"
       @update:model-value="onModel"
     >
-      <ComboboxAnchor class="flex items-center gap-1">
+      <ComboboxAnchor
+        class="flex h-9 w-full items-center gap-1 rounded-lg border border-input bg-background px-3 shadow-sm"
+      >
         <ComboboxInput
           :display-value="displayValue"
           :placeholder="anyLabel"
-          class="h-9 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
+          class="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none focus-visible:outline-none placeholder:text-muted-foreground"
           @update:model-value="onQuery"
         />
         <ComboboxCancel v-if="modelValue" as-child>
-          <Button type="button" variant="ghost" size="sm">
-            {{ t('catalog.removeFilter') }}
-          </Button>
+          <button
+            type="button"
+            class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:outline-none"
+            :aria-label="t('catalog.removeFilter')"
+          >
+            <X class="size-3.5" />
+          </button>
         </ComboboxCancel>
         <ComboboxTrigger
-          class="inline-flex size-9 items-center justify-center rounded-lg border border-input"
+          class="inline-flex size-4 shrink-0 items-center justify-center text-foreground/70 outline-none focus-visible:outline-none"
           :aria-label="kindLabel"
-        />
+        >
+          <ChevronDown class="size-4" />
+        </ComboboxTrigger>
       </ComboboxAnchor>
       <p v-if="unresolved" class="text-xs text-muted-foreground">
         {{ t('catalog.filterUnreadable', { id: modelValue }) }}
       </p>
       <ComboboxContent
         position="popper"
-        class="z-50 max-h-72 w-(--reka-popper-anchor-width) overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+        class="motion-pop z-50 max-h-72 w-(--reka-popper-anchor-width) overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
       >
         <p v-if="status === 'loading'" class="px-2 py-1.5 text-sm text-muted-foreground">
           {{ t('common.loading') }}

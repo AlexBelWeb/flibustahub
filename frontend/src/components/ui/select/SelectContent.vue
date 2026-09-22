@@ -24,11 +24,12 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       :class="
         cn(
           'motion-pop relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md',
+          props.position === 'popper' && 'min-w-(--reka-select-trigger-width)',
           props.class,
         )
       "
     >
-      <SelectViewport class="p-1">
+      <SelectViewport :class="cn('p-1', props.position === 'popper' && 'w-full')">
         <slot />
       </SelectViewport>
     </SelectContent>

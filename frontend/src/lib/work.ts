@@ -1,5 +1,13 @@
 const COVER_HUES = [12, 28, 160, 200, 255, 320, 340, 48]
 
+// "0" is the dump's placeholder for a missing series number, not volume zero.
+export function visibleSeriesNo(seriesNo: string | undefined): string {
+  if (!seriesNo || seriesNo === '0') {
+    return ''
+  }
+  return seriesNo
+}
+
 export function isBlankTitle(title: string | undefined): boolean {
   if (!title) {
     return true

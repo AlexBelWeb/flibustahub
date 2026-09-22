@@ -23,7 +23,9 @@ func NewCatalog(d *db.DB) *Catalog {
 	return &Catalog{read: d.Read, write: d.Write}
 }
 
-const seriesNoNumeric = `e.series_no GLOB '[0-9]*' AND e.series_no NOT GLOB '*[^0-9]*'`
+// '0' is the dump's empty-number placeholder, not volume zero. It sorts with
+// a blank series_no, after real volume numbers.
+const seriesNoNumeric = `e.series_no GLOB '[0-9]*' AND e.series_no NOT GLOB '*[^0-9]*' AND e.series_no != '0'`
 
 type WorkRow struct {
 	ID           int64
