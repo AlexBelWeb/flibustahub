@@ -80,9 +80,16 @@ Conventions:
 - The home hero shows why the book is there, its title and authors, a short metadata line, Open as the main action and a quiet Read; a random pick can be swapped for another book. The cover sits in a 2:3 frame instead of a cropped strip.
 - The last-import tile shows the date and dump version in the same type as the other counters.
 - The book panel and page put the annotation above editions and the note; rating and want-to-read sit on one row under the actions, without a Rating heading. An empty note collapses to “Add a note”.
+- The sidebar eases between the full column and the icon column.
+- A book’s series is its own line under the cover, with the number from the catalog. Genres stay as separate tags.
+- Author, genre and series filters can be cleared. An empty filter reads as “any”, and a value that cannot be read stays visible so the list does not look unfiltered.
+- Settings keep one width when you switch sections.
 
 ### Fixed
 
+- The dimmed backdrop fades out with the panel. It no longer disappears in one step after the panel has already left.
+- Hints on the catalog wait a moment, so they do not flash on every card as the pointer moves. Labels on the collapsed sidebar still appear at once.
+- Import, cover warmup and database maintenance show a progress bar that assistive technology can read.
 - The home hero no longer shows an empty strip with a cropped cover.
 - If the data folder already contains a catalog created by another program, this is stated plainly: the file is neither opened nor converted.
 - The collapsed sidebar no longer leaves an empty strip beside the icons.

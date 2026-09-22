@@ -80,7 +80,9 @@ function go(value: unknown) {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-0 flex-1 flex-col gap-6 overflow-hidden px-6 pt-10 pb-12">
+  <div
+    class="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden px-6 pt-10 pb-12"
+  >
     <header class="shrink-0">
       <p class="text-sm text-muted-foreground">{{ t('settings.title') }}</p>
       <h1 class="font-display text-3xl font-semibold">{{ sectionTitle }}</h1>
@@ -120,7 +122,7 @@ function go(value: unknown) {
         </ul>
       </nav>
 
-      <div class="min-h-0 min-w-0 flex-1 overflow-auto pb-8">
+      <div class="scroll-stable min-h-0 min-w-0 flex-1 overflow-auto pb-8">
         <Skeleton v-if="app.loading" class="h-48 rounded-2xl" />
         <Card v-else-if="app.loadError" class="p-6">
           <p class="mb-4">{{ t('errors.internal') }}</p>

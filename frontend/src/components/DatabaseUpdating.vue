@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import IndeterminateProgress from '@/components/IndeterminateProgress.vue'
+import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const { t } = useI18n()
@@ -18,7 +18,7 @@ const { t } = useI18n()
       <CardContent class="p-8 pt-3">
         <p class="text-muted-foreground">{{ t('startup.updatingLead') }}</p>
         <div class="mt-8">
-          <IndeterminateProgress :label="t('startup.updatingTitle')" />
+          <Progress :model-value="null" :label="t('startup.updatingTitle')" />
         </div>
       </CardContent>
     </Card>

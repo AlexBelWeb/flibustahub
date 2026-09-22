@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ImportReport from '@/components/import/ImportReport.vue'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { bytesPercent, formatCount, formatDuration } from '@/lib/format'
 import { useImportStore } from '@/stores/import'
 import {
@@ -20,8 +21,6 @@ import {
   DialogPortal,
   DialogRoot,
   DialogTitle,
-  ProgressIndicator,
-  ProgressRoot,
 } from 'reka-ui'
 
 const { t, locale } = useI18n()
@@ -129,21 +128,10 @@ function onCloseDialog(open: boolean) {
             <p v-if="etaLabel && determinate" class="text-sm text-muted-foreground tabular-nums">
               {{ etaLabel }}
             </p>
-            <ProgressRoot
-              class="relative h-2 overflow-hidden rounded-full bg-muted"
+            <Progress
               :model-value="determinate ? percent : null"
-              :max="100"
-            >
-              <ProgressIndicator
-                v-if="determinate"
-                class="motion-base h-full w-full bg-primary transition-transform"
-                :style="{ transform: `translateX(-${100 - percent}%)` }"
-              />
-              <div
-                v-else
-                class="import-pulse absolute inset-y-0 left-0 w-1/3 rounded-full bg-primary"
-              />
-            </ProgressRoot>
+              :label="t('import.runningTitle')"
+            />
           </div>
 
           <div class="mt-8 flex flex-col gap-2">
@@ -223,24 +211,3 @@ function onCloseDialog(open: boolean) {
     </AlertDialogPortal>
   </AlertDialogRoot>
 </template>
-
-<style scoped>
-.import-pulse {
-  animation: import-pulse calc(var(--motion-slow) * 4) var(--ease-in-out) infinite;
-}
-
-@keyframes import-pulse {
-  0% {
-    transform: translateX(-20%);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translateX(180%);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-20%);
-    opacity: 0.55;
-  }
-}
-</style>

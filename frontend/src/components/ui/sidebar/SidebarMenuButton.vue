@@ -21,7 +21,7 @@ const { state } = useSidebar()
 </script>
 
 <template>
-  <Tooltip :disabled="state === 'expanded' || !tooltip">
+  <Tooltip :delay-duration="0" :disabled="state === 'expanded' || !tooltip">
     <TooltipTrigger as-child>
       <Primitive
         :as="as"

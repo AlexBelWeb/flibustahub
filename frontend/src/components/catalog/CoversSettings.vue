@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
 import { useCoversStore } from '@/stores/covers'
@@ -108,16 +109,13 @@ async function clearCache() {
         <p class="text-sm tabular-nums text-muted-foreground">
           {{ t('settings.covers.warmupProgress', { done: progress.done, total: progress.total }) }}
         </p>
-        <div class="h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            class="motion-base h-full w-full origin-left bg-primary transition-transform"
-            :style="{
-              transform: `scaleX(${
-                progress.total ? Math.min(1, progress.done / progress.total) : 0
-              })`,
-            }"
-          />
-        </div>
+        <Progress
+          :model-value="progress.total ? progress.done : null"
+          :max="progress.total || 100"
+          :label="
+            t('settings.covers.warmupProgress', { done: progress.done, total: progress.total })
+          "
+        />
       </div>
     </div>
   </section>

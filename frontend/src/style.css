@@ -366,33 +366,38 @@ body {
 @keyframes fh-pop-out {
   from {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(4px) scale(0.98);
   }
 }
 
 @keyframes fh-sheet-in {
   from {
-    opacity: 0;
-    transform: translateX(8px);
+    transform: translateX(100%);
   }
   to {
-    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fh-sheet-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
     transform: translateX(0);
   }
 }
 
 @keyframes fh-sheet-out {
   from {
-    opacity: 1;
     transform: translateX(0);
   }
   to {
-    opacity: 0;
-    transform: translateX(8px);
+    transform: translateX(100%);
   }
 }
 
@@ -430,8 +435,25 @@ body {
   animation: fh-sheet-in var(--motion-base) var(--ease-out);
 }
 
+.motion-sheet[data-side='left'][data-state='open'] {
+  animation-name: fh-sheet-in-left;
+}
+
 .motion-sheet[data-state='closed'] {
   animation: fh-sheet-out var(--motion-fast) var(--ease-in) forwards;
+}
+
+.motion-sheet[data-side='left'][data-state='closed'] {
+  animation-name: fh-sheet-out-left;
+}
+
+@keyframes fh-sheet-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 .bg-scrim[data-state='open'] {
@@ -440,7 +462,10 @@ body {
 
 .bg-scrim[data-state='closed'] {
   animation: fh-scrim-out var(--motion-fast) var(--ease-in) forwards;
-  animation-delay: var(--motion-fast);
+}
+
+.sidebar-width {
+  transition: width var(--motion-slow) var(--ease-out);
 }
 
 .route-enter-active,
@@ -462,12 +487,34 @@ body {
   width: 100%;
 }
 
+.scroll-stable {
+  scrollbar-gutter: stable;
+}
+
+@keyframes fh-progress-indeterminate {
+  0% {
+    transform: translateX(-20%);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateX(180%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-20%);
+    opacity: 0.55;
+  }
+}
+
+.ui-progress [data-state='indeterminate'] {
+  animation: fh-progress-indeterminate calc(var(--motion-slow) * 4) var(--ease-in-out) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
-    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }

@@ -645,12 +645,11 @@ onMounted(() => {
         </div>
         <ul class="flex flex-wrap gap-2">
           <li v-for="item in state.authors" :key="item.id">
-            <RouterLink
-              class="inline-flex rounded-full border border-border bg-card px-3 py-1 text-sm hover:bg-accent"
-              :to="{ name: 'author', params: { authorId: String(item.id) } }"
-            >
-              <HighlightText :text="item.displayName" :query="q" />
-            </RouterLink>
+            <Badge as-child variant="outline" class="text-sm hover:bg-accent">
+              <RouterLink :to="{ name: 'author', params: { authorId: String(item.id) } }">
+                <HighlightText :text="item.displayName" :query="q" />
+              </RouterLink>
+            </Badge>
           </li>
         </ul>
       </section>
@@ -667,12 +666,11 @@ onMounted(() => {
         </div>
         <ul class="flex flex-wrap gap-2">
           <li v-for="item in state.series" :key="item.id">
-            <RouterLink
-              class="inline-flex rounded-full border border-border bg-card px-3 py-1 text-sm hover:bg-accent"
-              :to="{ name: 'seriesDetail', params: { seriesId: String(item.id) } }"
-            >
-              <HighlightText :text="item.name" :query="q" />
-            </RouterLink>
+            <Badge as-child variant="outline" class="text-sm hover:bg-accent">
+              <RouterLink :to="{ name: 'seriesDetail', params: { seriesId: String(item.id) } }">
+                <HighlightText :text="item.name" :query="q" />
+              </RouterLink>
+            </Badge>
           </li>
         </ul>
       </section>

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import IndeterminateProgress from '@/components/IndeterminateProgress.vue'
+import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { errorMessage } from '@/i18n/errors'
 import { formatBytes } from '@/lib/format'
@@ -85,7 +85,7 @@ async function runBackup() {
     <p v-if="blockedReason" class="mt-4 text-sm">{{ blockedReason }}</p>
 
     <div v-if="running" class="mt-4 grid gap-2">
-      <IndeterminateProgress :label="t('settings.maintenance.running')" />
+      <Progress :model-value="null" :label="t('settings.maintenance.running')" />
       <p class="text-sm text-muted-foreground">{{ t('settings.maintenance.running') }}</p>
     </div>
 

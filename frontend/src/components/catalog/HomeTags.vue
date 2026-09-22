@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { Badge } from '@/components/ui/badge'
 import { useI18n } from 'vue-i18n'
 import {
   Carousel,
@@ -26,12 +27,15 @@ const { t } = useI18n()
     </CarouselPrevious>
     <CarouselContent class="w-auto min-w-0 flex-1">
       <CarouselItem v-for="tag in tags" :key="tag.key" class="basis-auto">
-        <RouterLink
-          :to="tag.to"
-          class="inline-flex shrink-0 rounded-full border border-border bg-card px-3 py-1 text-sm whitespace-nowrap hover:bg-accent"
+        <Badge
+          as-child
+          variant="outline"
+          class="shrink-0 text-sm whitespace-nowrap hover:bg-accent"
         >
-          {{ tag.label }}
-        </RouterLink>
+          <RouterLink :to="tag.to">
+            {{ tag.label }}
+          </RouterLink>
+        </Badge>
       </CarouselItem>
     </CarouselContent>
     <CarouselNext class="static top-auto right-auto shrink-0 translate-y-0">

@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import IssueReportForm from '@/components/settings/IssueReportForm.vue'
-import IndeterminateProgress from '@/components/IndeterminateProgress.vue'
+import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -194,7 +194,7 @@ const rows = computed(() => {
       <div class="grid gap-1">
         <dt class="text-sm text-muted-foreground">{{ t('settings.diagnostics.importedAt') }}</dt>
         <dd>
-          <Tooltip v-if="importedExact" :delay-duration="200">
+          <Tooltip v-if="importedExact">
             <TooltipTrigger as-child>
               <span class="text-sm tabular-nums">{{
                 importedLabel || t('settings.diagnostics.unknown')
@@ -232,7 +232,7 @@ const rows = computed(() => {
       <h3 class="font-medium">{{ t('settings.diagnostics.archive') }}</h3>
       <p class="text-sm text-muted-foreground">{{ t('settings.diagnostics.archiveHint') }}</p>
       <div v-if="archiveBusy">
-        <IndeterminateProgress :label="t('settings.diagnostics.archiveRunning')" />
+        <Progress :model-value="null" :label="t('settings.diagnostics.archiveRunning')" />
       </div>
       <Button :disabled="archiveBusy" @click="saveArchive">{{
         t('settings.diagnostics.saveArchive')

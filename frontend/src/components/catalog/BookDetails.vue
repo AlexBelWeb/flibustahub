@@ -356,36 +356,33 @@ watch(
           />
         </div>
 
-        <p v-if="facts" class="text-sm text-library tabular-nums">{{ facts }}</p>
-
-        <div v-if="details.series || details.genres?.length" class="flex flex-wrap gap-2">
+        <p v-if="details.series" class="text-sm">
           <RouterLink
-            v-if="details.series && details.seriesId"
+            v-if="details.seriesId"
             :to="{ name: 'seriesDetail', params: { seriesId: String(details.seriesId) } }"
-            class="rounded-full border border-border px-3 py-1 text-sm"
+            class="underline-offset-4 hover:underline"
           >
             {{ details.series }}
             <span v-if="details.seriesNo">{{
               t('catalog.seriesNo', { n: details.seriesNo })
             }}</span>
           </RouterLink>
-          <span
-            v-else-if="details.series"
-            class="rounded-full border border-border px-3 py-1 text-sm"
-          >
+          <span v-else>
             {{ details.series }}
             <span v-if="details.seriesNo">{{
               t('catalog.seriesNo', { n: details.seriesNo })
             }}</span>
           </span>
-          <RouterLink
-            v-for="genre in details.genres"
-            :key="genre.id"
-            :to="{ name: 'genre', params: { genreId: String(genre.id) } }"
-            class="rounded-full border border-border px-3 py-1 text-sm"
-          >
-            {{ genre.nameRu }}
-          </RouterLink>
+        </p>
+
+        <p v-if="facts" class="text-sm text-library tabular-nums">{{ facts }}</p>
+
+        <div v-if="details.genres?.length" class="flex flex-wrap gap-2">
+          <Badge v-for="genre in details.genres" :key="genre.id" as-child variant="outline">
+            <RouterLink :to="{ name: 'genre', params: { genreId: String(genre.id) } }">
+              {{ genre.nameRu }}
+            </RouterLink>
+          </Badge>
         </div>
 
         <div

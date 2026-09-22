@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import { TooltipProvider } from 'reka-ui'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { cn } from '@/lib/utils'
 import { provideSidebarContext, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from './utils'
@@ -55,16 +54,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <TooltipProvider :delay-duration="0">
-    <div
-      :style="{
-        '--sidebar-width': SIDEBAR_WIDTH,
-        '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
-      }"
-      :class="cn('group/sidebar-wrapper flex h-full min-h-0 min-w-0 flex-1', props.class)"
-      data-slot="sidebar-wrapper"
-    >
-      <slot />
-    </div>
-  </TooltipProvider>
+  <div
+    :style="{
+      '--sidebar-width': SIDEBAR_WIDTH,
+      '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
+    }"
+    :class="cn('group/sidebar-wrapper flex h-full min-h-0 min-w-0 flex-1', props.class)"
+    data-slot="sidebar-wrapper"
+  >
+    <slot />
+  </div>
 </template>
