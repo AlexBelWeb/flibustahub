@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatFiles } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { authorParts, isBlankTitle, isUnknownAuthor } from '@/lib/work'
+import { authorParts, isBlankTitle, isUnknownAuthor, visibleSeriesNo } from '@/lib/work'
 import { withWorkQuery } from '@/lib/work-route'
 import { usePersonalStore } from '@/stores/personal'
 import type { Work } from '@/types/catalog'
@@ -60,7 +60,7 @@ async function onWant(value: boolean) {
   <article
     :class="
       cn(
-        'flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left',
+        'elevate relative flex h-full flex-col overflow-hidden rounded-xl bg-card text-left motion-fast transition-transform hover:-translate-y-1',
         props.class,
       )
     "
@@ -89,14 +89,16 @@ async function onWant(value: boolean) {
         </Tooltip>
         <p v-if="work.series" class="truncate text-xs leading-4 text-muted-foreground">
           {{ work.series }}
-          <span v-if="work.seriesNo">{{ t('catalog.seriesNo', { n: work.seriesNo }) }}</span>
+          <span v-if="visibleSeriesNo(work.seriesNo)">{{
+            t('catalog.seriesNo', { n: visibleSeriesNo(work.seriesNo) })
+          }}</span>
         </p>
         <div class="flex flex-wrap items-center gap-1">
           <RatingValue :rating="work.rating" compact />
-          <Badge v-if="work.editionCount > 1" variant="secondary" class="tabular-nums">
+          <Badge v-if="work.editionCount > 1" variant="library" class="tabular-nums">
             {{ formatFiles(work.editionCount, locale) }}
           </Badge>
-          <Badge v-if="!work.hasFile" variant="muted">
+          <Badge v-if="!work.hasFile" variant="warning">
             {{ t('catalog.ghost') }}
           </Badge>
         </div>

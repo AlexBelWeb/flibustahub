@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ImportReport from '@/components/import/ImportReport.vue'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { bytesPercent, formatCount, formatDuration } from '@/lib/format'
 import { useImportStore } from '@/stores/import'
 import {
@@ -20,8 +21,6 @@ import {
   DialogPortal,
   DialogRoot,
   DialogTitle,
-  ProgressIndicator,
-  ProgressRoot,
 } from 'reka-ui'
 
 const { t, locale } = useI18n()
@@ -82,15 +81,15 @@ function onCloseDialog(open: boolean) {
 <template>
   <DialogRoot :open="imp.modalOpen" @update:open="onModalOpen">
     <DialogPortal>
-      <DialogOverlay class="fixed inset-0 z-[60] bg-black/50" />
+      <DialogOverlay class="fixed inset-0 z-[60] bg-scrim" />
       <DialogContent
-        class="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(40rem,calc(100vh-2rem))] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(40rem,calc(100vh-2rem))] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl dialog-surface p-6"
         @escape-key-down="onEscape"
         @pointer-down-outside="onInteractOutside"
         @focus-outside="onInteractOutside"
       >
         <template v-if="imp.modalStage === 'progress'">
-          <DialogTitle class="font-display text-2xl font-semibold">
+          <DialogTitle class="type-section">
             {{ t('import.runningTitle') }}
           </DialogTitle>
           <DialogDescription class="mt-2 text-muted-foreground">
@@ -129,21 +128,10 @@ function onCloseDialog(open: boolean) {
             <p v-if="etaLabel && determinate" class="text-sm text-muted-foreground tabular-nums">
               {{ etaLabel }}
             </p>
-            <ProgressRoot
-              class="relative h-2 overflow-hidden rounded-full bg-muted"
+            <Progress
               :model-value="determinate ? percent : null"
-              :max="100"
-            >
-              <ProgressIndicator
-                v-if="determinate"
-                class="h-full w-full bg-primary transition-transform duration-200"
-                :style="{ transform: `translateX(-${100 - percent}%)` }"
-              />
-              <div
-                v-else
-                class="import-pulse absolute inset-y-0 left-0 w-1/3 rounded-full bg-primary"
-              />
-            </ProgressRoot>
+              :label="t('import.runningTitle')"
+            />
           </div>
 
           <div class="mt-8 flex flex-col gap-2">
@@ -157,7 +145,7 @@ function onCloseDialog(open: boolean) {
         </template>
 
         <template v-else>
-          <DialogTitle class="font-display text-2xl font-semibold">
+          <DialogTitle class="type-section">
             {{ t('import.reportTitle') }}
           </DialogTitle>
           <DialogDescription class="sr-only">
@@ -177,11 +165,11 @@ function onCloseDialog(open: boolean) {
 
   <AlertDialogRoot :open="imp.confirmCancel" @update:open="imp.confirmCancel = $event">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
-        <AlertDialogTitle class="font-display text-xl font-semibold">
+        <AlertDialogTitle class="type-section">
           {{ t('import.cancelTitle') }}
         </AlertDialogTitle>
         <AlertDialogDescription class="mt-3 text-sm text-muted-foreground">
@@ -201,11 +189,11 @@ function onCloseDialog(open: boolean) {
 
   <AlertDialogRoot :open="imp.confirmClose" @update:open="onCloseDialog">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
-        <AlertDialogTitle class="font-display text-xl font-semibold">
+        <AlertDialogTitle class="type-section">
           {{ imp.closeCommitted ? t('import.closeAfterTitle') : t('import.closeBeforeTitle') }}
         </AlertDialogTitle>
         <AlertDialogDescription class="mt-3 text-sm text-muted-foreground">
@@ -223,24 +211,3 @@ function onCloseDialog(open: boolean) {
     </AlertDialogPortal>
   </AlertDialogRoot>
 </template>
-
-<style scoped>
-.import-pulse {
-  animation: import-pulse 1s ease-in-out infinite;
-}
-
-@keyframes import-pulse {
-  0% {
-    transform: translateX(-20%);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translateX(180%);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-20%);
-    opacity: 0.55;
-  }
-}
-</style>

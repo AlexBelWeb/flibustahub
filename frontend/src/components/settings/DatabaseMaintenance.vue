@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import IndeterminateProgress from '@/components/IndeterminateProgress.vue'
+import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { errorMessage } from '@/i18n/errors'
 import { formatBytes } from '@/lib/format'
@@ -78,14 +78,14 @@ async function runBackup() {
 </script>
 
 <template>
-  <section class="mt-8 rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.maintenance.title') }}</h2>
+  <section class="mt-8 elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.maintenance.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.maintenance.lead') }}</p>
 
     <p v-if="blockedReason" class="mt-4 text-sm">{{ blockedReason }}</p>
 
     <div v-if="running" class="mt-4 grid gap-2">
-      <IndeterminateProgress :label="t('settings.maintenance.running')" />
+      <Progress :model-value="null" :label="t('settings.maintenance.running')" />
       <p class="text-sm text-muted-foreground">{{ t('settings.maintenance.running') }}</p>
     </div>
 
@@ -106,9 +106,9 @@ async function runBackup() {
 
   <AlertDialogRoot :open="confirmOptimize" @update:open="confirmOptimize = $event">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[90] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[90] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           t('settings.maintenance.confirmTitle')

@@ -40,5 +40,11 @@ export default defineConfigWithVueTs(
       },
     },
   },
+  {
+    files: ['src/views/palette-preview/**'],
+    rules: {
+      '@intlify/vue-i18n/no-raw-text': 'off',
+    },
+  },
   skipFormatting,
 )

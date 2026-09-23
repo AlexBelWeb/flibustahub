@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -23,6 +24,10 @@ const (
 	waitIndexRecovery = 3 * time.Second
 	waitPoolClose     = 3 * time.Second
 )
+
+// ErrPoolCloseTimeout means pool.Close is still running after the wait budget.
+// The caller must not treat the catalog as closed: a connection is still held.
+var ErrPoolCloseTimeout = errors.New("database pool close timed out")
 
 func remaining(deadline time.Time) time.Duration {
 	d := time.Until(deadline)
@@ -45,6 +50,7 @@ type DB struct {
 
 	mu            sync.Mutex
 	closed        bool
+	closeErr      error
 	recovering    bool
 	recoverErr    error
 	recoverCancel context.CancelFunc
@@ -93,16 +99,11 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 	}
 
 	dsn := fileDSN(opt.Path)
-	write, err := sqlOpen(dsn)
+	write, read, err := openPools(ctx, dsn)
 	if err != nil {
 		return nil, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
 	}
 	configurePool(write, writeMaxOpen)
-	read, err := sqlOpen(dsn)
-	if err != nil {
-		_ = write.Close()
-		return nil, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
-	}
 	configurePool(read, readMaxOpen)
 
 	d := &DB{
@@ -128,12 +129,48 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 	return d, nil
 }
 
-func sqlOpen(dsn string) (*sql.DB, error) {
+func openPools(ctx context.Context, dsn string) (*sql.DB, *sql.DB, error) {
+	var write, read *sql.DB
+	err := retryTransient(ctx, transientOpenBudget, transientLockIO, func() error {
+		if write != nil {
+			_ = write.Close()
+			write = nil
+		}
+		if read != nil {
+			_ = read.Close()
+			read = nil
+		}
+		var openErr error
+		write, openErr = sqlOpenOnce(ctx, dsn)
+		if openErr != nil {
+			return openErr
+		}
+		read, openErr = sqlOpenOnce(ctx, dsn)
+		if openErr != nil {
+			_ = write.Close()
+			write = nil
+			return openErr
+		}
+		return nil
+	})
+	if err != nil {
+		if write != nil {
+			_ = write.Close()
+		}
+		if read != nil {
+			_ = read.Close()
+		}
+		return nil, nil, err
+	}
+	return write, read, nil
+}
+
+func sqlOpenOnce(ctx context.Context, dsn string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Ping(); err != nil {
+	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -199,8 +236,9 @@ func (d *DB) CloseWithin(budget time.Duration) error {
 	}
 	d.mu.Lock()
 	if d.closed {
+		err := d.closeErr
 		d.mu.Unlock()
-		return nil
+		return err
 	}
 	d.closed = true
 	idle := d.idle
@@ -227,6 +265,9 @@ func (d *DB) CloseWithin(budget time.Duration) error {
 			first = err
 		}
 	}
+	d.mu.Lock()
+	d.closeErr = first
+	d.mu.Unlock()
 	return first
 }
 
@@ -248,24 +289,44 @@ func closePoolUntil(pool *sql.DB, log *slog.Logger, task string, deadline time.T
 	if pool == nil {
 		return nil
 	}
+	// database/sql.Close returns after closing idle connections. A connection
+	// that is still checked out keeps the file open until it is returned, so
+	// a nil error from Close is not yet a confirmed close.
 	done := make(chan error, 1)
 	go func() { done <- pool.Close() }()
 	timer := time.NewTimer(remaining(deadline))
 	defer timer.Stop()
+	var closeErr error
 	select {
-	case err := <-done:
-		return err
+	case closeErr = <-done:
 	case <-timer.C:
 		select {
-		case err := <-done:
-			return err
+		case closeErr = <-done:
 		default:
 			if log != nil {
 				log.Warn("shutdown timed out", "task", task)
 			}
-			return nil
+			return ErrPoolCloseTimeout
 		}
 	}
+	if closeErr != nil {
+		return closeErr
+	}
+	for pool.Stats().InUse > 0 {
+		left := remaining(deadline)
+		if left == 0 {
+			if log != nil {
+				log.Warn("shutdown timed out", "task", task)
+			}
+			return ErrPoolCloseTimeout
+		}
+		step := left
+		if step > 10*time.Millisecond {
+			step = 10 * time.Millisecond
+		}
+		time.Sleep(step)
+	}
+	return nil
 }
 
 // Path is the catalog file path.

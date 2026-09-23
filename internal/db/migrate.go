@@ -82,6 +82,16 @@ func parseMigration(source fs.FS, name string) (Migration, error) {
 // or an occupied foreign catalog are not pending: Open handles those without
 // a long fill, and the UI must not show "updating the database" for them.
 func HasPendingMigrations(ctx context.Context, path string) (bool, error) {
+	var pending bool
+	err := retryTransient(ctx, transientOpenBudget, transientLockIO, func() error {
+		var onceErr error
+		pending, onceErr = hasPendingMigrationsOnce(ctx, path)
+		return onceErr
+	})
+	return pending, err
+}
+
+func hasPendingMigrationsOnce(ctx context.Context, path string) (bool, error) {
 	if path == "" {
 		return false, nil
 	}

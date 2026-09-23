@@ -23,7 +23,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       v-bind="{ ...forwarded, ...$attrs }"
       :class="
         cn(
-          'z-50 overflow-hidden rounded-md border border-border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-md',
+          'motion-pop elevate-raised z-50 overflow-hidden rounded-md bg-popover px-3 py-1.5 text-xs text-popover-foreground',
           props.class,
         )
       "

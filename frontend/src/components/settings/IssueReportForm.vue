@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import IndeterminateProgress from '@/components/IndeterminateProgress.vue'
+import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -125,8 +125,8 @@ async function attachArchive() {
 </script>
 
 <template>
-  <section class="mt-8 rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.issue.title') }}</h2>
+  <section class="mt-8 elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.issue.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.issue.lead') }}</p>
 
     <div class="mt-5 grid gap-2">
@@ -210,7 +210,7 @@ async function attachArchive() {
     <div class="mt-6 grid gap-3">
       <p class="text-sm text-muted-foreground">{{ t('settings.diagnostics.archiveHint') }}</p>
       <div v-if="diag.archiveBusy">
-        <IndeterminateProgress :label="t('settings.diagnostics.archiveRunning')" />
+        <Progress :model-value="null" :label="t('settings.diagnostics.archiveRunning')" />
       </div>
       <Button variant="outline" :disabled="diag.archiveBusy" @click="attachArchive">
         {{ t('settings.issue.attachArchive') }}

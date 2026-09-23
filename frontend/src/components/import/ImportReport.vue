@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleAlert, CircleCheck, CircleMinus, TriangleAlert } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
@@ -93,7 +94,21 @@ async function copyMissing() {
 <template>
   <div class="grid gap-5">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
-      <p class="font-medium">{{ statusLabel(report.status) }}</p>
+      <p
+        class="flex items-center gap-2 font-medium"
+        :class="
+          report.status === 'failed'
+            ? 'text-destructive'
+            : report.status === 'cancelled'
+              ? 'text-foreground'
+              : 'text-success'
+        "
+      >
+        <CircleAlert v-if="report.status === 'failed'" class="size-4" aria-hidden="true" />
+        <CircleMinus v-else-if="report.status === 'cancelled'" class="size-4" aria-hidden="true" />
+        <CircleCheck v-else class="size-4" aria-hidden="true" />
+        {{ statusLabel(report.status) }}
+      </p>
       <p v-if="report.inpxVersion" class="text-sm text-muted-foreground tabular-nums">
         {{ t('import.lastVersion', { version: report.inpxVersion }) }}
       </p>
@@ -110,8 +125,8 @@ async function copyMissing() {
       class="rounded-xl border p-4"
       :class="
         notes.missingArchivesTotal > 0
-          ? 'border-primary/40 bg-primary/5'
-          : 'border-border bg-muted/30'
+          ? 'border-transparent bg-warning-quiet text-warning'
+          : 'border-border'
       "
     >
       <h3 class="font-display text-lg font-medium">{{ t('import.missingTitle') }}</h3>
@@ -175,7 +190,10 @@ async function copyMissing() {
 
       <section class="grid gap-2">
         <h3 class="font-medium">{{ t('import.encodingsTitle') }}</h3>
-        <p v-if="mixedEncodings" class="text-sm text-primary">{{ t('import.encodingsMixed') }}</p>
+        <p v-if="mixedEncodings" class="flex items-center gap-2 text-sm text-warning">
+          <TriangleAlert class="size-4" aria-hidden="true" />
+          {{ t('import.encodingsMixed') }}
+        </p>
         <dl class="grid gap-1 text-sm">
           <div class="flex justify-between gap-3">
             <dt class="text-muted-foreground">{{ t('import.encodingsUtf8') }}</dt>

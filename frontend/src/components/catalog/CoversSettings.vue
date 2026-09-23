@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
 import { useCoversStore } from '@/stores/covers'
@@ -74,8 +75,8 @@ async function clearCache() {
 </script>
 
 <template>
-  <section class="mt-8 rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.covers.title') }}</h2>
+  <section class="mt-8 elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.covers.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.covers.lead') }}</p>
 
     <div v-if="previewStatus === 'loading'" class="mt-4" aria-busy="true">
@@ -108,25 +109,22 @@ async function clearCache() {
         <p class="text-sm tabular-nums text-muted-foreground">
           {{ t('settings.covers.warmupProgress', { done: progress.done, total: progress.total }) }}
         </p>
-        <div class="h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            class="h-full bg-primary transition-[width] duration-200"
-            :style="{
-              width: progress.total
-                ? `${Math.min(100, (100 * progress.done) / progress.total)}%`
-                : '0%',
-            }"
-          />
-        </div>
+        <Progress
+          :model-value="progress.total ? progress.done : null"
+          :max="progress.total || 100"
+          :label="
+            t('settings.covers.warmupProgress', { done: progress.done, total: progress.total })
+          "
+        />
       </div>
     </div>
   </section>
 
   <AlertDialogRoot :open="confirmClear" @update:open="confirmClear = $event">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-black/50" />
+      <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6"
+        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           t('settings.covers.clearTitle')

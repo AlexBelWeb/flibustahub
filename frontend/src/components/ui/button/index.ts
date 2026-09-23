@@ -4,11 +4,12 @@ import { cva } from 'class-variance-authority'
 export { default as Button } from './Button.vue'
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-opacity transition-transform duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+  'motion-fast inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-opacity transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:opacity-90',
+        destructive: 'bg-destructive text-destructive-foreground hover:opacity-90',
         secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
         outline: 'border border-border bg-transparent hover:bg-accent',
         ghost: 'hover:bg-accent',

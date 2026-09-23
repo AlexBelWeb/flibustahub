@@ -51,7 +51,9 @@ Conventions:
 
 ### Changed
 
-- The app gives memory back after it has been left idle.
+- Panels, dialogs, menus and toasts ease in and out instead of appearing all at once.
+- Personal marks, library facts, warnings, failures and completed actions use separate colors, and a destructive button is no longer the same color as the focus ring.
+- Secondary text on a muted surface is darker, so it stays readable.
 - Catalog tiles share one row height, and the title on a tile is a step smaller. Covers stay put while you scroll.
 - Settings navigation is a vertical list of sections instead of three tabs.
 - Catalog filters open as a sliding panel and can be set by language, genre, author and series; the selection stays in the address bar.
@@ -78,9 +80,19 @@ Conventions:
 - The home hero shows why the book is there, its title and authors, a short metadata line, Open as the main action and a quiet Read; a random pick can be swapped for another book. The cover sits in a 2:3 frame instead of a cropped strip.
 - The last-import tile shows the date and dump version in the same type as the other counters.
 - The book panel and page put the annotation above editions and the note; rating and want-to-read sit on one row under the actions, without a Rating heading. An empty note collapses to “Add a note”.
+- The sidebar eases between the full column and the icon column.
+- A book’s series is its own line under the cover, with the number from the catalog. Genres stay as separate tags. A series number of 0 is left off: in the catalog that value means the number is missing.
+- Cards, menus and dialogs are set off by a shadow. With visual effects off, a fine edge takes the shadow’s place so those surfaces do not blend together.
+- A book’s own color tints the title in the panel and on the book page. Pointing at a card lifts it.
+- If another copy is running but does not answer and does not release the catalog, startup shows a screen with Retry instead of an empty window.
+- Author, genre and series filters can be cleared. An empty filter reads as “any”, and a value that cannot be read stays visible so the list does not look unfiltered.
 
 ### Fixed
 
+- Right after the application is forced to quit, a brief database lock on the next start is retried before a disk error is shown.
+- Closing the application and opening it again straight away no longer leaves nothing running. The new launch waits until the catalog is free, or offers Retry if shutdown is still in progress.
+- If the catalog is still closing when shutdown runs out of time, a new launch does not open the database until that process has exited.
+- The dimmed backdrop fades out with the panel. It no longer disappears in one step after the panel has already left.
 - The home hero no longer shows an empty strip with a cropped cover.
 - If the data folder already contains a catalog created by another program, this is stated plainly: the file is neither opened nor converted.
 - The collapsed sidebar no longer leaves an empty strip beside the icons.

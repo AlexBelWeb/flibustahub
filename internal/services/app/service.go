@@ -3,6 +3,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"sync"
@@ -25,23 +26,26 @@ import (
 
 // Service owns bootstrap state that is not tied to a UI toolkit.
 type Service struct {
-	cfg       *config.Store
-	log       *slog.Logger
-	version   string
-	commit    string
-	built     string
-	catalog   *db.DB
-	importer  *inpximport.Service
-	covers    *covers.Service
-	downloads *downloads.Service
-	storage   *storage.Service
-	secrets   *secrets.Service
-	maint     *maintenance.Service
-	diag      *diagnostics.Service
-	coverEmit func(covers.Progress)
-	storeEmit func(storage.Snapshot)
-	httpAddr  string
-	startErr  error
+	cfg            *config.Store
+	log            *slog.Logger
+	version        string
+	commit         string
+	built          string
+	catalog        *db.DB
+	importer       *inpximport.Service
+	covers         *covers.Service
+	downloads      *downloads.Service
+	storage        *storage.Service
+	secrets        *secrets.Service
+	maint          *maintenance.Service
+	diag           *diagnostics.Service
+	coverEmit      func(covers.Progress)
+	storeEmit      func(storage.Snapshot)
+	httpAddr       string
+	startErr       error
+	instanceStop   func()
+	instanceUnlock func()
+	instanceFocus  func()
 
 	importMu     sync.Mutex
 	importing    bool
@@ -53,12 +57,18 @@ type Service struct {
 	opening      bool
 	stopping     bool
 	shutdownOnce sync.Once
-	openPause    <-chan struct{}
-	openHold     <-chan struct{}
+	// stopBudget is the shared shutdown wait. New sets the production value.
+	// A test may set zero so a busy pool fails the close immediately.
+	stopBudget time.Duration
+	openPause  <-chan struct{}
+	openHold   <-chan struct{}
 }
 
 func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Service {
-	s := &Service{cfg: cfg, log: log, version: version, commit: commit, built: built}
+	s := &Service{
+		cfg: cfg, log: log, version: version, commit: commit, built: built,
+		stopBudget: shutdownBudget,
+	}
 	s.storage = storage.New(cfg, s.Catalog, s.Logger(), s.emitStorage)
 	s.secrets = secrets.New(secrets.Options{
 		DataDir: func() string { return s.config().Paths().DataDir },
@@ -79,6 +89,92 @@ func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Se
 		Log:     s.Logger(),
 	})
 	return s
+}
+
+// SetInstanceFocus is called when a second launch asks this process to come forward.
+func (s *Service) SetInstanceFocus(fn func()) {
+	s.openMu.Lock()
+	s.instanceFocus = fn
+	s.openMu.Unlock()
+}
+
+// BindInstance keeps the process lock and focus channel. Shutdown stops the
+// channel first and drops the lock only after the catalog is closed.
+func (s *Service) BindInstance(hold platform.InstanceHold) {
+	if hold.StopFocus == nil && hold.Unlock == nil {
+		return
+	}
+	s.openMu.Lock()
+	s.instanceStop = hold.StopFocus
+	s.instanceUnlock = hold.Unlock
+	s.openMu.Unlock()
+}
+
+// claimInstance takes the process lock if this process does not hold it yet.
+func (s *Service) claimInstance(wait time.Duration) bool {
+	s.openMu.Lock()
+	if s.instanceUnlock != nil {
+		s.openMu.Unlock()
+		return true
+	}
+	dataDir := ""
+	focus := s.instanceFocus
+	if s.cfg != nil {
+		dataDir = s.cfg.Live().DataDir
+	}
+	s.openMu.Unlock()
+	kind, hold, err := platform.DecideStart(
+		func() (func(), bool, error) { return platform.AcquireInstance(dataDir) },
+		func(timeout time.Duration) bool { return platform.SignalFocus(dataDir, timeout) },
+		func(cb func()) (func(), error) { return platform.ListenFocus(dataDir, cb) },
+		focus,
+		platform.FocusSignalTimeout,
+		wait,
+	)
+	if err != nil {
+		logInstanceErr(s.Logger(), err)
+	}
+	if kind != platform.StartPrimary {
+		return false
+	}
+	s.BindInstance(hold)
+	return true
+}
+
+// ReleaseInstance stops the focus channel and drops the process lock.
+// Safe to call more than once. Shutdown uses the two halves separately.
+func (s *Service) ReleaseInstance() {
+	s.stopInstanceFocus()
+	s.unlockInstance()
+}
+
+func (s *Service) stopInstanceFocus() {
+	s.openMu.Lock()
+	stop := s.instanceStop
+	s.instanceStop = nil
+	s.openMu.Unlock()
+	if stop != nil {
+		stop()
+	}
+}
+
+func (s *Service) unlockInstance() {
+	s.openMu.Lock()
+	unlock := s.instanceUnlock
+	s.instanceUnlock = nil
+	s.openMu.Unlock()
+	if unlock != nil {
+		unlock()
+	}
+}
+
+func logInstanceErr(log *slog.Logger, err error) {
+	var focus *platform.FocusListenError
+	if errors.As(err, &focus) {
+		log.Warn("focus channel did not start", "err", err)
+		return
+	}
+	log.Error("instance lock failed", "err", err)
 }
 
 // AttachCatalog stores the catalog handle and a startup error from config or DB.
@@ -109,10 +205,12 @@ func (s *Service) Catalog() *db.DB {
 func (s *Service) CloseCatalog() {
 	s.openMu.Lock()
 	defer s.openMu.Unlock()
-	s.closeCatalogLocked(shutdownBudget)
+	if err := s.closeCatalogLocked(shutdownBudget); err != nil {
+		s.Logger().Warn("catalog close did not finish", "err", err)
+	}
 }
 
-func (s *Service) closeCatalogLocked(budget time.Duration) {
+func (s *Service) closeCatalogLocked(budget time.Duration) error {
 	if s.downloads != nil {
 		s.downloads.Stop()
 		s.downloads = nil
@@ -123,10 +221,13 @@ func (s *Service) closeCatalogLocked(budget time.Duration) {
 		s.covers = nil
 	}
 	if s.catalog != nil {
-		_ = s.catalog.CloseWithin(budget)
+		if err := s.catalog.CloseWithin(budget); err != nil {
+			return err
+		}
 		s.catalog = nil
 	}
 	s.importer = nil
+	return nil
 }
 
 // Bootstrap is the payload the UI needs on first paint.
@@ -337,9 +438,12 @@ func (s *Service) openCatalogWork() error {
 	}
 
 	s.openMu.Lock()
-	s.closeCatalogLocked(shutdownBudget)
+	closeErr := s.closeCatalogLocked(shutdownBudget)
 	stopping := s.stopping
 	s.openMu.Unlock()
+	if closeErr != nil {
+		return closeErr
+	}
 	if stopping {
 		return s.peekStartErr()
 	}
@@ -409,9 +513,17 @@ func (s *Service) RetryStartup() Bootstrap {
 
 	if cfgErr != nil {
 		s.openMu.Lock()
-		s.closeCatalogLocked(shutdownBudget)
+		closeErr := s.closeCatalogLocked(shutdownBudget)
 		s.startErr = cfgErr
 		s.openMu.Unlock()
+		if closeErr != nil {
+			s.Logger().Warn("catalog close did not finish", "err", closeErr)
+		}
+		s.endOpening()
+		return s.Bootstrap()
+	}
+	if s.Catalog() == nil && !s.claimInstance(2*time.Second) {
+		s.SetStartupError(apperr.New(apperr.CodeInstanceRunning, nil))
 		s.endOpening()
 		return s.Bootstrap()
 	}

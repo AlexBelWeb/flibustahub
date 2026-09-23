@@ -637,7 +637,7 @@ onMounted(() => {
           <h2 class="text-sm font-medium text-muted-foreground">{{ t('palette.authors') }}</h2>
           <RouterLink
             v-if="authorsOverflow"
-            class="text-sm text-primary underline-offset-4 hover:underline"
+            class="text-sm underline-offset-4 hover:underline"
             :to="{ name: 'authors', query: { q } }"
           >
             {{ t('palette.allAuthors', { n: formatCappedCount(state.authorsTotal, locale) }) }}
@@ -645,12 +645,11 @@ onMounted(() => {
         </div>
         <ul class="flex flex-wrap gap-2">
           <li v-for="item in state.authors" :key="item.id">
-            <RouterLink
-              class="inline-flex rounded-full border border-border bg-card px-3 py-1 text-sm hover:bg-accent"
-              :to="{ name: 'author', params: { authorId: String(item.id) } }"
-            >
-              <HighlightText :text="item.displayName" :query="q" />
-            </RouterLink>
+            <Badge as-child variant="outline" class="text-sm hover:bg-accent">
+              <RouterLink :to="{ name: 'author', params: { authorId: String(item.id) } }">
+                <HighlightText :text="item.displayName" :query="q" />
+              </RouterLink>
+            </Badge>
           </li>
         </ul>
       </section>
@@ -659,7 +658,7 @@ onMounted(() => {
           <h2 class="text-sm font-medium text-muted-foreground">{{ t('palette.series') }}</h2>
           <RouterLink
             v-if="seriesOverflow"
-            class="text-sm text-primary underline-offset-4 hover:underline"
+            class="text-sm underline-offset-4 hover:underline"
             :to="{ name: 'series', query: { q } }"
           >
             {{ t('palette.allSeries', { n: formatCappedCount(state.seriesTotal, locale) }) }}
@@ -667,12 +666,11 @@ onMounted(() => {
         </div>
         <ul class="flex flex-wrap gap-2">
           <li v-for="item in state.series" :key="item.id">
-            <RouterLink
-              class="inline-flex rounded-full border border-border bg-card px-3 py-1 text-sm hover:bg-accent"
-              :to="{ name: 'seriesDetail', params: { seriesId: String(item.id) } }"
-            >
-              <HighlightText :text="item.name" :query="q" />
-            </RouterLink>
+            <Badge as-child variant="outline" class="text-sm hover:bg-accent">
+              <RouterLink :to="{ name: 'seriesDetail', params: { seriesId: String(item.id) } }">
+                <HighlightText :text="item.name" :query="q" />
+              </RouterLink>
+            </Badge>
           </li>
         </ul>
       </section>

@@ -76,7 +76,7 @@ const emptyText = computed(() =>
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col px-6 py-6">
-    <h1 class="mb-4 font-display text-3xl font-semibold">{{ t('series.title') }}</h1>
+    <h1 class="mb-4 type-page">{{ t('series.title') }}</h1>
     <Input
       ref="searchInput"
       :model-value="draft"

@@ -875,7 +875,7 @@ func workFromRow(r repositories.WorkRow) Work {
 	if r.Series.Valid {
 		w.Series = r.Series.String
 	}
-	if r.SeriesNo.Valid {
+	if r.SeriesNo.Valid && r.SeriesNo.String != "0" {
 		w.SeriesNo = r.SeriesNo.String
 	}
 	if r.Size.Valid {

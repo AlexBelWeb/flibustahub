@@ -76,13 +76,11 @@ function startImport() {
 <template>
   <DialogRoot :open="open" @update:open="open = $event">
     <DialogPortal>
-      <DialogOverlay class="fixed inset-0 z-[75] bg-black/50" />
+      <DialogOverlay class="fixed inset-0 z-[75] bg-scrim" />
       <DialogContent
-        class="fixed top-1/2 left-1/2 z-[75] w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-lg"
+        class="fixed top-1/2 left-1/2 z-[75] w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
-        <DialogTitle class="font-display text-2xl font-semibold">{{
-          t('onboarding.title')
-        }}</DialogTitle>
+        <DialogTitle class="type-section">{{ t('onboarding.title') }}</DialogTitle>
         <ol class="mt-4 flex gap-3 text-sm text-muted-foreground">
           <li :class="step === 0 ? 'text-foreground' : ''">{{ t('onboarding.stepFolder') }}</li>
           <li :class="step === 1 ? 'text-foreground' : ''">{{ t('onboarding.stepDump') }}</li>

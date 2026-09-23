@@ -16,7 +16,11 @@ tasks:
   build:
     desc: Release build (wails build). Binary in build/bin/
     cmds:
-      - wails build
+      # Ubuntu 24.04 ships WebKitGTK 4.1. The matching files are behind this tag.
+      - cmd: wails build -tags webkit2_41
+        platforms: [linux]
+      - cmd: wails build
+        platforms: [windows, darwin]
 
   lint:
     desc: Run Go linters

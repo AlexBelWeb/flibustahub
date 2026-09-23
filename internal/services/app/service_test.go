@@ -14,7 +14,9 @@ func newTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(store, slog.New(slog.DiscardHandler), "dev", "abc", "now")
+	svc := New(store, slog.New(slog.DiscardHandler), "dev", "abc", "now")
+	t.Cleanup(svc.ReleaseInstance)
+	return svc
 }
 
 func TestSetLocaleRejectsUnknown(t *testing.T) {

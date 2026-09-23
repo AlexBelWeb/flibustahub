@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleCheck } from '@lucide/vue'
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
@@ -201,9 +202,10 @@ onUnmounted(() => {
       </CollapsibleTrigger>
       <div v-if="expanded" class="flex items-center gap-2">
         <p
-          class="text-xs text-muted-foreground transition-opacity duration-200"
+          class="motion-fast flex items-center gap-1 text-xs text-success transition-opacity"
           :class="justSaved ? 'opacity-100' : 'opacity-0'"
         >
+          <CircleCheck class="size-3.5" aria-hidden="true" />
           {{ t('personal.saved') }}
         </p>
         <Button
@@ -239,7 +241,7 @@ onUnmounted(() => {
       />
       <div
         v-if="mode === 'preview'"
-        class="note-preview text-sm leading-relaxed"
+        class="note-preview border-l-2 border-primary pl-3 text-sm leading-relaxed"
         @click="onPreviewClick"
         v-html="renderNote(draft)"
       />

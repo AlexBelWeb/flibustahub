@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/alexbelweb/flibustahub/internal/apperr"
 	"github.com/alexbelweb/flibustahub/internal/config"
@@ -59,19 +61,36 @@ func main() {
 	httpServer := httpapi.New(logger)
 	httpServer.SetCovers(svc)
 
-	releaseInstance, primary, lockErr := platform.AcquireInstance(paths.DataDir)
+	svc.SetInstanceFocus(win.FocusExistingWindow)
+	kind, hold, lockErr := platform.DecideStart(
+		func() (func(), bool, error) { return platform.AcquireInstance(paths.DataDir) },
+		func(timeout time.Duration) bool { return platform.SignalFocus(paths.DataDir, timeout) },
+		func(cb func()) (func(), error) { return platform.ListenFocus(paths.DataDir, cb) },
+		win.FocusExistingWindow,
+		platform.FocusSignalTimeout,
+		platform.InstanceClaimWait,
+	)
 	if lockErr != nil {
-		logger.Error("instance lock failed", "err", lockErr)
-		primary = true
+		var focus *platform.FocusListenError
+		if errors.As(lockErr, &focus) {
+			logger.Warn("focus channel did not start", "err", lockErr)
+		} else {
+			logger.Error("instance lock failed", "err", lockErr)
+		}
 	}
-	defer releaseInstance()
+	defer svc.ReleaseInstance()
+	if kind == platform.StartExit {
+		logger.Info("focusing existing instance")
+		os.Exit(0)
+	}
 
 	pending := false
 	var startCatalog func() error
-	if !primary {
+	if kind == platform.StartBlocked {
 		logger.Info("another instance is running")
-		svc.AttachCatalog(nil, cfgErr)
+		svc.AttachCatalog(nil, apperr.New(apperr.CodeInstanceRunning, nil))
 	} else {
+		svc.BindInstance(hold)
 		logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
 		// First paint can show the migration splash before OnStartup calls Open.
 		// OpenCatalog re-checks the same path, including on RetryStartup.
@@ -162,12 +181,6 @@ func main() {
 			ui,
 		},
 		ErrorFormatter: apperr.FormatWails,
-		SingleInstanceLock: &options.SingleInstanceLock{
-			UniqueId: "flibustahub-single-instance",
-			OnSecondInstanceLaunch: func(_ options.SecondInstanceData) {
-				win.FocusExistingWindow()
-			},
-		},
 		Linux: &linux.Options{
 			ProgramName:      "FlibustaHub",
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,

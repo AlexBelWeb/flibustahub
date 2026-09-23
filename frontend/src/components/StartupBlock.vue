@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { errorMessage } from '@/i18n/errors'
 import { useAppStore } from '@/stores/app'
 
@@ -32,7 +32,7 @@ async function retry() {
   <div class="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-6">
     <Card class="p-0">
       <CardHeader class="p-8 pb-0">
-        <CardTitle class="font-display text-3xl">{{ t('startup.title') }}</CardTitle>
+        <h2 class="type-page">{{ t('startup.title') }}</h2>
       </CardHeader>
       <CardContent class="p-8 pt-3">
         <p class="text-muted-foreground">{{ t('startup.lead') }}</p>

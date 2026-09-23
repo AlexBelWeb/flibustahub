@@ -65,8 +65,8 @@ async function clearReader() {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.downloads.title') }}</h2>
+  <section class="elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.downloads.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.downloads.lead') }}</p>
     <p class="mt-4 font-mono text-sm break-all">
       {{ app.bootstrap?.paths.downloadsDir || t('settings.downloads.empty') }}
@@ -81,8 +81,8 @@ async function clearReader() {
     </div>
   </section>
 
-  <section class="mt-8 rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.reader.title') }}</h2>
+  <section class="mt-8 elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.reader.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.reader.lead') }}</p>
     <p class="mt-4 font-mono text-sm break-all">
       {{ storage.readerPath || t('settings.reader.osDefault') }}

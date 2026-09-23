@@ -114,7 +114,11 @@ function onFocus() {
       <DumpOfferBanner />
       <div class="relative min-h-0 min-w-0 flex-1">
         <div class="absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-hidden">
-          <RouterView />
+          <RouterView v-slot="{ Component, route: current }">
+            <Transition name="route">
+              <component :is="Component" :key="current.path" />
+            </Transition>
+          </RouterView>
         </div>
       </div>
     </SidebarInset>

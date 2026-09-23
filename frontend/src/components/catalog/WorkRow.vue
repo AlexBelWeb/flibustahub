@@ -7,7 +7,7 @@ import HighlightText from '@/components/catalog/HighlightText.vue'
 import RatingValue from '@/components/catalog/RatingValue.vue'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatBytes, languageName } from '@/lib/format'
-import { authorParts, isBlankTitle, isUnknownAuthor } from '@/lib/work'
+import { authorParts, isBlankTitle, isUnknownAuthor, visibleSeriesNo } from '@/lib/work'
 import { withWorkQuery } from '@/lib/work-route'
 import type { Work } from '@/types/catalog'
 
@@ -54,10 +54,12 @@ const lang = computed(() => languageName(props.work.lang, locale.value))
     </Tooltip>
     <span class="truncate text-muted-foreground">
       {{ work.series }}
-      <span v-if="work.seriesNo">{{ t('catalog.seriesNo', { n: work.seriesNo }) }}</span>
+      <span v-if="visibleSeriesNo(work.seriesNo)">{{
+        t('catalog.seriesNo', { n: visibleSeriesNo(work.seriesNo) })
+      }}</span>
     </span>
     <span class="truncate text-muted-foreground">{{ lang }}</span>
-    <span class="truncate text-right tabular-nums text-muted-foreground">{{ size }}</span>
+    <span class="truncate text-right text-library tabular-nums">{{ size }}</span>
     <span class="flex justify-end">
       <RatingValue :rating="work.rating" compact />
     </span>

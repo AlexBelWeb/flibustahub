@@ -58,10 +58,11 @@ func seed(t *testing.T, d *db.DB) {
 		 (8, 'k-range', 'Том диапазон', 'том диапазон', 'Громов Александр Николаевич', 'ru', 't', 't'),
 		 (9, 'k-q', 'Том вопрос', 'том вопрос', 'Громов Александр Николаевич', 'ru', 't', 't'),
 		 (10, 'k-empty', 'Том пустой', 'том пустой', 'Громов Александр Николаевич', 'ru', 't', 't'),
+		 (13, 'k-zero', 'Том ноль', 'том ноль', 'Громов Александр Николаевич', 'ru', 't', 't'),
 		 (11, 'k-ghost', 'Призрак', 'призрак', 'Asimov Isaac', 'en', 't', 't'),
 		 (12, 'k-rare', 'Одинокая книга', 'одинокая книга', 'Йенсен Карл', 'ru', 't', 't')`,
 		`INSERT INTO work_authors(work_id, author_id, position) VALUES
-		 (1,1,0),(2,1,0),(3,2,0),(4,3,0),(5,1,0),(6,1,0),(7,1,0),(8,1,0),(9,1,0),(10,1,0),(11,4,0),(12,3,0)`,
+		 (1,1,0),(2,1,0),(3,2,0),(4,3,0),(5,1,0),(6,1,0),(7,1,0),(8,1,0),(9,1,0),(10,1,0),(11,4,0),(12,3,0),(13,1,0)`,
 		`INSERT INTO editions(id, libid, work_id, archive_name, file_name, series, series_no, lang, added_date, is_deleted, is_active) VALUES
 		 (1,'1',1,'a.zip','f','Ёлки', '', 'ru', '2020-01-01', 0, 1),
 		 (2,'2',2,'a.zip','f', NULL, NULL, 'ru', '2021-01-01', 0, 1),
@@ -73,9 +74,10 @@ func seed(t *testing.T, d *db.DB) {
 		 (8,'8',8,'a.zip','f','Серия Мусор', '1-2', 'ru', '2017-01-04', 0, 1),
 		 (9,'9',9,'a.zip','f','Серия Мусор', '?', 'ru', '2017-01-05', 0, 1),
 		 (10,'10',10,'a.zip','f','Серия Мусор', '', 'ru', '2017-01-06', 0, 1),
+		 (13,'13',13,'a.zip','f','Серия Мусор', '0', 'ru', '2017-01-07', 0, 1),
 		 (11,'11',11,'a.zip','f', NULL, NULL, 'en', '2016-01-01', 0, 1),
 		 (12,'12',12,'a.zip','f', NULL, NULL, 'ru', '2015-01-01', 0, 1)`,
-		`INSERT INTO edition_genres(edition_id, genre_id) VALUES (1,1),(2,1),(3,1),(4,1),(5,1),(6,1),(7,1),(8,1),(9,1),(10,1),(11,1),(12,2)`,
+		`INSERT INTO edition_genres(edition_id, genre_id) VALUES (1,1),(2,1),(3,1),(4,1),(5,1),(6,1),(7,1),(8,1),(9,1),(10,1),(11,1),(12,2),(13,1)`,
 	)
 	if err := db.WarmUpCatalog(context.Background(), d.Write); err != nil {
 		t.Fatal(err)
@@ -127,7 +129,7 @@ func TestListWorksSortTitleAndKeyset(t *testing.T) {
 	if page2.Items[0].Title == page.Items[0].Title {
 		t.Fatal("keyset did not advance")
 	}
-	if page.Total == nil || page.Total.N != 12 {
+	if page.Total == nil || page.Total.N != 13 {
 		t.Fatalf("total %+v", page.Total)
 	}
 }
@@ -360,24 +362,18 @@ func TestSeriesNoOrdersNonNumericLast(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := titles(page)
-	want := []string{"Том один", "Том два", "Том десять", "Том диапазон", "Том вопрос", "Том пустой"}
-	// 1, 2, 10 numeric; 1-2, ?, empty last — last three ordered by sort_title
-	wantLast := []string{"Том один", "Том два", "Том десять"}
-	if len(got) != 6 {
-		t.Fatalf("len %d %v", len(got), got)
+	// 1, 2, 10 stay numeric. '0' sorts with the blank number, after them,
+	// then 1-2, ? and the blank — by sort title.
+	want := []string{"Том один", "Том два", "Том десять", "Том вопрос", "Том диапазон", "Том ноль", "Том пустой"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("series order %v want %v", got, want)
 	}
-	if strings.Join(got[:3], ",") != strings.Join(wantLast, ",") {
-		t.Fatalf("numeric prefix %v want %v (full %v)", got[:3], wantLast, got)
+	zero, err := svc.GetWork(ctx, 13)
+	if err != nil {
+		t.Fatal(err)
 	}
-	last := got[3:]
-	if last[0] != "Том диапазон" && last[0] != "Том вопрос" && last[0] != "Том пустой" {
-		t.Fatalf("non-numeric should be at end: %v want something like %v", got, want)
-	}
-	for i, title := range last {
-		_ = i
-		if title == "Том один" || title == "Том два" || title == "Том десять" {
-			t.Fatalf("numeric mixed into tail: %v", got)
-		}
+	if zero.SeriesNo != "" || zero.Series != "Серия Мусор" {
+		t.Fatalf("placeholder 0 must not be a volume number: %+v", zero)
 	}
 }
 

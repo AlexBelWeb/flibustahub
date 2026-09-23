@@ -1,5 +1,13 @@
 const COVER_HUES = [12, 28, 160, 200, 255, 320, 340, 48]
 
+// "0" is the dump's placeholder for a missing series number, not volume zero.
+export function visibleSeriesNo(seriesNo: string | undefined): string {
+  if (!seriesNo || seriesNo === '0') {
+    return ''
+  }
+  return seriesNo
+}
+
 export function isBlankTitle(title: string | undefined): boolean {
   if (!title) {
     return true
@@ -48,4 +56,14 @@ export function coverHue(workKey: string): number {
     hash = (hash * 33 + workKey.charCodeAt(i)) >>> 0
   }
   return COVER_HUES[hash % COVER_HUES.length]
+}
+
+export function coverWash(workKey: string): string {
+  const hue = coverHue(workKey)
+  return `linear-gradient(105deg, hsl(${hue} 32% var(--cover-l, 42%) / 0.28) 0%, transparent 62%)`
+}
+
+export function coverTint(workKey: string): string {
+  const hue = coverHue(workKey)
+  return `hsl(${hue} 32% var(--cover-l, 42%) / 0.16)`
 }

@@ -43,7 +43,7 @@ const { state } = useSidebar()
     <div
       :class="
         cn(
-          'relative h-full bg-transparent transition-[width] duration-200 ease-linear',
+          'sidebar-width relative h-full bg-transparent',
           'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
           'w-(--sidebar-width)',
         )
@@ -52,7 +52,7 @@ const { state } = useSidebar()
     <div
       :class="
         cn(
-          'fixed inset-y-0 z-10 flex h-full w-(--sidebar-width) transition-[left,width] duration-200 ease-linear',
+          'sidebar-width fixed inset-y-0 z-10 flex h-full w-(--sidebar-width)',
           'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
           side === 'left'
             ? 'left-0 border-r border-sidebar-border'

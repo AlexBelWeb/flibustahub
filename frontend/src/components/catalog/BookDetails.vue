@@ -18,7 +18,7 @@ import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
 import { formatBytes, formatDate, formatFiles, languageName } from '@/lib/format'
 import { ratingFromShortcut } from '@/lib/rating'
-import { isBlankTitle, isUnknownAuthor } from '@/lib/work'
+import { coverTint, isBlankTitle, isUnknownAuthor, visibleSeriesNo } from '@/lib/work'
 import type { ListStatus } from '@/stores/catalog'
 import { usePersonalStore } from '@/stores/personal'
 import type { Author, WorkDetails, WorkEdition } from '@/types/catalog'
@@ -45,6 +45,9 @@ let loadGen = 0
 
 const title = computed(() =>
   details.value && !isBlankTitle(details.value.title) ? details.value.title : t('catalog.untitled'),
+)
+const tint = computed(() =>
+  details.value ? coverTint(details.value.workKey || String(details.value.id)) : 'transparent',
 )
 const preferredId = computed(() => {
   const work = details.value
@@ -281,10 +284,11 @@ watch(
     >
       <header
         v-if="drawer"
-        class="flex shrink-0 items-start gap-4 border-b border-border bg-background px-6 py-4"
+        class="flex shrink-0 items-start gap-4 px-6 py-4"
+        :style="{ background: tint }"
       >
         <div class="grid min-w-0 flex-1 gap-2">
-          <h1 class="font-display text-2xl font-semibold">{{ title }}</h1>
+          <h1 class="type-hero">{{ title }}</h1>
           <p v-if="namedAuthors.length === 0" class="text-muted-foreground">
             {{ t('catalog.unknownAuthor') }}
           </p>
@@ -329,8 +333,12 @@ watch(
             : 'grid gap-6 content-start'
         "
       >
-        <header v-if="!drawer" class="grid gap-2">
-          <h1 class="font-display text-3xl font-semibold sm:text-4xl">{{ title }}</h1>
+        <header
+          v-if="!drawer"
+          class="grid gap-2 rounded-lg px-4 py-3"
+          :style="{ background: tint }"
+        >
+          <h1 class="type-page">{{ title }}</h1>
           <p v-if="namedAuthors.length === 0" class="text-lg text-muted-foreground">
             {{ t('catalog.unknownAuthor') }}
           </p>
@@ -356,36 +364,33 @@ watch(
           />
         </div>
 
-        <p v-if="facts" class="text-sm text-muted-foreground tabular-nums">{{ facts }}</p>
-
-        <div v-if="details.series || details.genres?.length" class="flex flex-wrap gap-2">
+        <p v-if="details.series" class="text-sm">
           <RouterLink
-            v-if="details.series && details.seriesId"
+            v-if="details.seriesId"
             :to="{ name: 'seriesDetail', params: { seriesId: String(details.seriesId) } }"
-            class="rounded-full border border-border px-3 py-1 text-sm"
+            class="underline-offset-4 hover:underline"
           >
             {{ details.series }}
-            <span v-if="details.seriesNo">{{
-              t('catalog.seriesNo', { n: details.seriesNo })
+            <span v-if="visibleSeriesNo(details.seriesNo)">{{
+              t('catalog.seriesNo', { n: visibleSeriesNo(details.seriesNo) })
             }}</span>
           </RouterLink>
-          <span
-            v-else-if="details.series"
-            class="rounded-full border border-border px-3 py-1 text-sm"
-          >
+          <span v-else>
             {{ details.series }}
-            <span v-if="details.seriesNo">{{
-              t('catalog.seriesNo', { n: details.seriesNo })
+            <span v-if="visibleSeriesNo(details.seriesNo)">{{
+              t('catalog.seriesNo', { n: visibleSeriesNo(details.seriesNo) })
             }}</span>
           </span>
-          <RouterLink
-            v-for="genre in details.genres"
-            :key="genre.id"
-            :to="{ name: 'genre', params: { genreId: String(genre.id) } }"
-            class="rounded-full border border-border px-3 py-1 text-sm"
-          >
-            {{ genre.nameRu }}
-          </RouterLink>
+        </p>
+
+        <p v-if="facts" class="text-sm text-library tabular-nums">{{ facts }}</p>
+
+        <div v-if="details.genres?.length" class="flex flex-wrap gap-2">
+          <Badge v-for="genre in details.genres" :key="genre.id" as-child variant="outline">
+            <RouterLink :to="{ name: 'genre', params: { genreId: String(genre.id) } }">
+              {{ genre.nameRu }}
+            </RouterLink>
+          </Badge>
         </div>
 
         <div
@@ -394,7 +399,7 @@ watch(
         >
           <Tooltip v-if="details.librate">
             <TooltipTrigger as-child>
-              <Badge variant="muted" class="px-3 py-1 text-sm tabular-nums" tabindex="0">
+              <Badge variant="library" class="px-3 py-1 text-sm tabular-nums" tabindex="0">
                 {{ t('catalog.librate', { n: details.librate }) }}
               </Badge>
             </TooltipTrigger>
@@ -402,12 +407,12 @@ watch(
           </Tooltip>
           <Badge
             v-if="drawer && details.editionCount > 1"
-            variant="secondary"
+            variant="library"
             class="px-3 py-1 text-sm tabular-nums"
           >
             {{ filesLabel }}
           </Badge>
-          <Badge v-if="!details.hasFile" variant="muted" class="px-3 py-1 text-sm">
+          <Badge v-if="!details.hasFile" variant="warning" class="px-3 py-1 text-sm">
             {{ t('catalog.ghost') }}
           </Badge>
         </div>
@@ -431,7 +436,7 @@ watch(
             {{ t('book.readingDisk') }}
           </p>
           <div v-else-if="annStatus === 'error'" class="rounded-xl border border-border p-4">
-            <p class="mb-3">{{ annError || t('book.annotationError') }}</p>
+            <p class="mb-3 text-destructive">{{ annError || t('book.annotationError') }}</p>
             <Button
               variant="outline"
               size="sm"
@@ -457,8 +462,8 @@ watch(
               :class="ed.preferred ? 'bg-muted/60 text-foreground' : ''"
             >
               <div class="grid min-w-0 gap-1">
-                <p v-if="editionExt(ed)" class="text-foreground">{{ editionExt(ed) }}</p>
-                <p>{{ editionLine(ed) }}</p>
+                <p v-if="editionExt(ed)" class="text-library">{{ editionExt(ed) }}</p>
+                <p class="text-library">{{ editionLine(ed) }}</p>
                 <Badge v-if="ed.preferred" variant="secondary" class="w-fit">{{
                   t('book.default')
                 }}</Badge>

@@ -7,7 +7,7 @@ import BookCover from '@/components/catalog/BookCover.vue'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { formatBytes, languageName } from '@/lib/format'
-import { authorParts, coverHue, isBlankTitle, isUnknownAuthor } from '@/lib/work'
+import { authorParts, coverWash, isBlankTitle, isUnknownAuthor } from '@/lib/work'
 import { withWorkQuery } from '@/lib/work-route'
 import { useCatalogStore } from '@/stores/catalog'
 import type { Author, Work, WorkDetails } from '@/types/catalog'
@@ -33,7 +33,7 @@ let detailsGen = 0
 const title = computed(() =>
   !isBlankTitle(props.work.title) ? props.work.title : t('catalog.untitled'),
 )
-const hue = computed(() => coverHue(props.work.workKey || String(props.work.id)))
+const wash = computed(() => coverWash(props.work.workKey || String(props.work.id)))
 const kicker = computed(() =>
   props.source === 'random' ? t('home.randomBook') : t('home.returnToBook'),
 )
@@ -63,11 +63,6 @@ const editionId = computed(() => {
   const preferred = (work.editions ?? []).find((ed) => ed.preferred)
   return preferred?.id || work.editions?.[0]?.id || 0
 })
-const wash = computed(
-  () =>
-    `linear-gradient(105deg, hsl(${hue.value} 32% var(--cover-l, 42%) / 0.28) 0%, transparent 62%)`,
-)
-
 function authorHref(author: Author) {
   return { name: 'author' as const, params: { authorId: String(author.id) } }
 }
@@ -135,7 +130,7 @@ watch(
       </div>
       <div class="grid min-w-0 flex-1 gap-1.5">
         <p class="text-sm text-muted-foreground">{{ kicker }}</p>
-        <h2 class="font-display line-clamp-2 text-xl font-semibold sm:text-2xl">{{ title }}</h2>
+        <h2 class="type-hero line-clamp-2">{{ title }}</h2>
         <p v-if="namedAuthors.length === 0" class="text-muted-foreground">{{ authorsFallback }}</p>
         <p v-else class="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
           <RouterLink
@@ -147,7 +142,7 @@ watch(
             {{ author.displayName }}
           </RouterLink>
         </p>
-        <p v-if="facts" class="text-sm text-muted-foreground tabular-nums">{{ facts }}</p>
+        <p v-if="facts" class="text-sm text-library tabular-nums">{{ facts }}</p>
         <div class="mt-1 flex flex-wrap items-center gap-2">
           <Button as-child>
             <RouterLink :to="{ query: withWorkQuery(route.query, work.id) }">

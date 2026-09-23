@@ -23,12 +23,13 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       v-bind="{ ...forwarded, ...$attrs }"
       :class="
         cn(
-          'relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md',
+          'motion-pop elevate-raised relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md bg-popover text-popover-foreground',
+          props.position === 'popper' && 'min-w-(--reka-select-trigger-width)',
           props.class,
         )
       "
     >
-      <SelectViewport class="p-1">
+      <SelectViewport :class="cn('p-1', props.position === 'popper' && 'w-full')">
         <slot />
       </SelectViewport>
     </SelectContent>

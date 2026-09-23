@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-export type ToastKind = 'info' | 'error'
+export type ToastKind = 'info' | 'success' | 'error'
 
 export interface ToastItem {
   id: number
@@ -77,6 +77,10 @@ export const useToastStore = defineStore('toast', () => {
     push('error', message, action)
   }
 
+  function pushSuccess(message: string) {
+    push('success', message)
+  }
+
   function pushInfo(message: string) {
     push('info', message)
   }
@@ -88,5 +92,5 @@ export const useToastStore = defineStore('toast', () => {
     run?.()
   }
 
-  return { items, visible, dismiss, pushError, pushInfo, runAction }
+  return { items, visible, dismiss, pushError, pushSuccess, pushInfo, runAction }
 })
