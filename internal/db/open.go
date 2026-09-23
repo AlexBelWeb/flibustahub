@@ -93,16 +93,11 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 	}
 
 	dsn := fileDSN(opt.Path)
-	write, err := sqlOpen(dsn)
+	write, read, err := openPools(ctx, dsn)
 	if err != nil {
 		return nil, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
 	}
 	configurePool(write, writeMaxOpen)
-	read, err := sqlOpen(dsn)
-	if err != nil {
-		_ = write.Close()
-		return nil, apperr.Wrap(apperr.CodeDBOpenFailed, err, nil)
-	}
 	configurePool(read, readMaxOpen)
 
 	d := &DB{
@@ -128,12 +123,48 @@ func Open(ctx context.Context, opt Options) (*DB, error) {
 	return d, nil
 }
 
-func sqlOpen(dsn string) (*sql.DB, error) {
+func openPools(ctx context.Context, dsn string) (*sql.DB, *sql.DB, error) {
+	var write, read *sql.DB
+	err := retryTransient(ctx, transientOpenBudget, transientLockIO, func() error {
+		if write != nil {
+			_ = write.Close()
+			write = nil
+		}
+		if read != nil {
+			_ = read.Close()
+			read = nil
+		}
+		var openErr error
+		write, openErr = sqlOpenOnce(ctx, dsn)
+		if openErr != nil {
+			return openErr
+		}
+		read, openErr = sqlOpenOnce(ctx, dsn)
+		if openErr != nil {
+			_ = write.Close()
+			write = nil
+			return openErr
+		}
+		return nil
+	})
+	if err != nil {
+		if write != nil {
+			_ = write.Close()
+		}
+		if read != nil {
+			_ = read.Close()
+		}
+		return nil, nil, err
+	}
+	return write, read, nil
+}
+
+func sqlOpenOnce(ctx context.Context, dsn string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Ping(); err != nil {
+	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		return nil, err
 	}

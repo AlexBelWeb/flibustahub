@@ -82,10 +82,12 @@ Conventions:
 - The book panel and page put the annotation above editions and the note; rating and want-to-read sit on one row under the actions, without a Rating heading. An empty note collapses to “Add a note”.
 - The sidebar eases between the full column and the icon column.
 - A book’s series is its own line under the cover, with the number from the catalog. Genres stay as separate tags. A series number of 0 is left off: in the catalog that value means the number is missing.
+- If another copy is running but does not answer and does not release the catalog, startup shows a screen with Retry instead of an empty window.
 - Author, genre and series filters can be cleared. An empty filter reads as “any”, and a value that cannot be read stays visible so the list does not look unfiltered.
 
 ### Fixed
 
+- Right after the application is forced to quit, a brief database lock on the next start is retried before a disk error is shown.
 - The dimmed backdrop fades out with the panel. It no longer disappears in one step after the panel has already left.
 - The home hero no longer shows an empty strip with a cropped cover.
 - If the data folder already contains a catalog created by another program, this is stated plainly: the file is neither opened nor converted.

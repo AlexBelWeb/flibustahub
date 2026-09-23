@@ -651,7 +651,7 @@ func TestBackupVacuumAndRetention(t *testing.T) {
 		t.Fatalf("kept %d backups, want 3: %v", len(matches), matches)
 	}
 	latest := files[len(files)-1]
-	snap, err := sqlOpen(fileDSN(latest))
+	snap, err := sqlOpenOnce(context.Background(), fileDSN(latest))
 	if err != nil {
 		t.Fatal(err)
 	}

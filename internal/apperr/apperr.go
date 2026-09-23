@@ -17,6 +17,7 @@ const (
 	CodeInvalidEffects        = "invalid_visual_effects"
 	CodeHTTPPortInUse         = "http_port_in_use"
 	CodeDBOpenFailed          = "db_open_failed"
+	CodeInstanceRunning       = "instance_already_running"
 	CodeDBMigrateFailed       = "db_migrate_failed"
 	CodeDBIncompatible        = "db_incompatible"
 	CodeDBBackupFailed        = "db_backup_failed"

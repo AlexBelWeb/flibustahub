@@ -25,23 +25,25 @@ import (
 
 // Service owns bootstrap state that is not tied to a UI toolkit.
 type Service struct {
-	cfg       *config.Store
-	log       *slog.Logger
-	version   string
-	commit    string
-	built     string
-	catalog   *db.DB
-	importer  *inpximport.Service
-	covers    *covers.Service
-	downloads *downloads.Service
-	storage   *storage.Service
-	secrets   *secrets.Service
-	maint     *maintenance.Service
-	diag      *diagnostics.Service
-	coverEmit func(covers.Progress)
-	storeEmit func(storage.Snapshot)
-	httpAddr  string
-	startErr  error
+	cfg             *config.Store
+	log             *slog.Logger
+	version         string
+	commit          string
+	built           string
+	catalog         *db.DB
+	importer        *inpximport.Service
+	covers          *covers.Service
+	downloads       *downloads.Service
+	storage         *storage.Service
+	secrets         *secrets.Service
+	maint           *maintenance.Service
+	diag            *diagnostics.Service
+	coverEmit       func(covers.Progress)
+	storeEmit       func(storage.Snapshot)
+	httpAddr        string
+	startErr        error
+	instanceRelease func()
+	instanceFocus   func()
 
 	importMu     sync.Mutex
 	importing    bool
@@ -79,6 +81,65 @@ func New(cfg *config.Store, log *slog.Logger, version, commit, built string) *Se
 		Log:     s.Logger(),
 	})
 	return s
+}
+
+// SetInstanceFocus is called when a second launch asks this process to come forward.
+func (s *Service) SetInstanceFocus(fn func()) {
+	s.openMu.Lock()
+	s.instanceFocus = fn
+	s.openMu.Unlock()
+}
+
+// BindInstance keeps the process lock so Shutdown can release it.
+func (s *Service) BindInstance(release func()) {
+	if release == nil {
+		return
+	}
+	s.openMu.Lock()
+	s.instanceRelease = release
+	s.openMu.Unlock()
+}
+
+// claimInstance takes the process lock if this process does not hold it yet.
+func (s *Service) claimInstance(wait time.Duration) bool {
+	s.openMu.Lock()
+	if s.instanceRelease != nil {
+		s.openMu.Unlock()
+		return true
+	}
+	dataDir := ""
+	focus := s.instanceFocus
+	if s.cfg != nil {
+		dataDir = s.cfg.Live().DataDir
+	}
+	s.openMu.Unlock()
+	kind, release, err := platform.DecideStart(
+		func() (func(), bool, error) { return platform.AcquireInstance(dataDir) },
+		func(timeout time.Duration) bool { return platform.SignalFocus(dataDir, timeout) },
+		func(cb func()) (func(), error) { return platform.ListenFocus(dataDir, cb) },
+		focus,
+		platform.FocusSignalTimeout,
+		wait,
+	)
+	if err != nil {
+		s.Logger().Error("instance lock failed", "err", err)
+	}
+	if kind != platform.StartPrimary {
+		return false
+	}
+	s.BindInstance(release)
+	return true
+}
+
+// ReleaseInstance drops the process lock. Safe to call more than once.
+func (s *Service) ReleaseInstance() {
+	s.openMu.Lock()
+	release := s.instanceRelease
+	s.instanceRelease = nil
+	s.openMu.Unlock()
+	if release != nil {
+		release()
+	}
 }
 
 // AttachCatalog stores the catalog handle and a startup error from config or DB.
@@ -412,6 +473,11 @@ func (s *Service) RetryStartup() Bootstrap {
 		s.closeCatalogLocked(shutdownBudget)
 		s.startErr = cfgErr
 		s.openMu.Unlock()
+		s.endOpening()
+		return s.Bootstrap()
+	}
+	if s.Catalog() == nil && !s.claimInstance(2*time.Second) {
+		s.SetStartupError(apperr.New(apperr.CodeInstanceRunning, nil))
 		s.endOpening()
 		return s.Bootstrap()
 	}

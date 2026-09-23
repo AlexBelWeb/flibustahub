@@ -39,7 +39,11 @@ func (s *Service) Shutdown(stopHTTP func(context.Context) error) {
 				s.Logger().Warn("shutdown timed out", "task", "http", "err", err)
 			}
 		}
+		// The lock guards the catalog. Drop it as soon as the file is closed,
+		// not when the process exits: first the focus channel, then the lock
+		// (ReleaseInstance). A restart in this window can take both.
 		s.closeCatalogUntil(deadline)
+		s.ReleaseInstance()
 	})
 }
 

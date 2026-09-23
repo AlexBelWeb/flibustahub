@@ -3,9 +3,6 @@
 package platform
 
 import (
-	"crypto/sha256"
-	"fmt"
-	"path/filepath"
 	"syscall"
 	"unsafe"
 )
@@ -36,6 +33,5 @@ func acquireInstance(dataDir string) (func(), bool, error) {
 }
 
 func instanceMutexName(dataDir string) string {
-	sum := sha256.Sum256([]byte(filepath.Clean(dataDir)))
-	return fmt.Sprintf(`Local\FlibustaHub-%x`, sum[:8])
+	return `Local\FlibustaHub-` + instanceKey(dataDir)
 }

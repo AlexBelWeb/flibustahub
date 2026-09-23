@@ -19,6 +19,8 @@ export function errorMessage(code: string, params: Record<string, string> = {}) 
       return String(t('errors.http_port_in_use', params))
     case 'db_open_failed':
       return String(t('errors.db_open_failed', params))
+    case 'instance_already_running':
+      return String(t('errors.instance_already_running', params))
     case 'db_migrate_failed':
       return String(t('errors.db_migrate_failed', params))
     case 'db_incompatible':
