@@ -289,17 +289,19 @@ func closePoolUntil(pool *sql.DB, log *slog.Logger, task string, deadline time.T
 	if pool == nil {
 		return nil
 	}
+	// database/sql.Close returns after closing idle connections. A connection
+	// that is still checked out keeps the file open until it is returned, so
+	// a nil error from Close is not yet a confirmed close.
 	done := make(chan error, 1)
 	go func() { done <- pool.Close() }()
 	timer := time.NewTimer(remaining(deadline))
 	defer timer.Stop()
+	var closeErr error
 	select {
-	case err := <-done:
-		return err
+	case closeErr = <-done:
 	case <-timer.C:
 		select {
-		case err := <-done:
-			return err
+		case closeErr = <-done:
 		default:
 			if log != nil {
 				log.Warn("shutdown timed out", "task", task)
@@ -307,6 +309,24 @@ func closePoolUntil(pool *sql.DB, log *slog.Logger, task string, deadline time.T
 			return ErrPoolCloseTimeout
 		}
 	}
+	if closeErr != nil {
+		return closeErr
+	}
+	for pool.Stats().InUse > 0 {
+		left := remaining(deadline)
+		if left == 0 {
+			if log != nil {
+				log.Warn("shutdown timed out", "task", task)
+			}
+			return ErrPoolCloseTimeout
+		}
+		step := left
+		if step > 10*time.Millisecond {
+			step = 10 * time.Millisecond
+		}
+		time.Sleep(step)
+	}
+	return nil
 }
 
 // Path is the catalog file path.
