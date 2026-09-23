@@ -199,15 +199,15 @@ watch(
         <section class="grid min-w-0 gap-4 sm:grid-cols-2 md:grid-cols-4">
           <Card class="p-6 backdrop-panel">
             <p class="text-sm text-muted-foreground">{{ t('home.books') }}</p>
-            <p class="mt-2 font-display text-4xl tabular-nums">{{ books }}</p>
+            <p class="mt-2 text-4xl font-semibold tabular-nums">{{ books }}</p>
           </Card>
           <Card class="p-6 backdrop-panel">
             <p class="text-sm text-muted-foreground">{{ t('home.authors') }}</p>
-            <p class="mt-2 font-display text-4xl tabular-nums">{{ authors }}</p>
+            <p class="mt-2 text-4xl font-semibold tabular-nums">{{ authors }}</p>
           </Card>
           <Card class="p-6 backdrop-panel">
             <p class="text-sm text-muted-foreground">{{ t('home.series') }}</p>
-            <p class="mt-2 font-display text-4xl tabular-nums">{{ series }}</p>
+            <p class="mt-2 text-4xl font-semibold tabular-nums">{{ series }}</p>
           </Card>
           <Card class="min-w-0 p-6 backdrop-panel">
             <p class="text-sm text-muted-foreground">{{ t('home.lastImport') }}</p>
@@ -216,13 +216,13 @@ watch(
                 <div class="mt-2 grid min-w-0 gap-2">
                   <p
                     v-if="importWhen"
-                    class="font-display text-2xl leading-none tabular-nums tracking-tight"
+                    class="text-2xl leading-none font-semibold tabular-nums tracking-tight"
                   >
                     {{ importWhen }}
                   </p>
                   <p
                     v-if="importVersion"
-                    class="font-display text-2xl leading-none tabular-nums tracking-tight"
+                    class="text-2xl leading-none font-semibold tabular-nums tracking-tight"
                   >
                     {{ importVersion }}
                   </p>
@@ -251,10 +251,7 @@ watch(
             :key="work.id"
             class="flex basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
           >
-            <WorkCard
-              :work="work"
-              class="motion-fast h-full w-full flex-1 transition-transform hover:-translate-y-0.5"
-            />
+            <WorkCard :work="work" class="h-full w-full flex-1" />
           </CarouselItem>
         </HomeCarousel>
 
@@ -272,10 +269,7 @@ watch(
             :key="work.id"
             class="flex basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
           >
-            <WorkCard
-              :work="work"
-              class="motion-fast h-full w-full flex-1 transition-transform hover:-translate-y-0.5"
-            />
+            <WorkCard :work="work" class="h-full w-full flex-1" />
           </CarouselItem>
         </HomeCarousel>
       </div>

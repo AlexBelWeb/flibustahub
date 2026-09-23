@@ -34,8 +34,8 @@ function chooseDump() {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('import.title') }}</h2>
+  <section class="elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('import.title') }}</h2>
 
     <div v-if="imp.cardLoading" class="mt-4 grid min-h-56 gap-3" aria-busy="true">
       <Skeleton class="h-6 w-1/3" />
@@ -111,9 +111,9 @@ function chooseDump() {
     <AlertDialogPortal>
       <AlertDialogOverlay class="fixed inset-0 z-[70] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[70] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[70] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
-        <AlertDialogTitle class="font-display text-xl font-semibold">
+        <AlertDialogTitle class="type-section">
           {{ t('import.confirmTitle') }}
         </AlertDialogTitle>
         <AlertDialogDescription class="mt-3 grid gap-2 text-sm text-muted-foreground">

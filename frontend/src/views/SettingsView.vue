@@ -85,7 +85,7 @@ function go(value: unknown) {
   >
     <header class="shrink-0">
       <p class="text-sm text-muted-foreground">{{ t('settings.title') }}</p>
-      <h1 class="font-display text-3xl font-semibold">{{ sectionTitle }}</h1>
+      <h1 class="type-page">{{ sectionTitle }}</h1>
       <div v-if="app.narrow" class="mt-4 max-w-md">
         <Select :model-value="section" @update:model-value="go">
           <SelectTrigger :aria-label="t('settings.navLabel')">

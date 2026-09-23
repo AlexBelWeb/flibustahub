@@ -59,7 +59,7 @@ onMounted(() => {
       <template v-if="series">
         <header class="mb-4">
           <p class="text-sm text-muted-foreground">{{ t('catalog.series') }}</p>
-          <h1 class="font-display text-3xl font-semibold">{{ series.name }}</h1>
+          <h1 class="type-page">{{ series.name }}</h1>
           <p class="mt-1 text-sm tabular-nums text-muted-foreground">
             {{ t('series.works', series.workCount, { n: series.workCount }) }}
           </p>

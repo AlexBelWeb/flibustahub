@@ -160,8 +160,8 @@ function noteField(field: string) {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.personal.title') }}</h2>
+  <section class="elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.personal.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.personal.lead') }}</p>
 
     <div v-if="personal.snapshotStatus === 'loading'" class="mt-4 grid gap-2" aria-busy="true">
@@ -287,7 +287,7 @@ function noteField(field: string) {
     <AlertDialogPortal>
       <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[91] w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[91] w-[min(28rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           t('settings.personal.confirmTitle')

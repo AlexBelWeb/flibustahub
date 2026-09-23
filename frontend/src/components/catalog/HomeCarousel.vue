@@ -23,7 +23,7 @@ const { t } = useI18n()
 <template>
   <section class="grid min-w-0 gap-4">
     <div class="flex flex-wrap items-baseline justify-between gap-3">
-      <h2 class="font-display text-2xl font-semibold">{{ title }}</h2>
+      <h2 class="type-section">{{ title }}</h2>
       <RouterLink :to="moreTo" class="text-sm underline-offset-4 hover:underline">
         {{ moreLabel }}
       </RouterLink>
@@ -39,7 +39,7 @@ const { t } = useI18n()
         <CarouselPrevious class="static top-auto left-auto shrink-0 translate-y-0">
           <span class="sr-only">{{ t('home.carouselPrev') }}</span>
         </CarouselPrevious>
-        <CarouselContent class="w-auto min-w-0 flex-1">
+        <CarouselContent class="w-auto min-w-0 flex-1 py-6">
           <slot />
         </CarouselContent>
         <CarouselNext class="static top-auto right-auto shrink-0 translate-y-0">

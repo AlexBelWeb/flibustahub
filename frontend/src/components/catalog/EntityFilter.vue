@@ -215,7 +215,7 @@ onUnmounted(() => {
       </p>
       <ComboboxContent
         position="popper"
-        class="motion-pop z-50 max-h-72 w-(--reka-popper-anchor-width) overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+        class="motion-pop elevate-raised z-50 max-h-72 w-(--reka-popper-anchor-width) overflow-auto rounded-md bg-popover p-1 text-popover-foreground"
       >
         <p v-if="status === 'loading'" class="px-2 py-1.5 text-sm text-muted-foreground">
           {{ t('common.loading') }}

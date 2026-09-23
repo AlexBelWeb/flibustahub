@@ -28,9 +28,9 @@ function onCloseDialog(open: boolean) {
     <AlertDialogPortal>
       <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
-        <AlertDialogTitle class="font-display text-xl font-semibold">
+        <AlertDialogTitle class="type-section">
           {{ t('settings.maintenance.closeTitle') }}
         </AlertDialogTitle>
         <AlertDialogDescription class="mt-3 text-sm text-muted-foreground">

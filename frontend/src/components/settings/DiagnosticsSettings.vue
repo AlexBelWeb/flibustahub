@@ -150,8 +150,8 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.diagnostics.title') }}</h2>
+  <section class="elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.diagnostics.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.diagnostics.lead') }}</p>
 
     <div v-if="status === 'loading' || status === 'idle'" class="mt-6 grid gap-3" aria-busy="true">

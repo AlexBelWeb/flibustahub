@@ -18,7 +18,7 @@ import { errorMessage } from '@/i18n/errors'
 import { parseBackendError } from '@/lib/backend-error'
 import { formatBytes, formatDate, formatFiles, languageName } from '@/lib/format'
 import { ratingFromShortcut } from '@/lib/rating'
-import { isBlankTitle, isUnknownAuthor, visibleSeriesNo } from '@/lib/work'
+import { coverTint, isBlankTitle, isUnknownAuthor, visibleSeriesNo } from '@/lib/work'
 import type { ListStatus } from '@/stores/catalog'
 import { usePersonalStore } from '@/stores/personal'
 import type { Author, WorkDetails, WorkEdition } from '@/types/catalog'
@@ -45,6 +45,9 @@ let loadGen = 0
 
 const title = computed(() =>
   details.value && !isBlankTitle(details.value.title) ? details.value.title : t('catalog.untitled'),
+)
+const tint = computed(() =>
+  details.value ? coverTint(details.value.workKey || String(details.value.id)) : 'transparent',
 )
 const preferredId = computed(() => {
   const work = details.value
@@ -281,10 +284,11 @@ watch(
     >
       <header
         v-if="drawer"
-        class="flex shrink-0 items-start gap-4 border-b border-border bg-background px-6 py-4"
+        class="flex shrink-0 items-start gap-4 px-6 py-4"
+        :style="{ background: tint }"
       >
         <div class="grid min-w-0 flex-1 gap-2">
-          <h1 class="font-display text-2xl font-semibold">{{ title }}</h1>
+          <h1 class="type-hero">{{ title }}</h1>
           <p v-if="namedAuthors.length === 0" class="text-muted-foreground">
             {{ t('catalog.unknownAuthor') }}
           </p>
@@ -329,8 +333,12 @@ watch(
             : 'grid gap-6 content-start'
         "
       >
-        <header v-if="!drawer" class="grid gap-2">
-          <h1 class="font-display text-3xl font-semibold sm:text-4xl">{{ title }}</h1>
+        <header
+          v-if="!drawer"
+          class="grid gap-2 rounded-lg px-4 py-3"
+          :style="{ background: tint }"
+        >
+          <h1 class="type-page">{{ title }}</h1>
           <p v-if="namedAuthors.length === 0" class="text-lg text-muted-foreground">
             {{ t('catalog.unknownAuthor') }}
           </p>

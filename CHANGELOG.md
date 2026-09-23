@@ -82,6 +82,8 @@ Conventions:
 - The book panel and page put the annotation above editions and the note; rating and want-to-read sit on one row under the actions, without a Rating heading. An empty note collapses to “Add a note”.
 - The sidebar eases between the full column and the icon column.
 - A book’s series is its own line under the cover, with the number from the catalog. Genres stay as separate tags. A series number of 0 is left off: in the catalog that value means the number is missing.
+- Cards, menus and dialogs are set off by a shadow. With visual effects off, a fine edge takes the shadow’s place so those surfaces do not blend together.
+- A book’s own color tints the title in the panel and on the book page. Pointing at a card lifts it.
 - If another copy is running but does not answer and does not release the catalog, startup shows a screen with Retry instead of an empty window.
 - Author, genre and series filters can be cleared. An empty filter reads as “any”, and a value that cannot be read stays visible so the list does not look unfiltered.
 

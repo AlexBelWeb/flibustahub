@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { Progress } from '@/components/ui/progress'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 const { t } = useI18n()
 </script>
@@ -13,7 +13,7 @@ const { t } = useI18n()
   >
     <Card class="p-0">
       <CardHeader class="p-8 pb-0">
-        <CardTitle class="font-display text-3xl">{{ t('startup.updatingTitle') }}</CardTitle>
+        <h2 class="type-page">{{ t('startup.updatingTitle') }}</h2>
       </CardHeader>
       <CardContent class="p-8 pt-3">
         <p class="text-muted-foreground">{{ t('startup.updatingLead') }}</p>

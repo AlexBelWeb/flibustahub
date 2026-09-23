@@ -57,3 +57,13 @@ export function coverHue(workKey: string): number {
   }
   return COVER_HUES[hash % COVER_HUES.length]
 }
+
+export function coverWash(workKey: string): string {
+  const hue = coverHue(workKey)
+  return `linear-gradient(105deg, hsl(${hue} 32% var(--cover-l, 42%) / 0.28) 0%, transparent 62%)`
+}
+
+export function coverTint(workKey: string): string {
+  const hue = coverHue(workKey)
+  return `hsl(${hue} 32% var(--cover-l, 42%) / 0.16)`
+}

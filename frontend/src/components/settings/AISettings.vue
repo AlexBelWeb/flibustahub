@@ -116,8 +116,8 @@ const canSave = computed(
 </script>
 
 <template>
-  <section class="rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.ai.title') }}</h2>
+  <section class="elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.ai.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.ai.lead') }}</p>
 
     <div

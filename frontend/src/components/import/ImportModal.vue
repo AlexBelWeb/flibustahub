@@ -83,13 +83,13 @@ function onCloseDialog(open: boolean) {
     <DialogPortal>
       <DialogOverlay class="fixed inset-0 z-[60] bg-scrim" />
       <DialogContent
-        class="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(40rem,calc(100vh-2rem))] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(40rem,calc(100vh-2rem))] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl dialog-surface p-6"
         @escape-key-down="onEscape"
         @pointer-down-outside="onInteractOutside"
         @focus-outside="onInteractOutside"
       >
         <template v-if="imp.modalStage === 'progress'">
-          <DialogTitle class="font-display text-2xl font-semibold">
+          <DialogTitle class="type-section">
             {{ t('import.runningTitle') }}
           </DialogTitle>
           <DialogDescription class="mt-2 text-muted-foreground">
@@ -145,7 +145,7 @@ function onCloseDialog(open: boolean) {
         </template>
 
         <template v-else>
-          <DialogTitle class="font-display text-2xl font-semibold">
+          <DialogTitle class="type-section">
             {{ t('import.reportTitle') }}
           </DialogTitle>
           <DialogDescription class="sr-only">
@@ -167,9 +167,9 @@ function onCloseDialog(open: boolean) {
     <AlertDialogPortal>
       <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
-        <AlertDialogTitle class="font-display text-xl font-semibold">
+        <AlertDialogTitle class="type-section">
           {{ t('import.cancelTitle') }}
         </AlertDialogTitle>
         <AlertDialogDescription class="mt-3 text-sm text-muted-foreground">
@@ -191,9 +191,9 @@ function onCloseDialog(open: boolean) {
     <AlertDialogPortal>
       <AlertDialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[80] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
-        <AlertDialogTitle class="font-display text-xl font-semibold">
+        <AlertDialogTitle class="type-section">
           {{ imp.closeCommitted ? t('import.closeAfterTitle') : t('import.closeBeforeTitle') }}
         </AlertDialogTitle>
         <AlertDialogDescription class="mt-3 text-sm text-muted-foreground">

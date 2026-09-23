@@ -211,7 +211,7 @@ watch(
     <DialogPortal>
       <DialogOverlay class="fixed inset-0 z-[80] bg-scrim" />
       <DialogContent
-        class="fixed top-[12%] left-1/2 z-[80] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl dialog-surface border border-border p-0"
+        class="fixed top-[12%] left-1/2 z-[80] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl dialog-surface p-0"
       >
         <DialogTitle class="sr-only">{{ t('palette.title') }}</DialogTitle>
         <Command ref="commandRef" :ignore-filter="true" :open="true" @update:open="onComboboxOpen">
@@ -351,7 +351,7 @@ watch(
     <AlertDialogPortal>
       <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           t('palette.clearHistoryTitle')

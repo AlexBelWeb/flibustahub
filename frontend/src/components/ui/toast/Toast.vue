@@ -15,7 +15,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     v-bind="forwarded"
     :class="
       cn(
-        'motion-pop pointer-events-auto relative rounded-xl border border-border bg-card px-4 py-3 text-sm text-card-foreground shadow-lg',
+        'motion-pop elevate-raised pointer-events-auto relative rounded-xl bg-card px-4 py-3 text-sm text-card-foreground',
         props.class,
       )
     "

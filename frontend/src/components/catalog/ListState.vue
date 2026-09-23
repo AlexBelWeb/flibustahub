@@ -24,13 +24,13 @@ const emit = defineEmits<{
       <Skeleton class="h-40 rounded-xl" />
       <Skeleton class="h-40 rounded-xl" />
     </div>
-    <div v-else-if="status === 'error'" class="rounded-2xl border border-border bg-card p-6">
+    <div v-else-if="status === 'error'" class="elevate rounded-2xl bg-card p-6">
       <p class="mb-4 text-destructive">{{ errorText }}</p>
       <Button @click="emit('retry')">{{ $t('common.retry') }}</Button>
     </div>
     <div
       v-else-if="status === 'empty' || status === 'missing'"
-      class="rounded-2xl border border-border bg-card p-6"
+      class="elevate rounded-2xl bg-card p-6"
     >
       <p>{{ emptyText }}</p>
       <slot name="empty" />

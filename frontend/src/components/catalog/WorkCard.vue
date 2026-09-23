@@ -59,7 +59,10 @@ async function onWant(value: boolean) {
 <template>
   <article
     :class="
-      cn('elevate flex h-full flex-col overflow-hidden rounded-xl bg-card text-left', props.class)
+      cn(
+        'elevate relative flex h-full flex-col overflow-hidden rounded-xl bg-card text-left motion-fast transition-transform hover:-translate-y-1',
+        props.class,
+      )
     "
   >
     <RouterLink

@@ -75,8 +75,8 @@ async function clearCache() {
 </script>
 
 <template>
-  <section class="mt-8 rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.covers.title') }}</h2>
+  <section class="mt-8 elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.covers.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.covers.lead') }}</p>
 
     <div v-if="previewStatus === 'loading'" class="mt-4" aria-busy="true">
@@ -124,7 +124,7 @@ async function clearCache() {
     <AlertDialogPortal>
       <AlertDialogOverlay class="fixed inset-0 z-[90] bg-scrim" />
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface border border-border p-6"
+        class="fixed top-1/2 left-1/2 z-[90] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl dialog-surface p-6"
       >
         <AlertDialogTitle class="font-display text-lg">{{
           t('settings.covers.clearTitle')

@@ -37,7 +37,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <DialogContent
       v-bind="{ ...forwarded, ...$attrs }"
       :data-side="props.side"
-      :class="cn('motion-sheet', sheetVariants({ side: props.side }), props.class)"
+      :class="cn('motion-sheet sheet-edge', sheetVariants({ side: props.side }), props.class)"
     >
       <slot />
       <DialogClose

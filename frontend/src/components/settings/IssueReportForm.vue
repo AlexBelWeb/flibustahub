@@ -125,8 +125,8 @@ async function attachArchive() {
 </script>
 
 <template>
-  <section class="mt-8 rounded-2xl border border-border bg-card/80 p-6 backdrop-panel">
-    <h2 class="font-display text-xl font-medium">{{ t('settings.issue.title') }}</h2>
+  <section class="mt-8 elevate rounded-2xl bg-card/80 p-6 backdrop-panel">
+    <h2 class="type-section">{{ t('settings.issue.title') }}</h2>
     <p class="mt-2 text-sm text-muted-foreground">{{ t('settings.issue.lead') }}</p>
 
     <div class="mt-5 grid gap-2">
