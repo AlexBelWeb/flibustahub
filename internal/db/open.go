@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -23,6 +24,10 @@ const (
 	waitIndexRecovery = 3 * time.Second
 	waitPoolClose     = 3 * time.Second
 )
+
+// ErrPoolCloseTimeout means pool.Close is still running after the wait budget.
+// The caller must not treat the catalog as closed: a connection is still held.
+var ErrPoolCloseTimeout = errors.New("database pool close timed out")
 
 func remaining(deadline time.Time) time.Duration {
 	d := time.Until(deadline)
@@ -45,6 +50,7 @@ type DB struct {
 
 	mu            sync.Mutex
 	closed        bool
+	closeErr      error
 	recovering    bool
 	recoverErr    error
 	recoverCancel context.CancelFunc
@@ -230,8 +236,9 @@ func (d *DB) CloseWithin(budget time.Duration) error {
 	}
 	d.mu.Lock()
 	if d.closed {
+		err := d.closeErr
 		d.mu.Unlock()
-		return nil
+		return err
 	}
 	d.closed = true
 	idle := d.idle
@@ -258,6 +265,9 @@ func (d *DB) CloseWithin(budget time.Duration) error {
 			first = err
 		}
 	}
+	d.mu.Lock()
+	d.closeErr = first
+	d.mu.Unlock()
 	return first
 }
 
@@ -294,7 +304,7 @@ func closePoolUntil(pool *sql.DB, log *slog.Logger, task string, deadline time.T
 			if log != nil {
 				log.Warn("shutdown timed out", "task", task)
 			}
-			return nil
+			return ErrPoolCloseTimeout
 		}
 	}
 }

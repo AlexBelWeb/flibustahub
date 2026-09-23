@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"path/filepath"
-	"sync"
 	"time"
 )
 
@@ -49,20 +48,20 @@ func DecideStart(
 	listen func(onFocus func()) (stop func(), err error),
 	onFocus func(),
 	signalTimeout, claimWait time.Duration,
-) (kind StartKind, release func(), err error) {
+) (kind StartKind, hold InstanceHold, err error) {
 	unlock, primary, err := try()
 	if err != nil {
 		if unlock != nil {
 			unlock()
 		}
-		return StartPrimary, func() {}, err
+		return StartPrimary, InstanceHold{}, err
 	}
 	if primary {
-		release, err = becomePrimary(unlock, listen, onFocus)
-		return StartPrimary, release, err
+		hold, err = becomePrimary(unlock, listen, onFocus)
+		return StartPrimary, hold, err
 	}
 	if signal != nil && signal(signalTimeout) {
-		return StartExit, func() {}, nil
+		return StartExit, InstanceHold{}, nil
 	}
 	deadline := time.Now().Add(claimWait)
 	for {
@@ -71,45 +70,66 @@ func DecideStart(
 			if unlock != nil {
 				unlock()
 			}
-			return StartPrimary, func() {}, err
+			return StartPrimary, InstanceHold{}, err
 		}
 		if primary {
-			release, err = becomePrimary(unlock, listen, onFocus)
-			return StartPrimary, release, err
+			hold, err = becomePrimary(unlock, listen, onFocus)
+			return StartPrimary, hold, err
 		}
 		if !time.Now().Before(deadline) {
-			return StartBlocked, func() {}, nil
+			return StartBlocked, InstanceHold{}, nil
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
 }
 
-// becomePrimary starts the focus channel and returns a release that stops the
-// channel before it drops the lock. The next process must not observe a live
-// channel belonging to a process that no longer holds the lock.
-func becomePrimary(unlock func(), listen func(func()) (func(), error), onFocus func()) (func(), error) {
+// InstanceHold is the primary process's lock and focus channel.
+// StopFocus and Unlock answer different questions and are released at different
+// times: the channel goes down when the process can no longer show a window,
+// the lock stays until the catalog file is closed. Release does both, channel
+// first, for a process-exit backstop.
+type InstanceHold struct {
+	StopFocus func()
+	Unlock    func()
+}
+
+// Release stops the focus channel and then drops the lock. Both parts are
+// safe to call on their own before this.
+func (h InstanceHold) Release() {
+	if h.StopFocus != nil {
+		h.StopFocus()
+	}
+	if h.Unlock != nil {
+		h.Unlock()
+	}
+}
+
+// FocusListenError means this process holds the lock but could not start the
+// focus channel. The process still starts; the next launch cannot focus it.
+type FocusListenError struct{ Err error }
+
+func (e *FocusListenError) Error() string {
+	if e == nil || e.Err == nil {
+		return "focus channel did not start"
+	}
+	return e.Err.Error()
+}
+
+func (e *FocusListenError) Unwrap() error { return e.Err }
+
+// becomePrimary starts the focus channel. A listen failure still returns the
+// lock so the caller remains the primary process.
+func becomePrimary(unlock func(), listen func(func()) (func(), error), onFocus func()) (InstanceHold, error) {
+	hold := InstanceHold{Unlock: unlock}
 	if listen == nil {
-		return unlock, nil
+		return hold, nil
 	}
 	stop, err := listen(onFocus)
 	if err != nil {
-		return unlock, err
+		return hold, &FocusListenError{Err: err}
 	}
-	return composeRelease(stop, unlock), nil
-}
-
-func composeRelease(stop, unlock func()) func() {
-	var once sync.Once
-	return func() {
-		once.Do(func() {
-			if stop != nil {
-				stop()
-			}
-			if unlock != nil {
-				unlock()
-			}
-		})
-	}
+	hold.StopFocus = stop
+	return hold, nil
 }
 
 func instanceKey(dataDir string) string {

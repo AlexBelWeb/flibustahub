@@ -17,10 +17,15 @@ func remaining(deadline time.Time) time.Duration {
 
 // Shutdown cancels in-flight work, waits with a shared budget, stops HTTP, then
 // closes the catalog. It is safe to call more than once and from more than one
-// exit path.
+// exit path. The focus channel is stopped first: this process will not show its
+// window again, so a relaunch must not treat the acknowledgement as "already running".
+// The lock stays until the catalog file is closed. A close that only times
+// out does not drop the lock: the process exit releases it together with
+// the database descriptors.
 func (s *Service) Shutdown(stopHTTP func(context.Context) error) {
 	s.shutdownOnce.Do(func() {
-		deadline := time.Now().Add(shutdownBudget)
+		s.stopInstanceFocus()
+		deadline := time.Now().Add(s.stopBudget)
 		s.beginShutdown()
 		s.CancelImport()
 		s.CancelMaintenance()
@@ -39,11 +44,13 @@ func (s *Service) Shutdown(stopHTTP func(context.Context) error) {
 				s.Logger().Warn("shutdown timed out", "task", "http", "err", err)
 			}
 		}
-		// The lock guards the catalog. Drop it as soon as the file is closed,
-		// not when the process exits: first the focus channel, then the lock
-		// (ReleaseInstance). A restart in this window can take both.
-		s.closeCatalogUntil(deadline)
-		s.ReleaseInstance()
+		// The lock guards the catalog. Drop it only after a confirmed close.
+		// The focus channel was stopped at the start of this function.
+		if err := s.closeCatalogUntil(deadline); err != nil {
+			s.Logger().Warn("catalog close did not finish; instance lock held until exit", "err", err)
+			return
+		}
+		s.unlockInstance()
 	})
 }
 
@@ -85,10 +92,10 @@ func (s *Service) waitCoversUntil(deadline time.Time) {
 	c.Wait(remaining(deadline))
 }
 
-func (s *Service) closeCatalogUntil(deadline time.Time) {
+func (s *Service) closeCatalogUntil(deadline time.Time) error {
 	s.openMu.Lock()
 	defer s.openMu.Unlock()
-	s.closeCatalogLocked(remaining(deadline))
+	return s.closeCatalogLocked(remaining(deadline))
 }
 
 func (s *Service) isOpening() bool {

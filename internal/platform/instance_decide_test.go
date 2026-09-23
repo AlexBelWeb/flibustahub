@@ -7,7 +7,7 @@ import (
 
 func TestDecideStartExitsWhenHolderAcks(t *testing.T) {
 	listened := 0
-	kind, release, err := DecideStart(
+	kind, hold, err := DecideStart(
 		func() (func(), bool, error) { return func() {}, false, nil },
 		func(time.Duration) bool { return true },
 		func(func()) (func(), error) {
@@ -27,13 +27,13 @@ func TestDecideStartExitsWhenHolderAcks(t *testing.T) {
 	if listened != 0 {
 		t.Fatal("an acknowledging holder must not start a focus channel here")
 	}
-	release()
+	hold.Release()
 }
 
 func TestDecideStartBecomesPrimaryWithChannelWhenLockFrees(t *testing.T) {
 	calls := 0
 	var order []string
-	kind, release, err := DecideStart(
+	kind, hold, err := DecideStart(
 		func() (func(), bool, error) {
 			calls++
 			if calls < 3 {
@@ -55,7 +55,7 @@ func TestDecideStartBecomesPrimaryWithChannelWhenLockFrees(t *testing.T) {
 	if kind != StartPrimary {
 		t.Fatalf("kind = %v, want primary", kind)
 	}
-	release()
+	hold.Release()
 	if len(order) != 2 || order[0] != "channel" || order[1] != "lock" {
 		t.Fatalf("release order = %v, want channel then lock", order)
 	}

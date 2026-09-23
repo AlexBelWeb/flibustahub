@@ -90,6 +90,8 @@ Conventions:
 ### Fixed
 
 - Right after the application is forced to quit, a brief database lock on the next start is retried before a disk error is shown.
+- Closing the application and opening it again straight away no longer leaves nothing running. The new launch waits until the catalog is free, or offers Retry if shutdown is still in progress.
+- If the catalog is still closing when shutdown runs out of time, a new launch does not open the database until that process has exited.
 - The dimmed backdrop fades out with the panel. It no longer disappears in one step after the panel has already left.
 - The home hero no longer shows an empty strip with a cropped cover.
 - If the data folder already contains a catalog created by another program, this is stated plainly: the file is neither opened nor converted.

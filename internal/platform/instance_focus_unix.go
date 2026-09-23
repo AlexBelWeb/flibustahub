@@ -6,27 +6,27 @@ import (
 	"context"
 	"net"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 )
 
-// ListenFocus serves a unix socket in dataDir. The socket is removed before the
-// caller drops the lock, and a new holder binds its own. A file left by a killed
-// process is unlinked here: this function runs only while the lock is held.
+// ListenFocus serves the focus socket for dataDir. A filesystem socket left by
+// a killed holder is unlinked here: this runs only while the lock is held.
+// An abstract-namespace socket has no file to remove.
 func ListenFocus(dataDir string, onFocus func()) (func(), error) {
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
-		return func() {}, err
+	addr, file := focusAddr(dataDir)
+	if file {
+		if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
+			return func() {}, err
+		}
 	}
-	path := focusSocketPath(dataDir)
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		return func() {}, err
-	}
-	ln, err := net.Listen("unix", path)
+	ln, err := net.Listen("unix", addr)
 	if err != nil {
 		return func() {}, err
 	}
-	_ = os.Chmod(path, 0o600)
+	if file {
+		_ = os.Chmod(addr, 0o600)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -46,7 +46,9 @@ func ListenFocus(dataDir string, onFocus func()) (func(), error) {
 			cancel()
 			_ = ln.Close()
 			wg.Wait()
-			_ = os.Remove(path)
+			if file {
+				_ = os.Remove(addr)
+			}
 		})
 	}
 	return stop, nil
@@ -72,8 +74,9 @@ func SignalFocus(dataDir string, timeout time.Duration) bool {
 	if timeout <= 0 {
 		timeout = FocusSignalTimeout
 	}
+	addr, _ := focusAddr(dataDir)
 	dialer := net.Dialer{Timeout: timeout}
-	conn, err := dialer.Dial("unix", focusSocketPath(dataDir))
+	conn, err := dialer.Dial("unix", addr)
 	if err != nil {
 		return false
 	}
@@ -87,8 +90,4 @@ func SignalFocus(dataDir string, timeout time.Duration) bool {
 		return false
 	}
 	return buf[0] == 1
-}
-
-func focusSocketPath(dataDir string) string {
-	return filepath.Join(dataDir, "instance.focus.sock")
 }

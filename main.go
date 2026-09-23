@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"os"
 	"time"
@@ -61,7 +62,7 @@ func main() {
 	httpServer.SetCovers(svc)
 
 	svc.SetInstanceFocus(win.FocusExistingWindow)
-	kind, releaseInstance, lockErr := platform.DecideStart(
+	kind, hold, lockErr := platform.DecideStart(
 		func() (func(), bool, error) { return platform.AcquireInstance(paths.DataDir) },
 		func(timeout time.Duration) bool { return platform.SignalFocus(paths.DataDir, timeout) },
 		func(cb func()) (func(), error) { return platform.ListenFocus(paths.DataDir, cb) },
@@ -70,7 +71,12 @@ func main() {
 		platform.InstanceClaimWait,
 	)
 	if lockErr != nil {
-		logger.Error("instance lock failed", "err", lockErr)
+		var focus *platform.FocusListenError
+		if errors.As(lockErr, &focus) {
+			logger.Warn("focus channel did not start", "err", lockErr)
+		} else {
+			logger.Error("instance lock failed", "err", lockErr)
+		}
 	}
 	defer svc.ReleaseInstance()
 	if kind == platform.StartExit {
@@ -84,7 +90,7 @@ func main() {
 		logger.Info("another instance is running")
 		svc.AttachCatalog(nil, apperr.New(apperr.CodeInstanceRunning, nil))
 	} else {
-		svc.BindInstance(releaseInstance)
+		svc.BindInstance(hold)
 		logger.Info("starting", "version", version, "commit", commit, "buildDate", buildDate)
 		// First paint can show the migration splash before OnStartup calls Open.
 		// OpenCatalog re-checks the same path, including on RetryStartup.
